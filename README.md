@@ -1,0 +1,290 @@
+# intake-form-ai-pipeline
+
+> 🚧 **In active development.** Phase 1 of 10. Last updated 2026-05-06.
+
+## What this is
+
+A self-improving intake-form processing pipeline. Forms — healthcare patient intake, business invoices, contracts — come in as PDFs or page images; structured fields come out as validated JSON. A three-tier extraction cascade routes each field to the cheapest model that can confidently handle it, escalating to more capable models only when confidence is low. Reviewer corrections feed back into the alias table and a ColQwen 2.5 retrieval corpus, so subsequent extractions on similar documents land Tier 1 more often. F1 trends upward as corrections accumulate; cost per document trends downward.
+
+## Headline metric: F1-over-time
+
+<!-- F1 chart placeholder lives at docs/assets/f1-placeholder.svg until Phase 6 produces real eval data. Replace the image source with the live chart in Phase 10 polish. -->
+
+![F1-over-time placeholder — eval harness lands Phase 6](docs/assets/f1-placeholder.svg)
+
+The chart updates as eval batches run. Phase 6 produces the first real points; until then this is a placeholder.
+
+## Live demo
+
+*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *demo lands Phase 7. URL is reserved and DNS is configured; the cascade behind it is in development.*
+
+The deployed demo wakes Aurora Serverless v2 on request (~30-90 second cold start), shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
+
+## Architecture overview
+
+<!-- ARCHITECTURE_DIAGRAM: real diagram (likely Excalidraw export) lands in Phase 10 polish. Prose description below stands in for now. -->
+
+A document arrives at the S3 upload bucket. A two-stage classifier — vocabulary keyword match locally, Bedrock Nova Lite fallback for ambiguous documents — determines vertical (healthcare or business document) and form type. The classification picks the right Pydantic schema and seeds the cascade.
+
+Step Functions orchestrates the cascade: a Tier 1 extraction with PaddleOCR-VL (local on the RTX 4060 Ti during development, Novita-hosted in production), per-field confidence scoring against thresholds, then conditional escalation to Tier 2 (AWS Textract Regular Queries), Tier 3a (Qwen 2.5 VL — 32B local on the RTX 4080, 72B cloud via Together AI), and Tier 3b (Bedrock Claude Sonnet 4.6) for hard cases. Per-field thresholds at 0.85 / 0.80 / 0.75 govern escalation; ~90% of fields never leave Tier 1.
+
+Extracted fields are stored in Aurora Serverless v2 alongside the alias table and pgvector embeddings. The React review UI fetches low-confidence fields for human review; reviewer corrections write back to Aurora, update the alias table, and append to the ColQwen 2.5 retrieval corpus. The eval harness reads from a partitioned manifest (train/dev/test), computes F1, cost-per-document, and latency p50/p99, and publishes the F1-over-time chart that's the project's headline metric.
+
+## How it works
+
+A concrete example. A patient intake form arrives — a scanned CMS-1500 with mostly typed fields and one handwritten signature.
+
+**Stage 1: classification.** The vocabulary classifier scans the OCR text from the first page for healthcare-specific terms. Hits on "Patient ID," "MRN," "HIPAA," "Member ID" — confident healthcare classification, no need for the Nova Lite fallback. The router picks `HealthcareIntakeForm`. Total time: ~50 ms. Cost: $0.
+
+**Stage 2: Tier 1 extraction.** PaddleOCR-VL processes the page image and returns field-level extractions with bounding boxes and per-field confidence. First name 0.97. Last name 0.95. DOB 0.88. Phone 0.92. SSN 0.79. Most fields clear the 0.85 threshold and land Tier 1. SSN doesn't.
+
+**Stage 3: per-field escalation.** SSN escalates to Tier 2 (Textract Regular Queries). Textract's "What is the patient's social security number?" query against the SSN region returns "123-45-6789" at 0.93. Above threshold. Done.
+
+**Stage 4: confidence aggregation.** `compute_form_confidence` walks the populated fields and returns min/mean/blank/unattempted counts. Min 0.88 (DOB), mean 0.93. Form-level confidence is good; the form goes to the auto-approval queue, not the review queue.
+
+A second example. A multi-page commercial invoice arrives with three line items in a poorly-aligned table. Tier 1 extracts header fields confidently but the table escalates to Tier 3a (Qwen 2.5 VL — vision-capable, handles spatial layout). Qwen returns the line items at 0.82 confidence. Above the Tier 3a threshold (0.75). Done. The form's min confidence is 0.82 — borderline. It goes to the review queue with low-confidence fields highlighted.
+
+This is what cost-routing by capability buys you: ~90% of fields stay at Tier 1 and cost roughly $0.001 each; the few hard fields pay the higher Tier 3 cost. Single-model approaches at Bedrock Sonnet pricing would cost ~$300 per 1,000 documents at typical field densities; the cascade lands at ~$24.
+
+## Self-improvement mechanism
+
+When a reviewer corrects a field, three things happen. First, the corrected value is written back to Aurora with full provenance — which tier produced the wrong answer, which other fields were also incorrect on the same form, the corrected value, the reviewer's session ID. Second, if a previously-unseen label phrasing was encountered, the correction handler appends it to the alias table keyed on `(canonical_name, vertical, alias_text)`. Third, the corrected document is embedded with ColQwen 2.5 and appended to the retrieval corpus.
+
+Subsequent extractions on similar documents benefit two ways. Late-interaction visual retrieval surfaces the corrected document as a few-shot example for Tier 3a/3b prompts, so the LLM has a concrete worked example for the layout it's looking at. And the alias table — joined into the schema-validation step — expands the recognized variant phrasings; what was previously an unrecognized label "Pt. First Nm" now resolves to `first_name` directly, no escalation needed.
+
+The eval harness measures this. F1 over batches, with batches numbered as corrections accumulate. The headline F1-over-time chart is the visible artifact of the loop working. Cost per document trends downward in parallel — cleaner Tier 1 hits mean fewer escalations.
+
+**How the F1-over-time chart works in this demo.** The corrections feeding the loop come from the `alias_table_seed.json` file's accumulated schema-design work, not from live reviewer corrections. Aliases are introduced progressively — batch 1 starts with the canonical phrasing for every field (~18% of the alias set), each subsequent batch adds the next-priority variant per field, batch ~8 has the full set. F1 is measured at each batch. The mechanism is identical to the production reviewer-correction loop; the only difference is that corrections in this demo are seeded from the schema build rather than generated by reviewers in real-time. `docs/eval-methodology.md` walks through the partition strategy.
+
+## Multi-vertical routing
+
+The pipeline supports two production verticals: healthcare (Synthea-rendered CMS-1500-inspired forms) and business documents (DocILE's annotated dataset).
+
+Healthcare and business documents have different routing constraints. Healthcare documents may contain PHI under HIPAA; the routing layer must keep PHI/PCI fields on BAA-eligible providers (AWS Bedrock, AWS Textract, AWS-hosted Aurora). Business documents have no such restriction — they can route to lower-cost non-BAA providers (Novita-hosted PaddleOCR, Together AI Qwen).
+
+A single config flag (`HIPAA_MODE`) governs the boundary. When off, the cascade routes by cost: Novita for Tier 1, Textract for layout-heavy Tier 2 escalations, Together AI for Tier 3a, Bedrock for Tier 3b. When on, every field with `data_class` of `PHI` or `PCI` routes to BAA-eligible providers only — Textract replaces Novita, Bedrock Sonnet replaces Together AI Qwen. Same codebase, different routing tables.
+
+Cost differential matters. Standard cascade lands at ~$24 per 1,000 documents at typical escalation rates. HIPAA-mode cascade lands at ~$150 per 1,000 — roughly 6× more expensive, because the BAA-eligible providers are pricier than their open-API competitors. Both numbers are estimated from cascade priors; Phase 6 eval will measure actual rates on this corpus and update the figures. `docs/eval-methodology.md` walks through the methodology.
+
+The classification step is itself the BAA boundary's first line. The vocabulary keyword classifier runs locally and never sees PHI on a non-BAA provider. Only the ~20% of inputs that fall through to the LLM stage go to Bedrock Nova Lite, which is BAA-eligible.
+
+## Key engineering decisions
+
+Fifteen choices made deliberately.
+
+### Why three tiers
+
+The pipeline uses three tiers of extraction with progressively more capable (and more expensive) models. Documents start at PaddleOCR-VL — fast, ~$10 per 1,000 pages on Novita-hosted inference. Confidence-borderline fields escalate to Textract Regular Queries, then to Qwen 2.5 VL, and finally to Claude Sonnet 4.6 for the rare hard case. This cost-routes by capability: ~90% of fields never leave Tier 1.
+
+Single-model approaches were rejected on cost. At typical field densities, sending every field to Bedrock Sonnet costs ~$300 per 1,000 documents. The cascade lands at ~$24 — a 13× cost ratio. Tier 3 splits internally into 3a (vision-capable LLMs, Qwen 2.5 VL) and 3b (strongest LLMs, Claude Sonnet 4.6) — covered in `docs/architecture-deep-dive.md` for readers who want the full routing detail.
+
+### Why Aurora Serverless v2 with auto-pause
+
+Aurora Serverless v2 with min 0 ACU and auto-pause after 5 minutes idle costs ~$5-10/month at portfolio-scale traffic — most of the day, the database isn't running and isn't billing. Always-on Aurora at the 0.5 ACU minimum bills $0.06/hour ≈ $43/month.
+
+A single Aurora cluster with three schemas (`demo`, `eval`, `staging`) avoids multi-cluster cost while preserving environment isolation. Demo gets reset per visitor session via the `reset_demo` Lambda; eval is the source of truth for F1-over-time numbers; staging is for development work.
+
+The cost of auto-pause is the 30-90 second cold start when a recruiter arrives. Mitigated by the wake-on-request landing page, which gives them something to read while Aurora warms.
+
+### Why pgvector for embeddings
+
+The retrieval layer is local-first by design. ColQwen 2.5 runs on the local GPU for embedding generation; only the storage of those embeddings is in the cloud. Pgvector lives inside the same Aurora instance as the operational data — one connection string, one IAM role, one place to debug.
+
+The alias table and the embedding table can JOIN, which matters for the correction feedback loop where corrections need to update both atomically. Pgvector folds into Aurora's $5-10/month cost envelope rather than adding a separate vector-DB line item. And the project's self-improvement story depends on inspecting and updating embeddings as corrections accumulate — straightforward against pgvector, much harder against managed black-box services where chunking strategy is opaque.
+
+### Why DocILE for the business-document vertical
+
+DocILE has 6,680 annotated business documents with a 55-field taxonomy and a free academic license. We use the taxonomy directly to preserve benchmark compatibility — F1 numbers from this project compare cleanly to published baselines without translating between schemas.
+
+Registration at docile.rossum.ai before Phase 4 begins.
+
+### Why Synthea plus local rendering for healthcare
+
+Real CMS-1500 PDF datasets with ground truth don't exist publicly — privacy regulations preclude them. Synthea is the only path to unlimited synthetic patient volume with ground truth you control, and it's free.
+
+Local rendering via HTML+Playwright was chosen over LaTeX, ReportLab, and LibreOffice. CSS gives trivial knobs for the realistic noise the cascade needs to handle: rotation, JPEG artifacts, blur, contrast variation, partial occlusion. Synthetic data includes both typed and handwritten signature variants in roughly a 70/30 split, rendered programmatically via Google Fonts handwriting fonts plus an SVG ink-bleed filter, so the cascade trains against real signature diversity. Total build cost: ~6-8 hours, unlimited rendered forms.
+
+The headline F1-over-time chart depends on this volume. Without synthetic generation at scale, batched eval isn't tractable for a portfolio project budget.
+
+### Why Q8_0 with multi-GPU split (and CPU spill) for local Tier 3a
+
+The local hardware is two consumer GPUs sharing PCIe — RTX 4080 (16 GB) plus RTX 4060 Ti (16 GB), no NVLink. Combined 32 GB VRAM with PCIe-only inter-GPU communication. Qwen 2.5 VL 32B at Q8_0 weighs ~36.3 GB; it doesn't fully fit, but ~4 GB of CPU spill is acceptable when the goal is fixture-generation accuracy over interactive iteration speed. The cascade's batch workflow tolerates the velocity hit — Phase 6 fixture generation against 1000 documents runs overnight either way.
+
+Q8_0 is imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` Hugging Face repository via custom Ollama Modelfile rather than the official Ollama registry, which only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL. Q4_K_M (the registry default, ~20.1 GB, validated working May 5, 2026 with 7% CPU spill) is retained as a fast-iteration fallback option — not as the locked Tier 3a default.
+
+Phase 4 begins with a 20-doc dual-quant sanity test pitting Q8_0 against Q6_K (custom Modelfile from the same Hugging Face repo, ~28.7 GB, no CPU spill expected). If F1 is within ±0.02, Q6_K wins by saving the spill. If F1 differs measurably, Q8_0 stays locked. The full contingency tree (including Q4_K_M and InternVL3.5-8B fallback paths) is documented in `docs/local-development.md`.
+
+Production routes Tier 3a to Together AI's hosted Qwen 2.5 VL 72B, which has the headroom for higher quality at the same architecture without the local quantization tradeoff.
+
+### Why HIPAA mode is a config flag, not a separate codebase
+
+`HIPAA_MODE=on` switches the routing layer's allowed-providers table. PHI/PCI fields route to BAA-eligible providers only (Bedrock, Textract); non-PHI fields can route anywhere. The cascade orchestration, schema validation, eval harness, and review UI are identical in both modes.
+
+A separate codebase for healthcare would have meant maintaining two parallel implementations indefinitely. The boundary between "what's PHI" and "what's not" is data-driven (the `DataClass` enum on each field) and routing-driven (the `is_baa_required` helper). Moving that boundary doesn't require changing extraction logic or schemas — only the routing table.
+
+A useful side effect: the eval harness can run both modes against the same fixture set, directly measuring the cost/quality tradeoff that BAA-only routing buys. Standard ~$24 per 1,000 docs vs HIPAA-mode ~$150 per 1,000 — same fixtures, same F1 measurement, different router.
+
+### Why a two-stage router
+
+The router runs in two stages. Stage 1 is a vocabulary keyword classifier that runs locally and handles ~80% of documents with no PHI exposure to any cloud provider. Stage 2 is Bedrock Nova Lite, which handles the ambiguous ~20% that falls through and is BAA-eligible. Total cost ~$0.05 per 1,000 documents.
+
+The vocabulary list seeds from `alias_table_seed.json` — terms that only appear in healthcare contexts (MRN, HIPAA acknowledgment, allergies) become Stage 1 healthcare classifiers. The pattern (vocabulary classifier with LLM fallback) is itself a portfolio-worthy decision: cost-aware, BAA-correct, accuracy-preserving.
+
+### Why cached fixtures by default, opt-in live mode for eval
+
+The eval harness defaults to cached fixtures: per-tier, per-document responses captured once and replayed on subsequent runs. Live mode (`EVAL_LIVE=true`) hits the actual providers. Default-cached saves $125-275 in build budget vs running paid live mode on every iteration; the opt-in switch keeps the live path tested.
+
+Fixtures are versioned per tier and per document, with `evals/fixtures_manifest.json` recording the model versions used. When a provider's model version changes upstream, the manifest mismatch surfaces in CI and a refresh is triggered explicitly.
+
+This separates two questions that often get conflated. "Does the eval logic work?" is answered by cached fixtures with no cloud cost. "Does the cascade still produce the same outputs against current provider versions?" is answered by `EVAL_LIVE=true` runs gated behind the env var. Both questions matter; running them together every time is wasteful.
+
+### Why ColQwen 2.5
+
+ColQwen 2.5 is the current state-of-the-art in late-interaction visual retrieval. It benchmarks ~5 nDCG@5 points higher than predecessor models on ViDoRe, uses fewer patch embeddings (768 vs 1024 — cheaper to store and query at the same accuracy), and ships with permissive Apache 2.0 / MIT licensing. Runs locally on the 4080 alongside the cascade.
+
+### Why bulk batch correction UX, with single-document review as a secondary view
+
+Real intake teams operate as a queue, not as a single-document pipeline. The reviewer is correcting "the bad fields across the next 50 documents," not "every field in this one document." Bulk batch correction surfaces all low-confidence fields across the queue, lets reviewers accept/reject in batches with auto-save to localStorage, and gives the audit trail a clear commit point via an explicit "Submit corrections" save action.
+
+Single-document review is also supported as a secondary view — the reviewer can drill into any document from the batch view to see fields in context. This handles cases where field-level context across the form matters (e.g., subscriber name doesn't match patient name when relationship=self).
+
+The recruiter UX angle: bulk-batch-as-primary plus single-doc-as-drill-down demonstrates understanding that production review workflows are throughput-driven without sacrificing the precision a reviewer occasionally needs. Both modes read from the same Aurora data, so adding the secondary view costs essentially nothing infrastructure-wise.
+
+### Why wake-on-request over always-on Aurora
+
+Aurora Serverless v2 minimum 0.5 ACU at $0.12/ACU-hour = $0.06/hour running. Always-on for a portfolio demo: ~$43/month. Wake-on-request with auto-pause after 5 min idle: ~$5-10/month total — Aurora wakes ~50 times/month for recruiter visits, each wake bills 10-20 minutes before idle-pause kicks in. Annual savings: ~$400.
+
+The UX cost is the 30-90 second cold start. Mitigated three ways. The wake page shows project pitch and F1-over-time chart during the wait — recruiter gets value immediately rather than staring at a spinner. A DynamoDB single-item lock prevents simultaneous-wake race conditions if multiple recruiters arrive in the same minute. An explicit progress indicator confirms the system is working.
+
+The tradeoff: 30-90 seconds of recruiter wait time is acceptable for a portfolio piece; $400/year of always-on is not. Production deployment with paying customers would flip this calculus, which is documented in `docs/production-roadmap.md`.
+
+### Why a DataClass enum
+
+`DataClass` is a single enum with values `PUBLIC`, `PII`, `PHI`, and `PCI`. It's forward-extensible — `GLBA`, `FERPA`, `GDPR_PERSONAL` can be added with one enum value plus one routing rule when those regimes enter scope. It enforces correctness at declaration time: a field can't be statutorily inconsistent (e.g., marked PHI but not PII, which violates HIPAA's definitional structure). And the `is_baa_required(meta)` helper becomes a clean enum-set check.
+
+`Sensitivity` is retained as an orthogonal axis (`low`, `medium`, `high`). `data_class` says WHAT regulated data; `sensitivity` says HOW careful within that regime. Both matter for routing — a `PII` field with `sensitivity="high"` (e.g., SSN) routes differently than a `PII` field with `sensitivity="low"` (e.g., a publicly-listed business name).
+
+### Why per-field confidence thresholds at 0.85 / 0.80 / 0.75
+
+Engineering judgment with calibration intent. The values come from PaddleOCR-VL's and Qwen 2.5 VL's empirical confidence ranges on intake-form fields: scores below 0.85 from a vision-OCR model correspond roughly to 70-80% accuracy — the threshold where re-extraction becomes cheaper than human review.
+
+The 0.85 → 0.80 → 0.75 step pattern reflects that each subsequent tier is more capable, so the bar for "this tier's answer is good enough" relaxes accordingly. Tier 1 needs to be confident before we trust it; Tier 3b is the last resort, and a 0.75 from Sonnet is a stronger signal than a 0.75 from PaddleOCR.
+
+These are starting values, not final ones. The Phase 6 eval harness sweeps thresholds across the test corpus to find the Pareto frontier of cost vs F1.
+
+### Why public-on-day-1 (the GitHub repo)
+
+The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Recruiters discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
+
+The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (recruiters bookmark URLs they see, even before they're live), but the demo behind it doesn't go live until Phase 7. Until then, the URL renders the wake page with a "demo lands Phase 7" caveat. This avoids both broken-link-on-day-1 (bad recruiter signal) and over-promising-on-day-1 (worse recruiter signal).
+
+Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1.
+
+## Getting started
+
+```bash
+# Clone
+git clone https://github.com/marky224/intake-form-ai-pipeline
+cd intake-form-ai-pipeline
+
+# Install dependencies (uv handles Python version + deps)
+uv sync
+
+# Pull local models (one-time, ~25 GB total)
+ollama pull qwen2.5vl:32b-q4_K_M
+ollama pull paddleocr-vl
+
+# Configure environment
+cp .env.example .env
+# Edit .env to set local-only mode for the quickstart
+
+# Run the cascade against fixture documents
+just demo
+```
+
+`just demo` runs the cascade against three local fixture documents using cached responses. No cloud calls, no AWS credentials needed. The deployed live demo at `ai-intake.markandrewmarquez.com` is a separate experience.
+
+The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly on combined VRAM with no CPU spill). The locked default for Phase 4+ fixture generation is **Q8_0 imported via custom Ollama Modelfile from the Mungert HuggingFace repository** — see `docs/local-development.md` for the import workflow and the rationale behind running with ~4 GB CPU spill.
+
+Other useful tasks:
+
+```bash
+just eval           # Run eval harness (cached fixtures)
+just eval-live      # Run eval harness with paid cloud calls
+just synthetic-data # Generate Synthea patients + render forms
+just review-ui      # Start React dev server locally
+just test           # pytest
+just lint           # ruff + black --check
+```
+
+Full task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
+
+## Project structure
+
+```
+intake-form-ai-pipeline/
+├── README.md
+├── justfile                          # task runner
+├── pyproject.toml                    # uv-managed dependencies
+├── .pre-commit-config.yaml
+├── .github/workflows/                # CI/CD via GitHub Actions
+├── docs/                             # supplementary documentation
+├── src/
+│   └── intake_pipeline/
+│       ├── schemas/                  # Pydantic schemas, alias seed
+│       ├── cascade/
+│       │   ├── providers/            # tier1_*, tier2_*, tier3a_*, tier3b_*
+│       │   ├── router.py             # two-stage classifier
+│       │   └── orchestrator.py       # Step Functions integration
+│       ├── feedback/                 # correction loop, alias updates
+│       ├── retrieval/                # ColQwen 2.5 RAG
+│       └── eval/                     # F1, cost, latency metrics
+├── synthetic_data/
+│   ├── synthea/                      # Synthea Docker setup
+│   ├── render/                       # HTML+Playwright templates
+│   └── output/                       # gitignored, ~500 generated docs
+├── infra/
+│   ├── terraform/                    # AWS modules
+│   └── bicep/                        # Azure parallel (no deployment)
+├── web/
+│   └── review-ui/                    # React review UI
+├── evals/
+│   ├── fixtures/                     # cached cascade responses
+│   ├── fixtures_manifest.json
+│   ├── manifest.json                 # train/dev/test partitions
+│   └── results/                      # gitignored, F1 history
+├── notebooks/                        # exploratory work
+└── tests/
+```
+
+## Cost characteristics
+
+The cascade has two cost modes.
+
+**Local development.** Tier 1 and Tier 3a run on the project's own GPUs (RTX 4080 + RTX 4060 Ti). The eval harness defaults to cached fixtures, so day-to-day development cost is essentially $0. Local-first is the primary mode for dev iteration.
+
+**Deployed demo.** The demo at ai-intake.markandrewmarquez.com routes Tier 1 to Novita and Tier 3a to Together AI for cost-efficient cloud hosting. Tier 2 (Textract Regular Queries) and Tier 3b (Bedrock Sonnet) are cloud-only by architecture. Per-1,000-document inference cost: **~$24 in standard mode, ~$150 in HIPAA mode** at estimated escalation rates of ~30% to Tier 2, ~10% to Tier 3a, ~3% to Tier 3b. These rates are industry-prior estimates for cascade extraction on form-like documents; Phase 6 eval harness will measure actual rates on this corpus and update the cost figures accordingly. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly run cost at portfolio traffic: ~$10-15.
+
+The 13× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold), per-IP rate-limit Lambda, and Cost Anomaly Detection are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
+
+## What's not in scope
+
+- Not a multi-tenant SaaS. Single-tenant portfolio demo; multi-tenancy would require row-level security and per-tenant rate limiting that aren't built.
+- No real PHI ever. Healthcare data is Synthea-generated; production deployment with real PHI requires BAA execution per `docs/hipaa-architecture.md`.
+- Not a production claims-processing system. Extraction only — no claim adjudication, no payer integration, no eligibility verification.
+- No SOC 2 / HITRUST / formal compliance audits. Architecture is HIPAA-mode-capable; certification is out of scope.
+- Not optimized for high-throughput production. Aurora auto-pause means cold starts; suitable for portfolio demo, not 1,000+ requests/minute.
+- English only. Spanish-language extension noted in `docs/production-roadmap.md`.
+- Not a fine-tuned-model-for-sale offering. Phase 9 QLoRA experimentation demonstrates the feedback loop; the resulting adapter isn't a productized artifact.
+- No real-time streaming inference. Per-document batch processing.
+- Browser-based review UI only. No mobile app.
+
+## Further reading
+
+The supplementary documentation in `docs/` goes deeper on specific topics. Each is a focused 500-1,000 word read.
+
+- **`docs/architecture-deep-dive.md`** — detailed sequence diagrams, the four-tier routing structure (3a/3b distinction), Step Functions state machine layout, schema introspection patterns
+- **`docs/hipaa-architecture.md`** — BAA boundary deep-dive, healthcare-specific routing rules, the synthetic-to-real-PHI swap path
+- **`docs/eval-methodology.md`** — F1 computation details, cached-fixture strategy, train/dev/test partition discipline, leakage mitigations, cost-per-document and latency metric definitions
+- **`docs/production-roadmap.md`** — what changes when this hits real production scale, deferred questions (Spanish-language support, multi-tenant SaaS, throughput optimization, vLLM scale-up path, fine-tuned local Tier 2 model, Qwen3-VL-32B mixed-precision candidate)
+- **`docs/local-development.md`** — GPU setup, Ollama configuration, multi-GPU model split details, Q8_0 import workflow, Synthea workflow, local-only mode for the quickstart
