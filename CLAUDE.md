@@ -14,6 +14,7 @@ Build budget: 50-70 hours over 6-8 weekends. Build started May 2, 2026.
 - Combined 32 GB VRAM, no NVLink, PCIe-only inter-GPU communication
 - Local OS: Linux (Ubuntu, hostname openclaw-pc), bash for local commands
 - AWS work: separate Windows machine, PowerShell for AWS CLI commands
+- uv on the Windows machine: installed at `~/.local/bin/uv.exe`. The User PATH includes the dir but new PowerShell sessions occasionally don't pick it up — `$env:PATH = "$env:USERPROFILE\.local\bin;$env:PATH"` resolves it for the current session.
 
 When sharing CLI commands: bash for local Linux operations, PowerShell for AWS CLI from Windows. Never assume a unified shell.
 
@@ -38,9 +39,11 @@ When sharing CLI commands: bash for local Linux operations, PowerShell for AWS C
 - Pydantic models use `ConfigDict(extra="forbid")` to catch typos at boundaries
 - Black formatting, ruff linting, pytest for testing
 - Terraform for IaC (with Bicep parallel for Azure branch — no Azure deployment)
-- Pre-commit hooks (ruff + black + tests) configured from Phase 1
-- GitHub Actions on every PR (Terraform validate + pytest + ruff + black)
-- Branch protection on main (require passing CI before merge)
+- Pre-commit hooks (ruff + black + tests) configured from Phase 1; install on a fresh clone via `just install`
+- ruff and black are pinned in both `pyproject.toml` dev-deps and `.pre-commit-config.yaml` to the same versions (currently `ruff==0.7.4`, `black==24.10.0`). CI runs `uv sync --frozen`, so the two pins must agree — bump both files together when modernizing tooling.
+- GitHub Actions CI: `Lint (ruff + black)` + `Test (pytest)` jobs on every PR and push to main. The workflow-level `concurrency:` block and the `terraform:` job were both dropped during Phase 1 ci-fix; re-add the gated `terraform:` job (`if: hashFiles('infra/terraform/**/*.tf') != ''`) when Phase 2 lands actual `.tf` files. Re-add `concurrency:` if PR cadence ever justifies cancel-in-progress runs.
+- Branch protection on main: PR-only workflow with required status checks (`Lint (ruff + black)` + `Test (pytest)`), `enforce_admins: true` (no one — including Mark — merges a direct push to main), force-pushes and deletions disallowed. Pattern: feature branch → `gh pr create` → wait for checks + CodeRabbit → `gh pr merge --squash --delete-branch`. To branch off a local main commit that's already past origin, use `git push origin main:<feature-branch>` then `git reset --hard origin/main` to restore main.
+- CodeRabbit is installed and reviews every PR (non-required check, ~90 s latency, 4 PR-reviews/hour cap on the current plan). Default workflow: wait for CodeRabbit before merging unless the change is trivial. Override: `gh pr merge --squash --auto` queues the merge to fire as soon as the required checks pass without waiting for CodeRabbit.
 
 ## Locked architectural decisions
 
@@ -210,6 +213,20 @@ Phase budget: 50-70 hours total, ~5-7 hours per phase.
 
 - Phases 1-9: standard (tests pass, ruff/black clean, working artifact, README updated incrementally as features land)
 - Phase 10: strict (full README rewrite for production quality, supplementary docs written, demo verification, no TODOs in main)
+
+### Status as of 2026-05-06
+
+Public repo `github.com/marky224/intake-form-ai-pipeline` is live; main is currently at `bfd8c01`.
+
+**Done:**
+- Phase 1 (Pre-build) Ollama validation — Q4_K_M Qwen 2.5 VL 32B loaded May 5; Q8_0 / Q6_K download workflow documented in `docs/local-development.md`
+- Phase 2 (Terraform foundation) **partial:** scaffolding (`pyproject.toml` + `uv.lock`, `justfile`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`, `LICENSE`, `.env.example`, `.gitignore`/`.gitattributes` with LF normalization), Pydantic schemas (`intake_schemas.py` + 40 passing tests, alias seed, `RATIONALE.md`), README + `CLAUDE.md` + supplementary docs (architecture-deep-dive and hipaa-architecture as stubs; eval-methodology, production-roadmap, local-development as full content), CI green on `Lint (ruff + black)` + `Test (pytest)`, branch protection enforced on main, CodeRabbit installed.
+
+**Next (remaining Phase 2 scope):**
+- DocILE registration (Phase 1 prerequisite — register at docile.rossum.ai before Phase 4 begins)
+- AWS hello-world cold-start test, Novita and Together AI API access validation, single-GPU and multi-GPU smoke tests (Phase 1 items, deferrable as long as they land before Phase 4)
+- Terraform foundation: VPC, S3, single Aurora Serverless v2 cluster with `demo`/`eval`/`staging` schemas (min 0 ACU, auto-pause), IAM roles, OIDC for GitHub Actions (no long-lived keys), robots.txt + CloudFront UA blocking + per-IP rate limit Lambda, AWS Budgets ($5/day) + Cost Anomaly Detection. Re-add the gated `terraform:` job to `ci.yml` once `.tf` files exist.
+- Bicep parallel for the Azure branch (no Azure deployment — module structure only).
 
 ## Cost model
 
