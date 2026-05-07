@@ -21,7 +21,7 @@ After this stack is applied and its state migrated to the bucket it just created
 
 ## First-time setup
 
-Prerequisites: AWS CLI authenticated as a principal with `iam:*`, `s3:*`, `dynamodb:*` permissions on the target account; Terraform `~> 1.14` installed; GitHub OIDC provider already created in the AWS account (see top of README).
+Prerequisites: AWS CLI authenticated as a principal with permissions to create the bootstrap resources (S3 bucket + versioning/encryption/lifecycle settings, DynamoDB table, IAM role) plus `iam:GetOpenIDConnectProvider` to look up the shared OIDC provider — typically an administrator or a scoped one-off bootstrap policy. Terraform `~> 1.14` installed. GitHub OIDC provider already created in the AWS account (see top of README).
 
 The chicken-and-egg dance: the stack creates its own state backend, so on first apply there's no backend yet. Modern Terraform (1.6+) requires backend init even for `apply`, so `init -backend=false` alone isn't enough — the `backend "s3" {}` block in `backend.tf` must be temporarily commented out for the first apply, then restored for the migrate.
 
