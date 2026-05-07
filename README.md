@@ -182,44 +182,57 @@ Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are confi
 
 ## Getting started
 
+The project is mid-build (Phase 2 of 10). The schema layer is complete and tested; the cascade orchestrator, eval harness, and review UI land in subsequent phases. The two blocks below split what works today from what lands later.
+
+### What works today
+
 ```bash
-# Clone
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 
-# Install dependencies (uv handles Python version + deps)
-uv sync
-
-# Pull local models (one-time, ~25 GB total)
-ollama pull qwen2.5vl:32b-q4_K_M
-ollama pull paddleocr-vl
-
-# Configure environment
-cp .env.example .env
-# Edit .env to set local-only mode for the quickstart
-
-# Run the cascade against fixture documents
-just demo
+just install        # uv sync + pre-commit install
+just test           # 40 schema tests against intake_schemas.py
+just lint           # ruff check + ruff format check + black check
+just format         # auto-fix
+just alias-seed     # regenerate alias_table_seed.json from intake_schemas.py
 ```
 
-`just demo` runs the cascade against three local fixture documents using cached responses. No cloud calls, no AWS credentials needed. The deployed live demo at `ai-intake.markandrewmarquez.com` is a separate experience.
+The schema layer (`intake_schemas.py`, `RATIONALE.md`, `alias_table_seed.json`) is the substantive content as of Phase 2. CI runs `Lint (ruff + black)` and `Test (pytest)` on every PR.
+
+### Local cascade demo (lands Phase 7)
+
+```bash
+# Local Tier 3a model (~20 GB; locked default for fixture generation is Q8_0
+# imported via custom Modelfile — see docs/local-development.md).
+ollama pull qwen2.5vl:32b-q4_K_M
+
+# Local Tier 1 (PaddleOCR-VL) installs as a Python package, not via Ollama.
+# The exact install path lands with Phase 4 provider implementations.
+
+cp .env.example .env
+just demo          # lands Phase 7 — runs cascade against fixture documents
+```
+
+Once Phase 7 lands, `just demo` runs the cascade against three local fixture documents using cached responses. No cloud calls, no AWS credentials needed. The deployed live demo at `ai-intake.markandrewmarquez.com` goes live alongside Phase 7.
 
 The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly on combined VRAM with no CPU spill). The locked default for Phase 4+ fixture generation is **Q8_0 imported via custom Ollama Modelfile from the Mungert HuggingFace repository** — see `docs/local-development.md` for the import workflow and the rationale behind running with ~4 GB CPU spill.
 
-Other useful tasks:
+### Recipes that land with later phases
 
 ```bash
-just eval           # Run eval harness (cached fixtures)
-just eval-live      # Run eval harness with paid cloud calls
-just synthetic-data # Generate Synthea patients + render forms
-just review-ui      # Start React dev server locally
-just test           # pytest
-just lint           # ruff + black --check
+just demo           # cascade against fixture documents (Phase 7)
+just eval           # eval harness, cached fixtures (Phase 6)
+just eval-live      # eval harness with paid cloud calls (Phase 6)
+just synthetic-data # generate Synthea patients + render forms (Phase 3)
+just review-ui      # React dev server (Phase 7)
+just deploy         # Terraform apply (Phase 2)
 ```
 
-Full task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
+Full current task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
 
 ## Project structure
+
+Target structure once Phase 10 lands. The current repo contains the schema layer + scaffolding (top-level files + `docs/` + `.github/workflows/`); subdirectories below land per phase per the build plan.
 
 ```
 intake-form-ai-pipeline/
