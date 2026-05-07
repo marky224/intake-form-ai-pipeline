@@ -13,7 +13,7 @@ This document reflects the schema after five architectural changes were applied 
 4. `compute_form_confidence` module-level function for aggregate confidence reporting
 5. `SignatureCapture` sub-model replaces the `signature_present: bool` representation
 
-All 49 tests pass; ruff/black clean. The schema currently covers three verticals (Insurance, Healthcare, HR); the build plan calls for dropping Insurance and HR in Phase 4 and adding `BusinessDocumentForm` against DocILE's 55-field taxonomy. The vertical-specific classes are retained in code as future-extensibility examples per the locked architectural decision.
+All 40 tests pass; ruff/black clean against the codified `pyproject.toml` lint config (ruff 0.7.4 + black 24.10.0, pinned to match `.pre-commit-config.yaml`). The schema currently covers three verticals (Insurance, Healthcare, HR); the build plan calls for dropping Insurance and HR in Phase 4 and adding `BusinessDocumentForm` against DocILE's 55-field taxonomy. The vertical-specific classes are retained in code as future-extensibility examples per the locked architectural decision.
 
 ---
 
@@ -251,7 +251,7 @@ Per the master architecture doc:
 cd intake_schemas/
 pip install pydantic pytest
 python build_alias_seed.py    # regenerates alias_table_seed.json
-python -m pytest test_intake_schemas.py -v   # 49 tests, all pass
+python -m pytest test_intake_schemas.py -v   # 40 tests, all pass
 ```
 
 The seed JSON is regenerated deterministically from the schema metadata plus the hand-curated `ALIASES` map in `build_alias_seed.py`. Editing aliases means editing that dict; editing canonical fields means editing `intake_schemas.py` and regenerating.
