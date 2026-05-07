@@ -1,6 +1,6 @@
 # Production roadmap
 
-This document collects items deliberately deferred from the portfolio build — decisions that were considered, reasoned about, and parked because the answer depends on factors the build can't yet measure (real traffic, real corrections, real cost telemetry, or real hiring-target signal). It is the canonical home for "considered, not done, will revisit when X" items.
+This document collects items deliberately deferred from the build — decisions that were considered, reasoned about, and parked because the answer depends on factors the build can't yet measure (real traffic, real corrections, real cost telemetry). It is the canonical home for "considered, not done, will revisit when X" items.
 
 The build itself is a portfolio piece, not a production system. Items below describe what would change if this were deployed at production scale, or what alternatives are worth exploring once Phase 6+ produces empirical evidence to inform the choice.
 
@@ -22,9 +22,9 @@ Estimated cost of switching once revisit conditions are met: ~3–5 hours (downl
 
 Replace AWS Textract Regular Queries with a fine-tuned local InternVL3.5-8B on Synthea + DocILE annotations. Estimated work: ~20 hours. Estimated savings: ~$4.50/1K deployed-demo cost (Textract Tier 2 escalation rate × $15/1K page price).
 
-Defer until hiring-target signal calls for ML-engineering depth over AWS-service-consumption demonstration. The current cascade architecture deliberately uses Textract Regular Queries to demonstrate AWS service integration and HIPAA-mode BAA boundary discipline; replacing it with a local fine-tuned model shifts the portfolio narrative toward "built a custom model" and away from "wired the right managed services."
+Defer until the project's emphasis shifts toward ML-engineering depth over AWS-service-consumption demonstration. The current cascade architecture deliberately uses Textract Regular Queries to demonstrate AWS service integration and HIPAA-mode BAA boundary discipline; replacing it with a local fine-tuned model shifts the project narrative toward "built a custom model" and away from "wired the right managed services."
 
-Revisit only if the target role explicitly emphasizes model-building over infrastructure orchestration.
+Revisit only if requirements explicitly call for model-building over infrastructure orchestration.
 
 ## Spanish-language alias table extension
 
@@ -84,11 +84,11 @@ Single-IP abuse won't trigger this — the existing Lambda handles that at lower
 
 ## Self-hosted demo deployment vs cloud
 
-Cloud deployment (AWS) is locked. Revisit only if monthly costs become unmanageable. The reliability and portfolio-signal calculus for a public demo strongly favors managed cloud: a demo that's down when a recruiter visits is worse than the cost difference between cloud and self-hosted.
+Cloud deployment (AWS) is locked. Revisit only if monthly costs become unmanageable. The reliability calculus for a public demo strongly favors managed cloud: a demo that's down when a visitor arrives is worse than the cost difference between cloud and self-hosted.
 
 Self-hosted alternatives considered and rejected:
 
-- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel): zero monthly cost but requires home internet uptime and home machine availability. Recruiter visiting at 2 AM local time gets a dead demo.
+- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel): zero monthly cost but requires home internet uptime and home machine availability. A visitor at 2 AM local time gets a dead demo.
 - VPS (DigitalOcean, Hetzner, etc.): $20–40/month for adequate-sized droplet, eliminates Aurora's auto-pause cost-saving model, more operational burden than AWS managed services.
 
 Calculus would have to genuinely flip — cost spike to $100+/month sustained, or AWS account compromise — before this is worth re-evaluating.
@@ -102,7 +102,7 @@ If Phase 6 F1 measurement shows the cascade can't generalize from font-rendered 
 1. **Public handwriting datasets** (IAM Handwriting Database, HWDB): freely available academic datasets, would require integration into the rendering pipeline as alternative signature sources.
 2. **Small handwriting GAN**: train a small GAN on IAM to generate synthetic but realistic handwriting samples. More work, more authentic-looking output.
 
-Don't pre-engineer. Phase 6 F1 measurement on synthetic data is the baseline; only revisit if generalization to real handwriting becomes a portfolio-narrative concern (e.g., a recruiter questions the authenticity in an interview).
+Don't pre-engineer. Phase 6 F1 measurement on synthetic data is the baseline; only revisit if generalization to real handwriting becomes a measurable concern (e.g., the synthetic-data authenticity surfaces as a real-world generalization gap).
 
 ## LossEvent inner-field PHI flagging
 
