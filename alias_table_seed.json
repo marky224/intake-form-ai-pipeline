@@ -1,0 +1,1419 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-05-05",
+  "schema_module": "intake_schemas",
+  "description": "Canonical-name -> alias-variations seed for the intake-form pipeline. Load into a Postgres `field_aliases` table keyed on (canonical_name, vertical, alias_text). Use `canonical_fields` for the metadata side of the join.",
+  "fields": [
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Apartment, suite, or unit number. Often blank.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Apt",
+        "Apt #",
+        "Apt Number",
+        "Apt. Number",
+        "Suite",
+        "Unit",
+        "Address Line 2",
+        "Apt Number (if any)"
+      ],
+      "canonical_name": "address_apt"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "City or town of the address.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "City",
+        "City or Town",
+        "Town"
+      ],
+      "canonical_name": "address_city"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Two-letter US state code (or full state name). Normalize to USPS code downstream.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "State",
+        "ST",
+        "State/Province"
+      ],
+      "canonical_name": "address_state"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Street number and name of the residential or mailing address.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Street Address",
+        "Address",
+        "Mailing Address",
+        "Street",
+        "Address Line 1",
+        "Street Number and Name",
+        "Residential Address",
+        "Home Address"
+      ],
+      "canonical_name": "address_street"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "5- or 9-digit US ZIP code (string, not int, to preserve leading zeros).",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "ZIP",
+        "ZIP Code",
+        "Zip Code",
+        "Zip",
+        "Postal Code",
+        "ZIP/Postal Code"
+      ],
+      "canonical_name": "address_zip"
+    },
+    {
+      "vertical": "base",
+      "data_type": "date",
+      "description": "Date of birth of the primary subject. Forms typically show MM/DD/YYYY.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Date of Birth",
+        "DOB",
+        "Birth Date",
+        "Born On",
+        "D.O.B.",
+        "Date of birth (mm/dd/yyyy)",
+        "Birthdate"
+      ],
+      "canonical_name": "date_of_birth"
+    },
+    {
+      "vertical": "base",
+      "data_type": "date",
+      "description": "Date the form was signed by the primary subject.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": null,
+      "aliases": [
+        "Date",
+        "Date Signed",
+        "Signature Date",
+        "Today's Date",
+        "Date (mm/dd/yyyy)"
+      ],
+      "canonical_name": "date_signed"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Primary contact email address.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Email",
+        "E-mail",
+        "Email Address",
+        "E-Mail",
+        "Email Address (optional)"
+      ],
+      "canonical_name": "email"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Given name (first name) of the primary subject of the form.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "First Name",
+        "Given Name",
+        "First",
+        "Firstname",
+        "First Name (Given Name)"
+      ],
+      "canonical_name": "first_name"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Family name (surname) of the primary subject. May contain spaces or hyphens.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Last Name",
+        "Family Name",
+        "Surname",
+        "Last",
+        "Last Name (Family Name)"
+      ],
+      "canonical_name": "last_name"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Middle name or middle initial. May be a single character.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Middle Name",
+        "MI",
+        "Middle Initial",
+        "M.I.",
+        "Middle"
+      ],
+      "canonical_name": "middle_name"
+    },
+    {
+      "vertical": "base",
+      "data_type": "str",
+      "description": "Primary contact phone number. Stored as-extracted; normalize to E.164 downstream.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Phone",
+        "Phone Number",
+        "Telephone",
+        "Tel",
+        "Phone (Home)",
+        "Day Phone",
+        "Cell Phone",
+        "Mobile",
+        "Contact Number"
+      ],
+      "canonical_name": "phone"
+    },
+    {
+      "vertical": "base",
+      "data_type": "SignatureCapture",
+      "description": "Signature capture: presence on the form plus visual classification (handwritten / typed / ambiguous). See SignatureCapture.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": null,
+      "aliases": [
+        "Signature",
+        "Sign Here",
+        "Signature of Employee",
+        "Patient Signature",
+        "Applicant's Signature",
+        "Signature of Patient or Authorized Representative"
+      ],
+      "canonical_name": "signature"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Free-text description of primary operations. Free-form, often multi-line.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125 - Description of Primary Operations",
+      "aliases": [
+        "Description of Operations",
+        "Description of Primary Operations",
+        "Nature of Business",
+        "Business Description",
+        "Primary Operations"
+      ],
+      "canonical_name": "business_description"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "date",
+      "description": "Date business operations commenced. Sometimes only year is supplied.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Date Business Started",
+        "Year Started",
+        "Date Established",
+        "Inception Date",
+        "Year Founded",
+        "Business Start Date"
+      ],
+      "canonical_name": "date_business_started"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Doing-Business-As name. Distinct from named_insured; appears in its own field on ACORD 125.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "ACORD 125 - DBA",
+      "aliases": [
+        "DBA",
+        "Doing Business As",
+        "DBA Name",
+        "d/b/a",
+        "Trade Name"
+      ],
+      "canonical_name": "dba_name"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "float",
+      "description": "Deductible or self-insured retention amount in dollars.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Deductible",
+        "Deductible Amount",
+        "SIR",
+        "Self-Insured Retention",
+        "Deductibles"
+      ],
+      "canonical_name": "deductible"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "float",
+      "description": "Per-occurrence liability limit in dollars.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125/126 - Each Occurrence",
+      "aliases": [
+        "Each Occurrence",
+        "Per Occurrence",
+        "Each Occurrence Limit",
+        "Occurrence Limit"
+      ],
+      "canonical_name": "each_occurrence_limit"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "date",
+      "description": "Policy effective (start) date.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Effective Date",
+        "Policy Effective Date",
+        "Coverage Effective",
+        "Inception",
+        "From"
+      ],
+      "canonical_name": "effective_date"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Form of business organization (e.g. Corporation, LLC, Partnership, Sole Proprietor, Joint Venture, Trust).",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Entity Type",
+        "Business Type",
+        "Legal Entity",
+        "Form of Business",
+        "Entity Structure",
+        "Business Entity"
+      ],
+      "canonical_name": "entity_type"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "date",
+      "description": "Policy expiration (end) date. Typically effective_date + 1 year.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Expiration Date",
+        "Policy Expiration",
+        "Expires",
+        "End Date",
+        "To"
+      ],
+      "canonical_name": "expiration_date"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Federal Employer Identification Number (9 digits, often formatted XX-XXXXXXX). Used by carriers as primary submission key.",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "ACORD 125 - FEIN",
+      "aliases": [
+        "FEIN",
+        "Federal Employer ID",
+        "Tax ID",
+        "EIN",
+        "Federal Tax ID",
+        "Federal Employer Identification Number",
+        "TIN",
+        "Tax Identification Number"
+      ],
+      "canonical_name": "fein"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Given name (first name) of the primary subject of the form.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "First Name",
+        "Given Name",
+        "Contact First Name",
+        "Applicant First Name"
+      ],
+      "canonical_name": "first_name"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "float",
+      "description": "General aggregate liability limit in dollars (CGL section, ACORD 125/126).",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125/126 - General Aggregate",
+      "aliases": [
+        "General Aggregate",
+        "GA Limit",
+        "Aggregate Limit",
+        "General Aggregate Limit"
+      ],
+      "canonical_name": "general_aggregate_limit"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Family name (surname) of the primary subject. May contain spaces or hyphens.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Last Name",
+        "Family Name",
+        "Contact Last Name",
+        "Applicant Last Name"
+      ],
+      "canonical_name": "last_name"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "list[str]",
+      "description": "Coverages requested. Multi-select on ACORD 125: GL, Property, Crime, Auto, Umbrella, Workers' Comp, etc.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125 - Lines of Business",
+      "aliases": [
+        "Lines of Business",
+        "LOB",
+        "Coverage Type",
+        "Lines of Coverage",
+        "Policy Type",
+        "Coverages Requested"
+      ],
+      "canonical_name": "lines_of_business"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "list[intake_schemas.LossEvent]",
+      "description": "Five-year (ten in RI) loss history grid. Each row is a LossEvent.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125 - Loss History",
+      "aliases": [
+        "Loss History",
+        "Claims History",
+        "Prior Losses",
+        "Loss Information",
+        "Five Year Loss History"
+      ],
+      "canonical_name": "loss_history"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "6-digit NAICS industry classification code. SIC code (4-digit) treated as alias.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "NAICS",
+        "NAICS Code",
+        "Industry Code",
+        "SIC Code",
+        "SIC"
+      ],
+      "canonical_name": "naics_code"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Legal entity name as filed with the state, including suffixes (Inc., LLC, LP). Most-bounced field on ACORD 125.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "ACORD 125 - Applicant",
+      "aliases": [
+        "Named Insured",
+        "Applicant",
+        "Applicant Name",
+        "Insured Name",
+        "First Named Insured",
+        "Business Name",
+        "Legal Entity Name",
+        "Insured (First Named Insured)"
+      ],
+      "canonical_name": "named_insured"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "float",
+      "description": "Total annual premium in dollars. Often blank at quote stage.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Premium",
+        "Total Premium",
+        "Annual Premium",
+        "Estimated Premium",
+        "Premiums"
+      ],
+      "canonical_name": "premium"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Name of the prior insurance carrier. Underwriting signal.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125 - Prior Carrier Information",
+      "aliases": [
+        "Prior Carrier",
+        "Prior Insurance Carrier",
+        "Previous Carrier",
+        "Current Carrier",
+        "Expiring Carrier"
+      ],
+      "canonical_name": "prior_carrier"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "State producer license number (required in FL) or National Producer Number (NPN).",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "ACORD 125",
+      "aliases": [
+        "Producer License No",
+        "License Number",
+        "State Producer License No",
+        "NPN",
+        "National Producer Number",
+        "Producer License Number"
+      ],
+      "canonical_name": "producer_license_number"
+    },
+    {
+      "vertical": "insurance",
+      "data_type": "str",
+      "description": "Producing agent or broker name. Often the agency name plus an individual.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "ACORD 125 - Producer",
+      "aliases": [
+        "Producer",
+        "Producer's Name",
+        "Agent Name",
+        "Broker Name",
+        "Agency",
+        "Producer Name (Please Print)"
+      ],
+      "canonical_name": "producer_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient apartment / suite / unit. PHI under HIPAA (geographic subdivision).",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "Apt",
+        "Apt #",
+        "Apt Number",
+        "Apt. Number",
+        "Suite",
+        "Unit",
+        "Address Line 2",
+        "Apt Number (if any)"
+      ],
+      "canonical_name": "address_apt"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient city. PHI under HIPAA.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "City",
+        "City or Town",
+        "Town"
+      ],
+      "canonical_name": "address_city"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient state. PHI in combination with other identifiers.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "State",
+        "ST",
+        "State/Province"
+      ],
+      "canonical_name": "address_state"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient street address. PHI under HIPAA.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "Street Address",
+        "Address",
+        "Mailing Address",
+        "Street",
+        "Address Line 1",
+        "Street Number and Name",
+        "Residential Address",
+        "Home Address"
+      ],
+      "canonical_name": "address_street"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient ZIP code. PHI in combination with other identifiers (full ZIP, not just first 3 digits).",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "ZIP",
+        "ZIP Code",
+        "Zip Code",
+        "Zip",
+        "Postal Code",
+        "ZIP/Postal Code"
+      ],
+      "canonical_name": "address_zip"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "list[str]",
+      "description": "Known allergies (drug, food, environmental). 'NKDA' (No Known Drug Allergies) is a common explicit value.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Allergies",
+        "Drug Allergies",
+        "Known Allergies",
+        "Allergy List",
+        "NKDA",
+        "Allergies (please list)"
+      ],
+      "canonical_name": "allergies"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "list[str]",
+      "description": "List of current/prior medications, often including dose and frequency in free text.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Current Medications",
+        "Medications",
+        "Prescription Medications",
+        "Meds",
+        "Active Medications",
+        "Prior Medications",
+        "List of Current Medications"
+      ],
+      "canonical_name": "current_medications"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "date",
+      "description": "Patient date of birth. PHI under HIPAA (full date with day).",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 3",
+      "aliases": [
+        "Patient's Date of Birth",
+        "Patient DOB",
+        "DOB",
+        "Date of Birth",
+        "Birth Date"
+      ],
+      "canonical_name": "date_of_birth"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient email. PHI under HIPAA when associated with health info.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Email",
+        "E-mail",
+        "Email Address",
+        "E-Mail",
+        "Email Address (optional)"
+      ],
+      "canonical_name": "email"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Name of the patient's emergency contact.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Emergency Contact",
+        "Emergency Contact Name",
+        "In Case of Emergency",
+        "ICE Contact",
+        "Emergency Contact Person"
+      ],
+      "canonical_name": "emergency_contact_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Phone number of the patient's emergency contact.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Emergency Contact Phone",
+        "Emergency Phone",
+        "ICE Phone",
+        "Emergency Contact Number"
+      ],
+      "canonical_name": "emergency_contact_phone"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Relationship of emergency contact to patient (spouse, parent, child, friend, etc.).",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Relationship to Patient",
+        "Emergency Contact Relationship",
+        "Relation",
+        "Relationship"
+      ],
+      "canonical_name": "emergency_contact_relationship"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient first name. PHI under HIPAA when associated with health information.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 2 (Patient's Name)",
+      "aliases": [
+        "Patient's First Name",
+        "Patient First Name",
+        "First Name",
+        "Given Name"
+      ],
+      "canonical_name": "first_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "bool",
+      "description": "Whether the patient acknowledged receipt of the Notice of Privacy Practices. Boolean: signed/checked or not.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "HIPAA Privacy Rule 45 CFR 164.520(c)",
+      "aliases": [
+        "HIPAA Acknowledgment",
+        "Notice of Privacy Practices",
+        "Privacy Notice Received",
+        "HIPAA Consent",
+        "Acknowledgment of Receipt of Notice of Privacy Practices"
+      ],
+      "canonical_name": "hipaa_acknowledgment"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Group number from the insurance card.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 11",
+      "aliases": [
+        "Group Number",
+        "Group #",
+        "Plan Group",
+        "Group ID",
+        "Insurance Group Number",
+        "Insured's Group or FECA Number"
+      ],
+      "canonical_name": "insurance_group_number"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Subscriber/member ID from the insurance card. CMS-1500 Box 1a; HIPAA 837P NM109 (NM101=IL).",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 1a; 837P loop 2010BA NM109",
+      "aliases": [
+        "Member ID",
+        "Subscriber ID",
+        "Insured's ID Number",
+        "Policy ID",
+        "ID Number",
+        "Member Number",
+        "Insured ID #"
+      ],
+      "canonical_name": "insurance_member_id"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Insurance plan or program name (e.g. 'Blue Cross Blue Shield of Texas PPO').",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 11c",
+      "aliases": [
+        "Insurance Plan",
+        "Plan Name",
+        "Insurance Provider",
+        "Carrier",
+        "Insurance Company",
+        "Health Plan",
+        "Insurance Plan Name or Program Name"
+      ],
+      "canonical_name": "insurance_plan_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient last name. PHI in healthcare context.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 2",
+      "aliases": [
+        "Patient's Last Name",
+        "Patient Last Name",
+        "Last Name",
+        "Family Name",
+        "Patient's Name (Last)"
+      ],
+      "canonical_name": "last_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "list[str]",
+      "description": "Past medical history conditions. Often a checkbox grid plus free text.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Medical History",
+        "Past Medical History",
+        "PMH",
+        "Health Conditions",
+        "Active Problems",
+        "Have you ever been diagnosed with"
+      ],
+      "canonical_name": "medical_history_conditions"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient middle name or initial. PHI in healthcare context.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 2",
+      "aliases": [
+        "Patient's Middle Initial",
+        "Middle Initial",
+        "MI",
+        "M.I."
+      ],
+      "canonical_name": "middle_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Medical Record Number (MRN), chart number, or patient account number.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "HIPAA 18 identifiers - medical record number",
+      "aliases": [
+        "Patient ID",
+        "MRN",
+        "Medical Record Number",
+        "Chart Number",
+        "Patient Account #",
+        "Account Number",
+        "Patient Number",
+        "Chart #"
+      ],
+      "canonical_name": "patient_id"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Preferred pharmacy name and location for e-prescribing.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Preferred Pharmacy",
+        "Pharmacy",
+        "Drug Store",
+        "Pharmacy Name and Phone",
+        "Pharmacy Name",
+        "Preferred Pharmacy Name and Address"
+      ],
+      "canonical_name": "pharmacy_preference"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Patient phone. PHI under HIPAA.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 5",
+      "aliases": [
+        "Phone",
+        "Phone Number",
+        "Telephone",
+        "Tel",
+        "Phone (Home)",
+        "Day Phone",
+        "Cell Phone",
+        "Mobile",
+        "Contact Number"
+      ],
+      "canonical_name": "phone"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Primary care physician (PCP) name, or referring physician on a CMS-1500.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 17 (Referring Provider)",
+      "aliases": [
+        "Primary Care Physician",
+        "PCP",
+        "Primary Doctor",
+        "Family Doctor",
+        "Referring Physician",
+        "Name of Referring Provider or Other Source",
+        "Referring Provider"
+      ],
+      "canonical_name": "primary_care_physician"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Chief complaint or reason for today's visit. Free text.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Reason for Visit",
+        "Chief Complaint",
+        "Reason for Today's Visit",
+        "Presenting Problem",
+        "CC"
+      ],
+      "canonical_name": "reason_for_visit"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "Literal['M', 'F', 'U']",
+      "description": "Sex assigned at birth, as captured on the form. Some forms use Gender; treated as alias.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 3",
+      "aliases": [
+        "Sex",
+        "Gender",
+        "Sex Assigned at Birth",
+        "M/F",
+        "Male/Female",
+        "Sex (M/F)"
+      ],
+      "canonical_name": "sex"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "date",
+      "description": "Subscriber date of birth, when subscriber differs from patient.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 11a",
+      "aliases": [
+        "Insured's Date of Birth",
+        "Subscriber DOB",
+        "Policyholder DOB",
+        "Insured's DOB"
+      ],
+      "canonical_name": "subscriber_dob"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "str",
+      "description": "Insured/subscriber/policyholder name when different from patient. Last, First MI format.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 4; 837P loop 2010BA",
+      "aliases": [
+        "Insured's Name",
+        "Subscriber Name",
+        "Policyholder Name",
+        "Primary Insured",
+        "Insured Name (Last Name, First Name, Middle Initial)"
+      ],
+      "canonical_name": "subscriber_name"
+    },
+    {
+      "vertical": "healthcare",
+      "data_type": "Literal['self', 'spouse', 'child', 'other']",
+      "description": "Patient's relationship to the insured/subscriber.",
+      "data_class": "phi",
+      "sensitivity": "high",
+      "source_standard": "CMS-1500 Box 6",
+      "aliases": [
+        "Patient Relationship to Insured",
+        "Relationship to Subscriber",
+        "Relationship",
+        "Patient's Relationship to Insured",
+        "Self/Spouse/Child/Other"
+      ],
+      "canonical_name": "subscriber_relationship"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Apartment, suite, or unit number. Often blank.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Apt. Number (if any)",
+        "Apt",
+        "Apt #",
+        "Suite",
+        "Unit"
+      ],
+      "canonical_name": "address_apt"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Bank account number for direct deposit. Variable length. High sensitivity.",
+      "data_class": "pci",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Account Number",
+        "Bank Account Number",
+        "Account #",
+        "Checking/Savings Account Number"
+      ],
+      "canonical_name": "bank_account_number"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "Literal['checking', 'savings']",
+      "description": "Type of account for direct deposit.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": null,
+      "aliases": [
+        "Account Type",
+        "Checking",
+        "Savings",
+        "Type of Account",
+        "Checking or Savings"
+      ],
+      "canonical_name": "bank_account_type"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "9-digit ABA routing number. Treated as high-sensitivity because routing+account = payment credential.",
+      "data_class": "pci",
+      "sensitivity": "high",
+      "source_standard": null,
+      "aliases": [
+        "Routing Number",
+        "ABA Routing Number",
+        "Bank Routing",
+        "ABA Number",
+        "Routing/Transit Number",
+        "9-digit Routing Number"
+      ],
+      "canonical_name": "bank_routing_number"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "Literal['us_citizen', 'noncitizen_national', 'lawful_permanent_resident', 'alien_authorized_to_work']",
+      "description": "I-9 Section 1 attestation. Four options as of 01/20/2025 edition (reverted 'noncitizen authorized to work' to 'alien authorized to work').",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "I-9 Section 1, Boxes 1-4",
+      "aliases": [
+        "Citizenship",
+        "Citizenship Status",
+        "Citizen of the United States",
+        "Attestation",
+        "Immigration Status",
+        "Check one of the following boxes to attest to your citizenship or immigration status"
+      ],
+      "canonical_name": "citizenship_status"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "date",
+      "description": "Date of birth of the primary subject. Forms typically show MM/DD/YYYY.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Date of Birth (mm/dd/yyyy)",
+        "Date of Birth",
+        "DOB",
+        "Birth Date"
+      ],
+      "canonical_name": "date_of_birth"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "float",
+      "description": "W-4 Step 4(b). Estimated deductions other than the standard deduction.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "W-4 (2026) Step 4(b)",
+      "aliases": [
+        "Deductions",
+        "Step 4(b)",
+        "Other Deductions",
+        "Itemized Deductions"
+      ],
+      "canonical_name": "deductions"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "float",
+      "description": "W-4 Step 3 total. $2,200 per qualifying child (TY2026 OBBBA value, up from $2,000) plus $500 per other dependent.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "W-4 (2026) Step 3",
+      "aliases": [
+        "Dependents",
+        "Credit for Dependents",
+        "Number of Dependents",
+        "Step 3",
+        "Total Dependent Credits",
+        "Claim Dependents",
+        "Total credit amount"
+      ],
+      "canonical_name": "dependents_credit_amount"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "date",
+      "description": "First day of employment. Section 2 of I-9 must be completed within 3 business days of this date.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "I-9 Section 2",
+      "aliases": [
+        "First Day of Employment",
+        "Hire Date",
+        "Start Date",
+        "Employment Start Date",
+        "Date of Hire",
+        "The employee's first day of employment (mm/dd/yyyy)"
+      ],
+      "canonical_name": "employee_start_date"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Employer's business or organization name.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "I-9 Section 2; W-4 employer section",
+      "aliases": [
+        "Employer",
+        "Employer Name",
+        "Company Name",
+        "Business Name",
+        "Employer's Business or Organization Name"
+      ],
+      "canonical_name": "employer_name"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "bool",
+      "description": "W-4 (2026) exemption checkbox. New explicit checkbox in 2026 form (previously a written notation).",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "W-4 (2026) Exempt section",
+      "aliases": [
+        "Exempt",
+        "Exempt from Withholding",
+        "Exemption from Withholding",
+        "I claim exemption from withholding"
+      ],
+      "canonical_name": "exempt_from_withholding"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "float",
+      "description": "W-4 Step 4(c). Additional dollar amount to withhold per pay period.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "W-4 (2026) Step 4(c)",
+      "aliases": [
+        "Extra Withholding",
+        "Step 4(c)",
+        "Additional Withholding",
+        "Additional Amount Withheld",
+        "Extra withholding per pay period"
+      ],
+      "canonical_name": "extra_withholding"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "Literal['single_or_mfs', 'married_filing_jointly', 'head_of_household']",
+      "description": "Tax filing status, W-4 Step 1(c). MFS is grouped with Single on the W-4.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "W-4 (2026) Step 1(c)",
+      "aliases": [
+        "Filing Status",
+        "Marital Status",
+        "Tax Filing Status",
+        "Single or Married filing separately",
+        "Married filing jointly",
+        "Head of household"
+      ],
+      "canonical_name": "filing_status"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Given name (first name) of the primary subject of the form.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "First Name (Given Name)",
+        "First Name",
+        "Employee First Name",
+        "Given Name"
+      ],
+      "canonical_name": "first_name"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Foreign passport number for noncitizens, including country of issuance. I-9 Section 1 alternative.",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "I-9 Section 1",
+      "aliases": [
+        "Foreign Passport",
+        "Passport Number",
+        "Foreign Passport Number",
+        "Foreign Passport Number and Country of Issuance"
+      ],
+      "canonical_name": "foreign_passport_number"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Form I-94 admission number for noncitizens authorized to work. I-9 Section 1 alternative to A-Number.",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "I-9 Section 1",
+      "aliases": [
+        "Form I-94",
+        "I-94 Number",
+        "Admission Number",
+        "I-94 Admission Number",
+        "Form I-94 Admission Number"
+      ],
+      "canonical_name": "i94_admission_number"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Family name (surname) of the primary subject. May contain spaces or hyphens.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Last Name (Family Name)",
+        "Last Name",
+        "Employee Last Name",
+        "Family Name",
+        "Surname"
+      ],
+      "canonical_name": "last_name"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "Middle name or middle initial. May be a single character.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": null,
+      "aliases": [
+        "Middle Initial (if any)",
+        "Middle Initial",
+        "MI",
+        "M.I."
+      ],
+      "canonical_name": "middle_name"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "bool",
+      "description": "W-4 Step 2(c) checkbox: employee or spouse holds multiple jobs of similar pay.",
+      "data_class": "public",
+      "sensitivity": "low",
+      "source_standard": "W-4 (2026) Step 2(c)",
+      "aliases": [
+        "Multiple Jobs",
+        "Two Jobs",
+        "Step 2 Box",
+        "Multiple Jobs Worksheet",
+        "Multiple Jobs or Spouse Works"
+      ],
+      "canonical_name": "multiple_jobs_indicator"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "float",
+      "description": "W-4 Step 4(a). Other estimated annual income not from jobs.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "W-4 (2026) Step 4(a)",
+      "aliases": [
+        "Other Income",
+        "Step 4(a)",
+        "Other Estimated Income",
+        "Non-Wage Income",
+        "Other Income (not from jobs)"
+      ],
+      "canonical_name": "other_income"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "list[str]",
+      "description": "Maiden name or any other legal last names previously used. I-9 Section 1.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "I-9 Section 1",
+      "aliases": [
+        "Other Last Names Used",
+        "Maiden Name",
+        "Other Names",
+        "Previous Names",
+        "Other Last Names Used (if any)"
+      ],
+      "canonical_name": "other_last_names_used"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "U.S. Social Security Number. Required on W-4; required on I-9 only if employer participates in E-Verify.",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "W-4 Step 1; I-9 Section 1",
+      "aliases": [
+        "SSN",
+        "Social Security Number",
+        "Social Security #",
+        "U.S. Social Security Number",
+        "Soc Sec No",
+        "Social Security No."
+      ],
+      "canonical_name": "ssn"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "str",
+      "description": "USCIS Number / Alien Registration Number (A-Number). Required for permanent residents and aliens authorized to work on I-9.",
+      "data_class": "pii",
+      "sensitivity": "high",
+      "source_standard": "I-9 Section 1",
+      "aliases": [
+        "A-Number",
+        "USCIS Number",
+        "Alien Registration Number",
+        "USCIS A-Number",
+        "USCIS Number/A-Number",
+        "Alien Number"
+      ],
+      "canonical_name": "uscis_a_number"
+    },
+    {
+      "vertical": "hr",
+      "data_type": "date",
+      "description": "Date employment authorization expires (for aliens authorized to work). Drives reverification timing.",
+      "data_class": "pii",
+      "sensitivity": "medium",
+      "source_standard": "I-9 Section 1",
+      "aliases": [
+        "Work Authorization Expiration",
+        "Employment Authorization Expiration",
+        "Authorized to Work Until",
+        "Expiration Date (if any)"
+      ],
+      "canonical_name": "work_authorization_expiration"
+    }
+  ]
+}
