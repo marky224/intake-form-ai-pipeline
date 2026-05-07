@@ -54,20 +54,34 @@ pre-commit:
 alias-seed:
     uv run python build_alias_seed.py
 
-# Terraform fmt + validate locally (mirrors CI's terraform job, no AWS creds needed)
+# Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
     terraform -chdir=infra/terraform/bootstrap init -backend=false
     terraform -chdir=infra/terraform/bootstrap validate
+    terraform -chdir=infra/terraform init -backend=false
+    terraform -chdir=infra/terraform validate
 
 # Bootstrap stack: first-time init with local state (no backend yet)
 tf-bootstrap-init:
     terraform -chdir=infra/terraform/bootstrap init -backend=false
 
-# Bootstrap stack: apply (creates state bucket, lock table, OIDC provider, CI role)
+# Bootstrap stack: apply (creates state bucket, lock table, deploy + plan CI roles)
 tf-bootstrap-apply:
     terraform -chdir=infra/terraform/bootstrap apply
 
 # Bootstrap stack: migrate local state into the S3 bucket it just created
 tf-bootstrap-migrate:
     terraform -chdir=infra/terraform/bootstrap init -migrate-state -backend-config=.tfbackend
+
+# Main stack: init with S3 backend (requires .tfbackend file present)
+tf-init:
+    terraform -chdir=infra/terraform init -backend-config=.tfbackend
+
+# Main stack: plan
+tf-plan:
+    terraform -chdir=infra/terraform plan
+
+# Main stack: apply
+tf-apply:
+    terraform -chdir=infra/terraform apply

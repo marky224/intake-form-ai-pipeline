@@ -15,12 +15,13 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  account_id        = data.aws_caller_identity.current.account_id
-  state_bucket_name = "${var.project_name}-tfstate-${local.account_id}"
-  lock_table_name   = "${var.project_name}-tflock"
-  oidc_provider_url = "token.actions.githubusercontent.com"
-  oidc_audience     = "sts.amazonaws.com"
-  ci_role_name      = "${var.project_name}-github-actions"
+  account_id          = data.aws_caller_identity.current.account_id
+  state_bucket_name   = "${var.project_name}-tfstate-${local.account_id}"
+  lock_table_name     = "${var.project_name}-tflock"
+  oidc_provider_url   = "token.actions.githubusercontent.com"
+  oidc_audience       = "sts.amazonaws.com"
+  ci_role_name_deploy = "${var.project_name}-github-actions-deploy"
+  ci_role_name_plan   = "${var.project_name}-github-actions-plan"
 }
 
 resource "aws_s3_bucket" "tfstate" {

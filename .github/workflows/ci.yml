@@ -57,13 +57,9 @@ jobs:
           EVAL_LIVE: "false"
 
   terraform:
-    name: Terraform (fmt + validate)
+    name: Terraform (fmt + validate + plan/apply)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    # Phase 2 PR 1 lands infra/terraform/bootstrap/, so .tf files exist from
-    # now on. No job-level gate (hashFiles() isn't valid in job-level if:);
-    # if the terraform tree is ever deleted, fmt/validate fail loudly, which
-    # is the correct signal.
+    timeout-minutes: 15
     permissions:
       id-token: write
       contents: read
@@ -76,8 +72,9 @@ jobs:
           terraform_version: "1.14.0"
           terraform_wrapper: false
 
-      # fmt + validate are offline checks — run unconditionally. Catch
-      # formatting/syntax issues even before the OIDC chain is wired up.
+      # fmt + validate are offline checks — run unconditionally against
+      # both stacks. Catch formatting/syntax issues even before OIDC is
+      # wired up.
       - name: Terraform fmt check (recursive)
         run: terraform fmt -check -recursive
         working-directory: infra/terraform
@@ -88,17 +85,54 @@ jobs:
           terraform validate
         working-directory: infra/terraform/bootstrap
 
-      # OIDC chain check is gated on the repo variable being set. The bootstrap
-      # stack creates the role; the operator runs `gh variable set
-      # AWS_OIDC_ROLE_ARN ...` after `terraform apply`. Until that lands, these
-      # steps are skipped (not failed) so fmt/validate still gate the PR.
+      - name: Terraform validate (main)
+        run: |
+          terraform init -backend=false
+          terraform validate
+        working-directory: infra/terraform
+
+      # OIDC: pick the role to assume based on event type. Pull requests
+      # use the plan role (read-only). Pushes to main use the deploy role
+      # (write perms). Both gates are conditioned on the repo variables
+      # being set — until the Phase 2 PR 2 migration ceremony, these
+      # steps skip rather than fail so fmt/validate still gate the PR.
       - name: Configure AWS credentials (OIDC)
-        if: vars.AWS_OIDC_ROLE_ARN != ''
+        if: vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          role-to-assume: ${{ github.event_name == 'pull_request' && vars.AWS_OIDC_ROLE_ARN_PLAN || vars.AWS_OIDC_ROLE_ARN_DEPLOY }}
           aws-region: us-east-1
 
       - name: Verify OIDC chain
-        if: vars.AWS_OIDC_ROLE_ARN != ''
+        if: vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: aws sts get-caller-identity
+
+      # Main-stack plan/apply against the S3 backend. Backend bucket and
+      # lock-table names come from repo variables to keep the AWS account
+      # ID out of the public repo.
+      - name: Terraform init (main, S3 backend)
+        if: vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        run: |
+          rm -rf .terraform
+          terraform init \
+            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="key=main/terraform.tfstate" \
+            -backend-config="region=us-east-1" \
+            -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
+            -backend-config="encrypt=true"
+        working-directory: infra/terraform
+
+      # Plan-only on PRs. -lock=false because the plan role has
+      # ReadOnlyAccess and can't acquire a DynamoDB lock; safe because
+      # plan is read-only.
+      - name: Terraform plan (main, PR)
+        if: github.event_name == 'pull_request' && vars.TF_STATE_BUCKET != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        run: terraform plan -lock=false -no-color
+        working-directory: infra/terraform
+
+      # Apply on push to main only. The deploy role acquires the lock
+      # normally.
+      - name: Terraform apply (main, push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != ''
+        run: terraform apply -auto-approve -no-color
+        working-directory: infra/terraform

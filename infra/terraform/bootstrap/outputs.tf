@@ -8,9 +8,14 @@ output "state_lock_table_name" {
   value       = aws_dynamodb_table.tflock.id
 }
 
-output "ci_role_arn" {
-  description = "Role ARN for GitHub Actions to assume via OIDC. Set as the AWS_OIDC_ROLE_ARN repo variable in GitHub."
-  value       = aws_iam_role.github_actions.arn
+output "deploy_role_arn" {
+  description = "Role ARN assumed by GitHub Actions on push to main (write perms). Set as the AWS_OIDC_ROLE_ARN_DEPLOY repo variable."
+  value       = aws_iam_role.github_actions_deploy.arn
+}
+
+output "plan_role_arn" {
+  description = "Role ARN assumed by GitHub Actions on pull_request workflows (ReadOnlyAccess). Set as the AWS_OIDC_ROLE_ARN_PLAN repo variable."
+  value       = aws_iam_role.github_actions_plan.arn
 }
 
 output "oidc_provider_arn" {
