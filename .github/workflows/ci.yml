@@ -60,9 +60,10 @@ jobs:
     name: Terraform (fmt + validate)
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    # Gated: only runs once .tf files exist anywhere under infra/terraform/.
-    # PR 1 lands the bootstrap stack, which trips this gate.
-    if: hashFiles('infra/terraform/**/*.tf') != ''
+    # Phase 2 PR 1 lands infra/terraform/bootstrap/, so .tf files exist from
+    # now on. No job-level gate (hashFiles() isn't valid in job-level if:);
+    # if the terraform tree is ever deleted, fmt/validate fail loudly, which
+    # is the correct signal.
     permissions:
       id-token: write
       contents: read
