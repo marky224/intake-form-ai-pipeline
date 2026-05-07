@@ -84,7 +84,7 @@ Aurora Serverless v2 with min 0 ACU and auto-pause after 5 minutes idle costs ~$
 
 A single Aurora cluster with three schemas (`demo`, `eval`, `staging`) avoids multi-cluster cost while preserving environment isolation. Demo gets reset per visitor session via the `reset_demo` Lambda; eval is the source of truth for F1-over-time numbers; staging is for development work.
 
-The cost of auto-pause is the 30-90 second cold start when a recruiter arrives. Mitigated by the wake-on-request landing page, which gives them something to read while Aurora warms.
+The cost of auto-pause is the 30-90 second cold start when a visitor arrives. Mitigated by the wake-on-request landing page, which gives them something to read while Aurora warms.
 
 ### Why pgvector for embeddings
 
@@ -148,15 +148,15 @@ Real intake teams operate as a queue, not as a single-document pipeline. The rev
 
 Single-document review is also supported as a secondary view — the reviewer can drill into any document from the batch view to see fields in context. This handles cases where field-level context across the form matters (e.g., subscriber name doesn't match patient name when relationship=self).
 
-The recruiter UX angle: bulk-batch-as-primary plus single-doc-as-drill-down demonstrates understanding that production review workflows are throughput-driven without sacrificing the precision a reviewer occasionally needs. Both modes read from the same Aurora data, so adding the secondary view costs essentially nothing infrastructure-wise.
+The product-design angle: bulk-batch-as-primary plus single-doc-as-drill-down reflects that production review workflows are throughput-driven without sacrificing the precision a reviewer occasionally needs. Both modes read from the same Aurora data, so adding the secondary view costs essentially nothing infrastructure-wise.
 
 ### Why wake-on-request over always-on Aurora
 
-Aurora Serverless v2 minimum 0.5 ACU at $0.12/ACU-hour = $0.06/hour running. Always-on for a portfolio demo: ~$43/month. Wake-on-request with auto-pause after 5 min idle: ~$5-10/month total — Aurora wakes ~50 times/month for recruiter visits, each wake bills 10-20 minutes before idle-pause kicks in. Annual savings: ~$400.
+Aurora Serverless v2 minimum 0.5 ACU at $0.12/ACU-hour = $0.06/hour running. Always-on for a public demo: ~$43/month. Wake-on-request with auto-pause after 5 min idle: ~$5-10/month total — Aurora wakes ~50 times/month for visitor traffic, each wake bills 10-20 minutes before idle-pause kicks in. Annual savings: ~$400.
 
-The UX cost is the 30-90 second cold start. Mitigated three ways. The wake page shows project pitch and F1-over-time chart during the wait — recruiter gets value immediately rather than staring at a spinner. A DynamoDB single-item lock prevents simultaneous-wake race conditions if multiple recruiters arrive in the same minute. An explicit progress indicator confirms the system is working.
+The UX cost is the 30-90 second cold start. Mitigated three ways. The wake page shows project pitch and F1-over-time chart during the wait — the visitor gets value immediately rather than staring at a spinner. A DynamoDB single-item lock prevents simultaneous-wake race conditions if multiple visitors arrive in the same minute. An explicit progress indicator confirms the system is working.
 
-The tradeoff: 30-90 seconds of recruiter wait time is acceptable for a portfolio piece; $400/year of always-on is not. Production deployment with paying customers would flip this calculus, which is documented in `docs/production-roadmap.md`.
+The tradeoff: 30-90 seconds of visitor wait time is acceptable for a public demo; $400/year of always-on is not. Production deployment with paying customers would flip this calculus, which is documented in `docs/production-roadmap.md`.
 
 ### Why a DataClass enum
 
@@ -174,9 +174,9 @@ These are starting values, not final ones. The Phase 6 eval harness sweeps thres
 
 ### Why public-on-day-1 (the GitHub repo)
 
-The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Recruiters discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
+The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Visitors discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
 
-The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (recruiters bookmark URLs they see, even before they're live), but the demo behind it doesn't go live until Phase 7. Until then, the URL renders the wake page with a "demo lands Phase 7" caveat. This avoids both broken-link-on-day-1 (bad recruiter signal) and over-promising-on-day-1 (worse recruiter signal).
+The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), but the demo behind it doesn't go live until Phase 7. Until then, the URL renders the wake page with a "demo lands Phase 7" caveat. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
 
 Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1.
 

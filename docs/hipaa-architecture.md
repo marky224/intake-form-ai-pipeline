@@ -17,7 +17,7 @@ PII routing is `HIPAA_MODE`-dependent and handled in the routing layer rather th
 
 ## Synthetic-to-real-PHI swap path
 
-> Lands in Phase 5 alongside the `HIPAA_MODE` flag implementation. Section will cover: BAA execution checklist with each provider Mark's hypothetical hiring org would need (AWS BAA via the AWS Artifact portal; nothing else needed if HIPAA_MODE confines routing to AWS-only). Synthea-generated S3 input bucket swap to a real-PHI bucket with the same prefix structure. Aurora schema migration is no-op (`HealthcareIntakeForm` schema is identical). The CloudWatch and Aurora audit logs satisfy HIPAA's accounting-of-disclosures requirement.
+> Lands in Phase 5 alongside the `HIPAA_MODE` flag implementation. Section will cover: BAA execution checklist with each provider an adopting organization would need (AWS BAA via the AWS Artifact portal; nothing else needed if HIPAA_MODE confines routing to AWS-only). Synthea-generated S3 input bucket swap to a real-PHI bucket with the same prefix structure. Aurora schema migration is no-op (`HealthcareIntakeForm` schema is identical). The CloudWatch and Aurora audit logs satisfy HIPAA's accounting-of-disclosures requirement.
 
 ## Healthcare-specific routing rules
 
