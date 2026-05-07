@@ -4,35 +4,51 @@ One-time stack that creates the foundation everything else depends on:
 
 - S3 bucket for remote Terraform state (versioned, encrypted, public-access-blocked, lifecycle-managed)
 - DynamoDB table for state locking (PAY_PER_REQUEST, encrypted, point-in-time recovery)
-- GitHub Actions OIDC provider (no long-lived AWS keys)
-- IAM role assumable from this repo's `main` branch and pull-request workflows
+- IAM role assumable from this repo's `main` branch and pull-request workflows via GitHub Actions OIDC
+
+The GitHub OIDC provider (`token.actions.githubusercontent.com`) is **not** owned by this stack. AWS allows only one OIDC provider per URL per account, so it's shared across every project that uses GitHub Actions in the account. This stack references it via a data source. If the provider doesn't yet exist in the account, create it once out-of-band before applying this stack:
+
+```bash
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com \
+  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+```
+
+(AWS no longer validates the thumbprint for the official GitHub OIDC URL, but the field is required.)
 
 After this stack is applied and its state migrated to the bucket it just created, every other Terraform stack in `infra/terraform/` uses the same backend.
 
 ## First-time setup
 
-Prerequisites: AWS CLI authenticated as a principal with `iam:*`, `s3:*`, `dynamodb:*` permissions on the target account; Terraform `~> 1.14` installed.
+Prerequisites: AWS CLI authenticated as a principal with permissions to create the bootstrap resources (S3 bucket + versioning/encryption/lifecycle settings, DynamoDB table, IAM role) plus `iam:GetOpenIDConnectProvider` to look up the shared OIDC provider — typically an administrator or a scoped one-off bootstrap policy. Terraform `~> 1.14` installed. GitHub OIDC provider already created in the AWS account (see top of README).
+
+The chicken-and-egg dance: the stack creates its own state backend, so on first apply there's no backend yet. Modern Terraform (1.6+) requires backend init even for `apply`, so `init -backend=false` alone isn't enough — the `backend "s3" {}` block in `backend.tf` must be temporarily commented out for the first apply, then restored for the migrate.
 
 ```bash
 cd infra/terraform/bootstrap
 
-# 1. Initialise with local state (no backend yet)
-terraform init -backend=false
+# 1. Comment out the `backend "s3" {}` block in backend.tf (do not commit).
 
-# 2. Apply — creates state bucket, lock table, OIDC provider, CI role
+# 2. Initialise with the default local backend
+terraform init
+
+# 3. Apply — creates state bucket, lock table, CI role
 terraform apply
 
-# 3. Build .tfbackend from the apply output
+# 4. Restore the `backend "s3" {}` block in backend.tf.
+
+# 5. Build .tfbackend from the apply output
 terraform output -raw tfbackend_example > .tfbackend
 
-# 4. Re-init with the S3 backend, migrating the local state file
+# 6. Re-init with the S3 backend, migrating the local state file
 terraform init -migrate-state -backend-config=.tfbackend
 # Answer 'yes' when prompted to migrate state.
 
-# 5. Verify state migrated cleanly
+# 7. Verify state migrated cleanly
 terraform plan   # should report "No changes"
 
-# 6. Delete the now-redundant local state file
+# 8. Delete the now-redundant local state file
 rm terraform.tfstate terraform.tfstate.backup
 ```
 
@@ -61,7 +77,7 @@ The CI workflow's `terraform` job reads `vars.AWS_OIDC_ROLE_ARN` and exchanges i
 | `versions.tf` | Pinned Terraform `~> 1.14` and AWS provider `~> 6.44` |
 | `backend.tf` | Partial S3 backend; concrete values supplied via `.tfbackend` at init time |
 | `main.tf` | Provider config, S3 state bucket, DynamoDB lock table |
-| `oidc.tf` | GitHub OIDC provider + scoped CI role |
+| `oidc.tf` | GitHub OIDC provider (data source) + scoped CI role |
 | `variables.tf` | `aws_region`, `project_name`, `github_repo`, `github_main_branch` |
 | `outputs.tf` | Bucket name, lock table name, role ARN, OIDC provider ARN, ready-to-paste `tfbackend_example` |
 | `.tfbackend.example` | Template for `.tfbackend` (which is gitignored) |
