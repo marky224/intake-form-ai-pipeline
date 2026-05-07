@@ -55,3 +55,41 @@ jobs:
         run: uv run pytest -v --tb=short
         env:
           EVAL_LIVE: "false"
+
+  terraform:
+    name: Terraform (fmt + validate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Gated: only runs once .tf files exist anywhere under infra/terraform/.
+    # PR 1 lands the bootstrap stack, which trips this gate.
+    if: hashFiles('infra/terraform/**/*.tf') != ''
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.14.0"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Verify OIDC chain
+        run: aws sts get-caller-identity
+
+      - name: Terraform fmt check (recursive)
+        run: terraform fmt -check -recursive
+        working-directory: infra/terraform
+
+      - name: Terraform validate (bootstrap)
+        run: |
+          terraform init -backend=false
+          terraform validate
+        working-directory: infra/terraform/bootstrap

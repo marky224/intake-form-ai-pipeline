@@ -38,6 +38,8 @@ secrets.json
 *.tfstate.*
 *.tfvars
 !*.tfvars.example
+*.tfbackend
+!*.tfbackend.example
 *.tfplan
 crash.log
 crash.*.log
