@@ -1,14 +1,16 @@
-# GitHub Actions OIDC federation. AWS no longer validates the thumbprint for
-# the official GitHub OIDC URL (the field is required by IAM but ignored at
-# auth time), so we pin the historical thumbprints for documentation. See
+# GitHub Actions OIDC federation. The OIDC provider for the official GitHub
+# URL is a singleton account-wide resource — only one can exist per account.
+# This stack does not own its lifecycle (other projects in the account share
+# it), so we reference it as a data source. The provider must be created
+# out-of-band on first use of GitHub OIDC in the account; after that, every
+# project just looks it up.
+#
+# AWS no longer validates the thumbprint for the official GitHub OIDC URL
+# (the field is required by IAM but ignored at auth time), so existing
+# providers with any historical thumbprint work for our purposes. See
 # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
-resource "aws_iam_openid_connect_provider" "github" {
-  url            = "https://${local.oidc_provider_url}"
-  client_id_list = [local.oidc_audience]
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-  ]
+data "aws_iam_openid_connect_provider" "github" {
+  url = "https://${local.oidc_provider_url}"
 }
 
 data "aws_iam_policy_document" "ci_assume_role" {
@@ -18,7 +20,7 @@ data "aws_iam_policy_document" "ci_assume_role" {
 
     principals {
       type        = "Federated"
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
     }
 
     condition {

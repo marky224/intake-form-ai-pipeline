@@ -14,8 +14,8 @@ output "ci_role_arn" {
 }
 
 output "oidc_provider_arn" {
-  description = "ARN of the GitHub OIDC provider in IAM."
-  value       = aws_iam_openid_connect_provider.github.arn
+  description = "ARN of the GitHub OIDC provider in IAM (data source — owned out-of-band, shared across projects in this account)."
+  value       = data.aws_iam_openid_connect_provider.github.arn
 }
 
 output "aws_region" {
