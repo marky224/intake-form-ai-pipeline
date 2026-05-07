@@ -50,3 +50,14 @@ resource "aws_iam_role" "github_actions" {
 # sts:GetCallerIdentity (allowed by default for any IAM principal) and
 # offline terraform fmt/validate. Subsequent PRs attach least-privilege
 # policies as resources land (network, storage, database, edge).
+#
+# TODO (Phase 2 PR 2): when write policies first attach to this role, split
+# into two roles to enforce a privilege boundary:
+#   - intake-form-ai-pipeline-github-actions-deploy: main-only trust,
+#     write perms for terraform apply on push-to-main.
+#   - intake-form-ai-pipeline-github-actions-plan: main + pull_request
+#     trust, read-only perms for terraform plan on PRs.
+# The single-role + pull_request-trust shape here is safe today only because
+# no policies are attached. Forked PRs cannot assume this role regardless
+# (id-token: write downgrades to read for fork PR workflows), but same-repo
+# PR branches can — and will gain real capability the moment policies land.

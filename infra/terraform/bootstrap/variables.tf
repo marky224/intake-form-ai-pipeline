@@ -25,4 +25,9 @@ variable "github_main_branch" {
   description = "Branch ref allowed to assume the CI role for push-to-main events."
   type        = string
   default     = "main"
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9._/-]+$", var.github_main_branch))
+    error_message = "github_main_branch must be a literal branch name (no wildcards or shell metacharacters); patterns would widen the IAM StringLike sub match."
+  }
 }
