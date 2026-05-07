@@ -1,0 +1,13 @@
+name: hello
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  hello:
+    name: hello
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "hello from $GITHUB_RUN_ID"
