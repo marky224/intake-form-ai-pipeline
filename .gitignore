@@ -80,6 +80,7 @@ evals/results/
 *~
 .cursor/
 .claude/
+CLAUDE.md
 
 # OS
 .DS_Store
