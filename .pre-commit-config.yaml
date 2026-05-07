@@ -1,0 +1,59 @@
+# See https://pre-commit.com for usage and config reference.
+#
+# Install:    uv pip install pre-commit && pre-commit install
+# Run all:    pre-commit run --all-files
+# Update:     pre-commit autoupdate
+#
+# Configured to fail fast and stay quiet on success. Tests run only on commit,
+# not on pre-commit hooks for every file edit, because pytest is too slow for
+# per-file feedback. The CI workflow runs tests on every PR.
+
+repos:
+  # Basic file hygiene — trailing whitespace, end-of-file, merge conflict markers, etc.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  # Ruff — fast Python linter + formatter (replaces flake8, isort, etc.)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Black — formatter. Keeps redundancy with ruff-format intentionally:
+  # ruff-format catches most cases fast; black is the canonical reference.
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+        language_version: python3.11
+
+  # Terraform fmt — only runs if .tf files are touched
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.96.1
+    hooks:
+      - id: terraform_fmt
+
+  # pytest — runs the full test suite. Local hook because we want to control
+  # the working directory and use uv-managed environment.
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: uv run pytest -x -q
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-commit]

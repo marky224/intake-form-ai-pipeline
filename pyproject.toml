@@ -1,0 +1,106 @@
+[project]
+name = "intake-form-ai-pipeline"
+version = "0.1.0"
+description = "Self-improving intake-form processing pipeline with three-tier extraction cascade, BAA-aware routing, and F1-over-time eval"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Mark Marquez", email = "me@markandrewmarquez.com" },
+]
+keywords = ["llm", "ocr", "extraction", "cascade", "hipaa", "pydantic", "aws"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Private :: Do Not Upload",
+]
+
+dependencies = [
+    "pydantic>=2.6",
+]
+
+# ruff and black are pinned to the same exact versions as
+# .pre-commit-config.yaml. CI runs `uv sync --frozen` then ruff/black, so the
+# dev-deps and pre-commit hooks must agree on tool version. Bump both files
+# together when modernizing tooling.
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff==0.7.4",
+    "black==24.10.0",
+    "pre-commit>=4.0",
+]
+
+# Treat the repo as an application, not a library: uv won't try to build/install
+# the root as a package. Phase 4 may revisit this when src/intake_pipeline/ lands
+# and the cascade orchestrator becomes importable code rather than a flat layout.
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+# ---- Ruff ----------------------------------------------------------------
+# Line length aligned with black so the two formatters agree. Pre-commit runs
+# ruff-fix → ruff-format → black; if they ever disagree, black wins last.
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist",
+    "synthetic_data/output",
+    "evals/results",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",  # line-too-long — black handles wrapping; ruff would double-flag
+]
+
+[tool.ruff.lint.per-file-ignores]
+"test_*.py" = ["B011"]  # assert False is fine in tests
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+# ---- Black ---------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = '''
+/(
+    \.venv
+  | build
+  | dist
+  | synthetic_data/output
+  | evals/results
+)/
+'''
+
+# ---- Pytest --------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+python_files = ["test_*.py"]
+addopts = [
+    "--strict-markers",
+    "-ra",
+]
+markers = [
+    "live: tests that hit real cloud providers (gated on EVAL_LIVE=true)",
+    "slow: tests that exceed ~1s per case",
+]

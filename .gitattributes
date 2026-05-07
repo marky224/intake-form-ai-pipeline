@@ -1,0 +1,47 @@
+# Normalize all text files to LF on commit. Mark works across Linux (local dev)
+# and Windows (AWS CLI). Without this, Windows checkouts can introduce CRLF
+# diffs that pre-commit's mixed-line-ending hook then re-fixes on every commit.
+* text=auto eol=lf
+
+# Explicit text — keep diffable, normalize line endings
+*.py        text eol=lf
+*.toml      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.sh        text eol=lf
+*.tf        text eol=lf
+*.tfvars    text eol=lf
+*.hcl       text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.svg       text eol=lf
+justfile    text eol=lf
+Modelfile*  text eol=lf
+
+# Binary — never normalize, never diff
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.pdf       binary
+*.gguf      binary
+*.safetensors binary
+*.bin       binary
+*.zip       binary
+*.tar.gz    binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.otf       binary
+
+# Generated artifacts marked so GitHub language stats stay accurate
+docs/assets/* linguist-generated=false
+*.svg         linguist-detectable=true
