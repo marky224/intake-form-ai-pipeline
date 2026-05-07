@@ -1,0 +1,11 @@
+# Copy this file to .tfbackend (gitignored) after the first `terraform apply`,
+# replace <ACCOUNT_ID> with your AWS account ID, then run:
+#
+#   terraform init -migrate-state -backend-config=.tfbackend
+#
+# The values below mirror the `tfbackend_example` output of the bootstrap stack.
+bucket         = "intake-form-ai-pipeline-tfstate-<ACCOUNT_ID>"
+key            = "bootstrap/terraform.tfstate"
+region         = "us-east-1"
+dynamodb_table = "intake-form-ai-pipeline-tflock"
+encrypt        = true

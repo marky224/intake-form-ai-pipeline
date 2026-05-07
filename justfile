@@ -53,3 +53,21 @@ pre-commit:
 # Regenerate alias_table_seed.json from intake_schemas.py + the curated alias map
 alias-seed:
     uv run python build_alias_seed.py
+
+# Terraform fmt + validate locally (mirrors CI's terraform job, no AWS creds needed)
+tf-check:
+    terraform fmt -check -recursive infra/terraform
+    terraform -chdir=infra/terraform/bootstrap init -backend=false
+    terraform -chdir=infra/terraform/bootstrap validate
+
+# Bootstrap stack: first-time init with local state (no backend yet)
+tf-bootstrap-init:
+    terraform -chdir=infra/terraform/bootstrap init -backend=false
+
+# Bootstrap stack: apply (creates state bucket, lock table, OIDC provider, CI role)
+tf-bootstrap-apply:
+    terraform -chdir=infra/terraform/bootstrap apply
+
+# Bootstrap stack: migrate local state into the S3 bucket it just created
+tf-bootstrap-migrate:
+    terraform -chdir=infra/terraform/bootstrap init -migrate-state -backend-config=.tfbackend
