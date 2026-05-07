@@ -251,7 +251,7 @@ Per the master architecture doc:
 cd intake_schemas/
 pip install pydantic pytest
 python build_alias_seed.py    # regenerates alias_table_seed.json
-python -m pytest test_intake_schemas.py -v   # 49 tests, all pass
+python -m pytest test_intake_schemas.py -v   # 40 tests, all pass
 ```
 
 The seed JSON is regenerated deterministically from the schema metadata plus the hand-curated `ALIASES` map in `build_alias_seed.py`. Editing aliases means editing that dict; editing canonical fields means editing `intake_schemas.py` and regenerating.

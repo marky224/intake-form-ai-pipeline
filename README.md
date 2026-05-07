@@ -1,6 +1,6 @@
 # intake-form-ai-pipeline
 
-> 🚧 **In active development.** Phase 1 of 10. Last updated 2026-05-06.
+> 🚧 **In active development.** Phase 2 of 10 (in progress). Last updated 2026-05-07.
 
 ## What this is
 
@@ -220,13 +220,14 @@ The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly o
 ### Recipes that land with later phases
 
 ```bash
-just demo           # cascade against fixture documents (Phase 7)
+just synthetic-data # generate Synthea patients + render forms (Phase 3)
 just eval           # eval harness, cached fixtures (Phase 6)
 just eval-live      # eval harness with paid cloud calls (Phase 6)
-just synthetic-data # generate Synthea patients + render forms (Phase 3)
+just demo           # cascade against fixture documents (Phase 7)
 just review-ui      # React dev server (Phase 7)
-just deploy         # Terraform apply (Phase 2)
 ```
+
+Terraform deployment is the next slice of Phase 2 and runs from `infra/terraform/` once that directory lands; not exposed as a justfile recipe.
 
 Full current task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
 
