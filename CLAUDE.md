@@ -118,7 +118,7 @@ Pydantic v2 schemas with these constructs (defined in `intake_schemas.py` within
 
 The vertical-specific Insurance and HR schema classes remain in code as future-extensibility examples per the locked architectural decision (DocILE replaces both as the active business-documents vertical).
 
-The SignatureCapture refactor was applied May 5, 2026 against `intake_schemas.py`, `test_intake_schemas.py`, `alias_table_seed.json`, `build_alias_seed.py`, and `RATIONALE.md`. All 40 tests pass; ruff/black clean. Phase 4 cascade work proceeds against this updated schema; Tier 1/3a prompt templates will extract the handwritten/typed signals into the SignatureCapture sub-model.
+The SignatureCapture refactor was applied May 5, 2026 against `intake_schemas.py`, `test_intake_schemas.py`, `alias_table_seed.json`, `build_alias_seed.py`, and `RATIONALE.md`. The May 5 "ruff/black clean" claim turned out to be wrong against the codified pyproject.toml ruff config — Phase 1 setup on May 6 applied mechanical lint fixes to the schema files (`Optional[X]` → `X | None`, sorted imports, sorted `__all__`, removed a redundant quoted forward-reference, wrapped one `open()` in a `with` block) and re-formatted under black 24.10.0. The 40 tests still pass and the files are now genuinely ruff/black clean against `ruff==0.7.4` + `black==24.10.0` (pinned in `pyproject.toml` to match `.pre-commit-config.yaml`; bump both files together when modernizing tooling). Phase 4 cascade work proceeds against this updated schema; Tier 1/3a prompt templates will extract the handwritten/typed signals into the SignatureCapture sub-model.
 
 ### HIPAA / BAA routing
 
