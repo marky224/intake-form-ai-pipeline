@@ -75,15 +75,8 @@ jobs:
           terraform_version: "1.14.0"
           terraform_wrapper: false
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
-          aws-region: us-east-1
-
-      - name: Verify OIDC chain
-        run: aws sts get-caller-identity
-
+      # fmt + validate are offline checks — run unconditionally. Catch
+      # formatting/syntax issues even before the OIDC chain is wired up.
       - name: Terraform fmt check (recursive)
         run: terraform fmt -check -recursive
         working-directory: infra/terraform
@@ -93,3 +86,18 @@ jobs:
           terraform init -backend=false
           terraform validate
         working-directory: infra/terraform/bootstrap
+
+      # OIDC chain check is gated on the repo variable being set. The bootstrap
+      # stack creates the role; the operator runs `gh variable set
+      # AWS_OIDC_ROLE_ARN ...` after `terraform apply`. Until that lands, these
+      # steps are skipped (not failed) so fmt/validate still gate the PR.
+      - name: Configure AWS credentials (OIDC)
+        if: vars.AWS_OIDC_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Verify OIDC chain
+        if: vars.AWS_OIDC_ROLE_ARN != ''
+        run: aws sts get-caller-identity
