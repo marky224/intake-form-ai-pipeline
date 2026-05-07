@@ -58,6 +58,35 @@ resource "aws_s3_bucket_public_access_block" "tfstate" {
   restrict_public_buckets = true
 }
 
+data "aws_iam_policy_document" "tfstate_tls_only" {
+  statement {
+    sid    = "DenyInsecureTransport"
+    effect = "Deny"
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    actions = ["s3:*"]
+    resources = [
+      aws_s3_bucket.tfstate.arn,
+      "${aws_s3_bucket.tfstate.arn}/*",
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "tfstate_tls_only" {
+  bucket = aws_s3_bucket.tfstate.id
+  policy = data.aws_iam_policy_document.tfstate_tls_only.json
+}
+
 resource "aws_s3_bucket_lifecycle_configuration" "tfstate" {
   bucket = aws_s3_bucket.tfstate.id
 
