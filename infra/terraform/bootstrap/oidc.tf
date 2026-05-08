@@ -72,26 +72,45 @@ resource "aws_iam_role_policy_attachment" "deploy_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-# Block deploy role from mutating the Terraform backend. Bootstrap-stack
-# changes are applied locally with admin creds, never via CI; the deploy
-# role never has a legitimate reason to touch state storage.
+# Block deploy role from destroying or weakening the Terraform backend.
+# Bootstrap-stack changes are applied locally with admin creds, never via
+# CI; this deny scope only prevents a buggy main-stack apply from
+# recursively nuking its own backend or removing the security posture
+# that protects the state bucket. Normal init/apply ops (Get/Put/List on
+# state objects, GetItem/PutItem/DeleteItem on lock items) remain allowed
+# via AmazonS3FullAccess and the absence of a DynamoDB allow conflict.
+#
+# Explicit IAM denies override allows, so the action lists below must
+# stay tight — adding s3:* or dynamodb:* would block init.
 data "aws_iam_policy_document" "deploy_state_backend_deny" {
   statement {
-    sid    = "DenyTfStateBucketAccess"
+    sid    = "DenyTfStateBucketDestructive"
     effect = "Deny"
 
-    actions = ["s3:*"]
-    resources = [
-      aws_s3_bucket.tfstate.arn,
-      "${aws_s3_bucket.tfstate.arn}/*",
+    actions = [
+      "s3:DeleteBucket",
+      "s3:DeleteBucketPolicy",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketAcl",
+      "s3:PutBucketVersioning",
+      "s3:PutEncryptionConfiguration",
+      "s3:DeleteBucketEncryption",
+      "s3:PutLifecycleConfiguration",
+      "s3:DeleteLifecycleConfiguration",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:DeletePublicAccessBlock",
     ]
+    resources = [aws_s3_bucket.tfstate.arn]
   }
 
   statement {
-    sid    = "DenyTfStateLockTableAccess"
+    sid    = "DenyTfStateLockTableDestructive"
     effect = "Deny"
 
-    actions   = ["dynamodb:*"]
+    actions = [
+      "dynamodb:DeleteTable",
+      "dynamodb:UpdateTable",
+    ]
     resources = [aws_dynamodb_table.tflock.arn]
   }
 }

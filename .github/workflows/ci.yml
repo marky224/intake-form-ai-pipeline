@@ -124,15 +124,17 @@ jobs:
 
       # Plan-only on PRs. -lock=false because the plan role has
       # ReadOnlyAccess and can't acquire a DynamoDB lock; safe because
-      # plan is read-only.
+      # plan is read-only. Guard must match the init step exactly so
+      # plan never runs against a local backend if init was skipped.
       - name: Terraform plan (main, PR)
-        if: github.event_name == 'pull_request' && vars.TF_STATE_BUCKET != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: github.event_name == 'pull_request' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: terraform plan -lock=false -no-color
         working-directory: infra/terraform
 
       # Apply on push to main only. The deploy role acquires the lock
-      # normally.
+      # normally. Guard must match the init step exactly so apply never
+      # runs against a local backend if init was skipped.
       - name: Terraform apply (main, push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != ''
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: terraform apply -auto-approve -no-color
         working-directory: infra/terraform
