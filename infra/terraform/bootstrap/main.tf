@@ -22,6 +22,19 @@ locals {
   oidc_audience       = "sts.amazonaws.com"
   ci_role_name_deploy = "${var.project_name}-github-actions-deploy"
   ci_role_name_plan   = "${var.project_name}-github-actions-plan"
+
+  # Project-bucket ARN patterns for the deploy role's scoped S3 allow.
+  # Wildcard suffix matches the `<account_id>` form the main stack uses
+  # today and any future per-environment buckets (e.g.,
+  # `<project>-documents-staging-<account>`) without re-scoping IAM.
+  # `var.project_name` ("intake-form-ai-pipeline") is specific enough that
+  # this won't accidentally match other projects in the account.
+  project_bucket_arns = [
+    "arn:aws:s3:::${var.project_name}-documents-*",
+    "arn:aws:s3:::${var.project_name}-documents-*/*",
+    "arn:aws:s3:::${var.project_name}-artifacts-*",
+    "arn:aws:s3:::${var.project_name}-artifacts-*/*",
+  ]
 }
 
 resource "aws_s3_bucket" "tfstate" {
