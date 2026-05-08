@@ -144,7 +144,7 @@ jobs:
       # DynamoDB lock-table allow; once that PR is merged AND the
       # bootstrap stack has been re-applied locally (the live IAM role
       # only updates on bootstrap re-apply, not on PR merge), lift the
-      # brake with `gh variable set TF_APPLY_ENABLED true`.
+      # brake with `gh variable set TF_APPLY_ENABLED --body "true"`.
       # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
       # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
