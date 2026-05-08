@@ -69,9 +69,15 @@ gh variable set TF_LOCK_TABLE            --body "$(terraform output -raw state_l
 
 The CI workflow picks the role to assume based on event type — `pull_request` → plan, push to `main` → deploy. `TF_STATE_BUCKET` and `TF_LOCK_TABLE` feed `terraform init -backend-config=...` against the main stack so the AWS account ID stays out of the public repo.
 
+A fifth variable, `TF_APPLY_ENABLED`, is the safety brake on the CI `terraform apply` step. The workflow only runs `apply` when `TF_APPLY_ENABLED == 'true'` (strict equality — `'false'` and any other value disables it). Leave it unset until the deploy role's IAM scope matches what you want running in CI; once it does, lift the brake:
+
+```bash
+gh variable set TF_APPLY_ENABLED --body "true"
+```
+
 ## What's intentionally not here
 
-- **Deploy-role S3 policy is broad until PR 3.** Phase 2 PR 2 attaches `AmazonVPCFullAccess` + `AmazonS3FullAccess` managed policies. Phase 2 PR 3 replaces `AmazonS3FullAccess` with a scoped IAM policy (state bucket Get/Put/List on objects + ListBucket; project buckets full-manage on `intake-form-ai-pipeline-{documents,artifacts}-*`) and adds the missing DynamoDB lock-table allow on the deploy role — landing before the bootstrap stack is applied to AWS so the first CI apply can acquire a state lock. `AmazonVPCFullAccess` stays for now; the VPC scope is narrow enough that the managed policy adds little risk.
+- **Deploy-role IAM is mostly scoped; `AmazonVPCFullAccess` remains the one managed-policy attachment.** Phase 2 PR 3 replaced `AmazonS3FullAccess` with a scoped inline policy (state bucket Get/Put/List on objects + ListBucket; project buckets full-manage on `intake-form-ai-pipeline-{documents,artifacts}-*`) and added a DynamoDB lock-table allow on the deploy role so CI applies can acquire the state lock. Post-merge sequence: PR 3 lands on `main` → this stack is re-applied locally (`just tf-bootstrap-apply`) so the live role picks up the scoped policy → `gh variable set TF_APPLY_ENABLED --body "true"` lifts the safety brake on the CI `apply` step. `AmazonVPCFullAccess` stays managed for now; the VPC plan is narrow enough that the managed policy adds little risk.
 - **No `prevent_destroy = false` escape hatch.** The state bucket and lock table both have `prevent_destroy = true`. Tearing them down requires editing `main.tf` first, which is the intended friction.
 - **No KMS-managed encryption.** State files use SSE-S3 (AES256) for cost simplicity. Bucket access is already restricted to the bootstrap principal and the OIDC CI role; KMS would add per-request cost without changing the threat model. Revisit if the project takes on real customer data.
 

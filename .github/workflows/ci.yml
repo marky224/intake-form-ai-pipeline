@@ -137,12 +137,14 @@ jobs:
       # runs against a local backend if init was skipped.
       #
       # SAFETY BRAKE: gated on `vars.TF_APPLY_ENABLED` being the literal
-      # string `'true'` until Phase 2 PR 3 lands the scoped deploy-role
-      # IAM. The account hosts other workloads, and the deploy role
-      # currently holds `AmazonS3FullAccess` + `AmazonVPCFullAccess`
-      # (`s3:*`/`ec2:*` on `*`), so a CI apply has unintended blast
-      # radius. Re-enable with `gh variable set TF_APPLY_ENABLED true`
-      # once PR 3 has scoped the role to this project's resources.
+      # string `'true'`. The brake exists because the AWS account hosts
+      # other Mark projects, so any CI apply has cross-project blast
+      # radius if the deploy role is over-scoped. Phase 2 PR 3 narrowed
+      # the role's S3 access to this project's buckets and added the
+      # DynamoDB lock-table allow; once that PR is merged AND the
+      # bootstrap stack has been re-applied locally (the live IAM role
+      # only updates on bootstrap re-apply, not on PR merge), lift the
+      # brake with `gh variable set TF_APPLY_ENABLED --body "true"`.
       # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
       # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
