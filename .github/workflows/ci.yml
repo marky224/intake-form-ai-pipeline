@@ -135,7 +135,17 @@ jobs:
       # Apply on push to main only. The deploy role acquires the lock
       # normally. Guard must match the init step exactly so apply never
       # runs against a local backend if init was skipped.
+      #
+      # SAFETY BRAKE: gated on `vars.TF_APPLY_ENABLED` being the literal
+      # string `'true'` until Phase 2 PR 3 lands the scoped deploy-role
+      # IAM. The account hosts other workloads, and the deploy role
+      # currently holds `AmazonS3FullAccess` + `AmazonVPCFullAccess`
+      # (`s3:*`/`ec2:*` on `*`), so a CI apply has unintended blast
+      # radius. Re-enable with `gh variable set TF_APPLY_ENABLED true`
+      # once PR 3 has scoped the role to this project's resources.
+      # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
+      # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true'
         run: terraform apply -auto-approve -no-color
         working-directory: infra/terraform
