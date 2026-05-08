@@ -4,7 +4,9 @@ One-time stack that creates the foundation everything else depends on:
 
 - S3 bucket for remote Terraform state (versioned, encrypted, public-access-blocked, lifecycle-managed)
 - DynamoDB table for state locking (PAY_PER_REQUEST, encrypted, point-in-time recovery)
-- IAM role assumable from this repo's `main` branch and pull-request workflows via GitHub Actions OIDC
+- Two IAM roles for GitHub Actions OIDC:
+  - **deploy** role assumable on push to `main` only — write perms for VPC + S3, plus inline deny on the state bucket and lock table so a buggy apply can't recursively nuke its own backend.
+  - **plan** role assumable on `pull_request` workflows only — `ReadOnlyAccess` managed policy. PR CI runs `terraform plan -lock=false` so it can read state without DynamoDB write perms.
 
 The GitHub OIDC provider (`token.actions.githubusercontent.com`) is **not** owned by this stack. AWS allows only one OIDC provider per URL per account, so it's shared across every project that uses GitHub Actions in the account. This stack references it via a data source. If the provider doesn't yet exist in the account, create it once out-of-band before applying this stack:
 
@@ -56,17 +58,20 @@ Subsequent runs from any machine: `terraform init -backend-config=.tfbackend` on
 
 ## After bootstrap
 
-Set the OIDC role ARN as a repo-level GitHub Actions variable so CI can assume it:
+Set four repo-level GitHub Actions variables so the workflow can assume the right role and reach the state backend:
 
 ```bash
-gh variable set AWS_OIDC_ROLE_ARN --body "$(terraform output -raw ci_role_arn)"
+gh variable set AWS_OIDC_ROLE_ARN_DEPLOY --body "$(terraform output -raw deploy_role_arn)"
+gh variable set AWS_OIDC_ROLE_ARN_PLAN   --body "$(terraform output -raw plan_role_arn)"
+gh variable set TF_STATE_BUCKET          --body "$(terraform output -raw state_bucket_name)"
+gh variable set TF_LOCK_TABLE            --body "$(terraform output -raw state_lock_table_name)"
 ```
 
-The CI workflow's `terraform` job reads `vars.AWS_OIDC_ROLE_ARN` and exchanges its OIDC token for short-lived AWS credentials.
+The CI workflow picks the role to assume based on event type — `pull_request` → plan, push to `main` → deploy. `TF_STATE_BUCKET` and `TF_LOCK_TABLE` feed `terraform init -backend-config=...` against the main stack so the AWS account ID stays out of the public repo.
 
 ## What's intentionally not here
 
-- **No managed/inline policies on the CI role yet.** PR 1's CI usage exercises only `sts:GetCallerIdentity` (always allowed) and offline `terraform fmt`/`validate`. Subsequent Phase 2 PRs (network → storage → database → edge → cost guards) attach least-privilege policies as resources land. This avoids granting write access ahead of need.
+- **Deploy-role policies are deliberately broad.** Phase 2 PR 2 attaches `AmazonVPCFullAccess` + `AmazonS3FullAccess` managed policies. They're broader than the resources actually need, but tightening to action-level least privilege adds friction to every later PR that introduces a new resource type. Phase 2 PR 5 (cost guards) revisits this and locks down the deploy role per-action with explicit allowlists.
 - **No `prevent_destroy = false` escape hatch.** The state bucket and lock table both have `prevent_destroy = true`. Tearing them down requires editing `main.tf` first, which is the intended friction.
 - **No KMS-managed encryption.** State files use SSE-S3 (AES256) for cost simplicity. Bucket access is already restricted to the bootstrap principal and the OIDC CI role; KMS would add per-request cost without changing the threat model. Revisit if the project takes on real customer data.
 
@@ -77,7 +82,7 @@ The CI workflow's `terraform` job reads `vars.AWS_OIDC_ROLE_ARN` and exchanges i
 | `versions.tf` | Pinned Terraform `~> 1.14` and AWS provider `~> 6.44` |
 | `backend.tf` | Partial S3 backend; concrete values supplied via `.tfbackend` at init time |
 | `main.tf` | Provider config, S3 state bucket, DynamoDB lock table |
-| `oidc.tf` | GitHub OIDC provider (data source) + scoped CI role |
+| `oidc.tf` | GitHub OIDC provider (data source) + deploy role (push to main, write) + plan role (PR, read-only) |
 | `variables.tf` | `aws_region`, `project_name`, `github_repo`, `github_main_branch` |
-| `outputs.tf` | Bucket name, lock table name, role ARN, OIDC provider ARN, ready-to-paste `tfbackend_example` |
+| `outputs.tf` | Bucket name, lock table name, deploy/plan role ARNs, OIDC provider ARN, ready-to-paste `tfbackend_example` |
 | `.tfbackend.example` | Template for `.tfbackend` (which is gitignored) |

@@ -1,0 +1,15 @@
+# Copy this file to .tfbackend (gitignored) and fill in the values from
+# the bootstrap stack outputs:
+#
+#   terraform -chdir=infra/terraform/bootstrap output -raw state_bucket_name
+#   terraform -chdir=infra/terraform/bootstrap output -raw state_lock_table_name
+#   terraform -chdir=infra/terraform/bootstrap output -raw aws_region
+#
+# CI passes these values via -backend-config flags using the
+# TF_STATE_BUCKET and TF_LOCK_TABLE repo variables instead.
+
+bucket         = "intake-form-ai-pipeline-tfstate-<ACCOUNT_ID>"
+key            = "main/terraform.tfstate"
+region         = "<AWS_REGION>"
+dynamodb_table = "intake-form-ai-pipeline-tflock"
+encrypt        = true
