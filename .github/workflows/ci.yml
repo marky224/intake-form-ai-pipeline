@@ -95,8 +95,8 @@ jobs:
       # OIDC: pick the role to assume based on event type. Pull requests
       # use the plan role (read-only). Pushes to main use the deploy role
       # (write perms). Both gates are conditioned on the repo variables
-      # being set — until the Phase 2 PR 2 migration ceremony, these
-      # steps skip rather than fail so fmt/validate still gate the PR.
+      # being set; if a fork PR or a fresh clone runs CI without the vars
+      # configured, fmt/validate still gate the PR while these steps skip.
       - name: Configure AWS credentials (OIDC)
         if: vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
         uses: aws-actions/configure-aws-credentials@v4
