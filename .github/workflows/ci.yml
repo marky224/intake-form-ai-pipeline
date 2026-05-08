@@ -58,6 +58,7 @@ jobs:
 
   terraform:
     name: Terraform (fmt + validate + plan/apply)
+    needs: [lint, test]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

@@ -103,6 +103,23 @@ data "aws_iam_policy_document" "deploy_state_backend_deny" {
     resources = [aws_s3_bucket.tfstate.arn]
   }
 
+  # Object-level delete actions are evaluated against object ARNs, not
+  # bucket ARNs, so the bucket-level deny above doesn't cover them. Without
+  # this statement, the deploy role's AmazonS3FullAccess attachment would
+  # let it delete individual state objects (e.g., `main/terraform.tfstate`)
+  # even though it can't delete the bucket itself. Terraform writes state
+  # via PutObject (overwrite), never DeleteObject, so denying these is safe.
+  statement {
+    sid    = "DenyTfStateObjectDeletes"
+    effect = "Deny"
+
+    actions = [
+      "s3:DeleteObject",
+      "s3:DeleteObjectVersion",
+    ]
+    resources = ["${aws_s3_bucket.tfstate.arn}/*"]
+  }
+
   statement {
     sid    = "DenyTfStateLockTableDestructive"
     effect = "Deny"
