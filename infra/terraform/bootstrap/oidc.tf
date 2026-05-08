@@ -126,6 +126,19 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     ]
     resources = [aws_dynamodb_table.tflock.arn]
   }
+
+  # Gap in `AmazonVPCFullAccess` v13: the managed policy includes
+  # `ec2:DescribeAddresses` but not `ec2:DescribeAddressesAttribute`.
+  # AWS provider 6.x reads that newer attribute on every EIP refresh
+  # to populate the `domain_name` field, so the NAT-gateway EIP errors
+  # 403 on first apply without this. The action does not support
+  # resource-level permissions, so the resource has to be `*`.
+  statement {
+    sid       = "Ec2EipDescribeAttribute"
+    effect    = "Allow"
+    actions   = ["ec2:DescribeAddressesAttribute"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "deploy_scoped_allow" {
