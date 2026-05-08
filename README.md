@@ -1,6 +1,6 @@
 # intake-form-ai-pipeline
 
-> 🚧 **In active development.** Phase 2 of 10 (in progress). Last updated 2026-05-07.
+> 🚧 **In active development.** Phase 2 of 10 (in progress). Last updated 2026-05-08.
 
 ## What this is
 
@@ -227,7 +227,7 @@ just demo           # cascade against fixture documents (Phase 7)
 just review-ui      # React dev server (Phase 7)
 ```
 
-Terraform deployment is the next slice of Phase 2 and runs from `infra/terraform/` once that directory lands; not exposed as a justfile recipe.
+Terraform stacks at `infra/terraform/` (bootstrap state backend + main stack for VPC + S3) are managed via `just tf-check` and `just tf-bootstrap-{init,apply,migrate}`. CI runs `fmt`/`validate`/`plan` on every PR and `apply` on push to main once OIDC variables are configured.
 
 Full current task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
 

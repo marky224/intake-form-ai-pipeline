@@ -12,9 +12,10 @@ Both buckets mirror the state bucket's posture: versioning, SSE-S3 (AES256), pub
 
 ## What lands in later Phase 2 PRs
 
-- PR 3: Aurora Serverless v2 (single cluster, three schemas: `demo`, `eval`, `staging`)
-- PR 4: CloudFront + edge bot blocking + per-IP rate limit Lambda
-- PR 5: AWS Budgets + Cost Anomaly Detection + tighten deploy-role IAM from broad managed policies down to action-level least privilege
+- PR 3: Scoped deploy-role IAM (replace `AmazonS3FullAccess` with explicit allowlist scoped to project buckets) + DynamoDB lock-table allow on the deploy role. Lands before bootstrap is applied to AWS — without the lock-table allow, first CI `terraform apply` fails to acquire the state lock.
+- PR 4: Aurora Serverless v2 (single cluster, three schemas: `demo`, `eval`, `staging`)
+- PR 5: CloudFront + edge bot blocking + per-IP rate limit Lambda
+- PR 6: AWS Budgets + Cost Anomaly Detection
 
 ## First-time apply (local)
 

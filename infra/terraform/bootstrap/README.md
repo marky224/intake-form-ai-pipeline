@@ -71,7 +71,7 @@ The CI workflow picks the role to assume based on event type — `pull_request` 
 
 ## What's intentionally not here
 
-- **Deploy-role policies are deliberately broad.** Phase 2 PR 2 attaches `AmazonVPCFullAccess` + `AmazonS3FullAccess` managed policies. They're broader than the resources actually need, but tightening to action-level least privilege adds friction to every later PR that introduces a new resource type. Phase 2 PR 5 (cost guards) revisits this and locks down the deploy role per-action with explicit allowlists.
+- **Deploy-role S3 policy is broad until PR 3.** Phase 2 PR 2 attaches `AmazonVPCFullAccess` + `AmazonS3FullAccess` managed policies. Phase 2 PR 3 replaces `AmazonS3FullAccess` with a scoped IAM policy (state bucket Get/Put/List on objects + ListBucket; project buckets full-manage on `intake-form-ai-pipeline-{documents,artifacts}-*`) and adds the missing DynamoDB lock-table allow on the deploy role — landing before the bootstrap stack is applied to AWS so the first CI apply can acquire a state lock. `AmazonVPCFullAccess` stays for now; the VPC scope is narrow enough that the managed policy adds little risk.
 - **No `prevent_destroy = false` escape hatch.** The state bucket and lock table both have `prevent_destroy = true`. Tearing them down requires editing `main.tf` first, which is the intended friction.
 - **No KMS-managed encryption.** State files use SSE-S3 (AES256) for cost simplicity. Bucket access is already restricted to the bootstrap principal and the OIDC CI role; KMS would add per-request cost without changing the threat model. Revisit if the project takes on real customer data.
 
