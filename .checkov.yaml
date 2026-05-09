@@ -28,3 +28,18 @@ skip-check:
   # and any future bastion get auto-assigned public IPs. Workloads that ever
   # touch PHI live in private subnets where this flag is intentionally absent.
   - CKV_AWS_130
+  # CKV_AWS_19/CKV_AWS_21: legacy checks that look for `server_side_encryption_*`
+  # and `versioning` blocks INSIDE `aws_s3_bucket`. The modern AWS provider
+  # pattern (Terraform AWS provider 4.x+) splits these into separate resources
+  # (aws_s3_bucket_server_side_encryption_configuration, aws_s3_bucket_versioning).
+  # Both are configured for every project bucket; the bundled checkov in
+  # bridgecrewio/checkov-action doesn't reliably traverse the graph. Local
+  # uvx-installed checkov resolves correctly, but CI's bundled version
+  # regresses — false positives in both cases.
+  - CKV_AWS_19
+  - CKV_AWS_21
+  # CKV2_AWS_19 expects EIPs to attach to EC2 instances. The NAT EIP attaches
+  # to a NAT gateway via `aws_nat_gateway.allocation_id`, which is the only
+  # legitimate use of an EIP in this project. The check pre-dates NAT-attached
+  # EIPs as a common pattern.
+  - CKV2_AWS_19

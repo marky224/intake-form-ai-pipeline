@@ -66,10 +66,17 @@ tf-check:
 # Mirrors the CI secret-scan + iac-scan jobs. Run before pushing to catch
 # findings locally rather than in the PR.
 #
-# Note: `checkov.cmd` is the Windows uv-managed entry point. On Linux, swap
-# it for `checkov` (or alias the recipe). uvx publishes the same package as
-# `checkov.cmd` on Windows and `checkov` on Linux/macOS — the binary names
-# differ but the underlying tool is identical.
+# Platform-split because uvx on Windows doesn't auto-resolve `checkov` to
+# the `.cmd` shim (uv issue with Python entry-point resolution on Windows);
+# Linux/macOS pick up the bare `checkov` binary fine. The two recipes are
+# otherwise identical.
+
+[unix]
+sec-scan:
+    uv run pre-commit run gitleaks --all-files
+    uvx --from checkov checkov -d infra/terraform --framework terraform --config-file .checkov.yaml --download-external-modules false --quiet
+
+[windows]
 sec-scan:
     uv run pre-commit run gitleaks --all-files
     uvx --from checkov checkov.cmd -d infra/terraform --framework terraform --config-file .checkov.yaml --download-external-modules false --quiet
