@@ -44,13 +44,8 @@ output "aurora_cluster_port" {
 }
 
 output "aurora_secret_arn" {
-  description = "ARN of the Secrets Manager secret holding master credentials + endpoint metadata."
+  description = "ARN of the AWS-managed Secrets Manager secret holding master credentials. Name format: rds!cluster-<UUID>-<6-char-suffix> (RDS owns the namespace; not user-customizable)."
   value       = module.database.secret_arn
-}
-
-output "aurora_secret_name" {
-  description = "Name of the Aurora master-credentials secret."
-  value       = module.database.secret_name
 }
 
 output "aurora_security_group_id" {
@@ -59,6 +54,11 @@ output "aurora_security_group_id" {
 }
 
 output "aurora_kms_key_arn" {
-  description = "ARN of the customer-managed KMS key encrypting the cluster volume and master secret."
+  description = "ARN of the customer-managed KMS key encrypting the cluster volume, master secret, and postgresql log group."
   value       = module.database.kms_key_arn
+}
+
+output "aurora_log_group_name" {
+  description = "CloudWatch log group receiving the cluster's postgresql audit/error log export."
+  value       = module.database.log_group_name
 }

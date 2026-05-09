@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Resource-name prefix. Drives the cluster identifier, parameter group name, KMS alias, secret path, and SG name."
+  description = "Resource-name prefix. Drives the cluster identifier, parameter group name, KMS alias, log group name, and SG name."
   type        = string
 }
 
@@ -25,7 +25,7 @@ variable "engine_version" {
 }
 
 variable "master_username" {
-  description = "Master username for the cluster. Stored in the Secrets Manager secret alongside a generated random password."
+  description = "Master username for the cluster. Stored in the AWS-managed Secrets Manager secret alongside an AWS-generated password (manage_master_user_password = true)."
   type        = string
   default     = "intake_admin"
 }
@@ -49,7 +49,7 @@ variable "max_capacity" {
 }
 
 variable "seconds_until_auto_pause" {
-  description = "Idle seconds before scaling to 0 ACU. Minimum 300 (5 minutes) per AWS."
+  description = "Idle seconds before scaling to 0 ACU. Minimum 300 (5 minutes) per AWS. Ignored when min_capacity > 0."
   type        = number
   default     = 300
 
@@ -65,8 +65,8 @@ variable "backup_retention_period" {
   default     = 1
 }
 
-variable "secret_recovery_window_days" {
-  description = "Recovery window for the master-credentials secret on destroy. 0 = immediate, 7-30 = recovery period."
+variable "log_retention_days" {
+  description = "Retention days for the postgresql CloudWatch log group. Aurora Serverless v2 logs aren't massive at portfolio scale, so 30 days is a sensible default for forensic visibility."
   type        = number
-  default     = 7
+  default     = 30
 }

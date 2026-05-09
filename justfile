@@ -97,5 +97,6 @@ db-init-schemas:
     @echo "CREATE SCHEMA IF NOT EXISTS staging;"
     @echo "CREATE EXTENSION IF NOT EXISTS vector;"
     @echo ""
-    @echo "Pull master credentials with:"
-    @echo "  aws secretsmanager get-secret-value --secret-id intake-form-ai-pipeline-aurora/master --query SecretString --output text | jq ."
+    @echo "Pull master credentials with the cluster's AWS-managed secret ARN:"
+    @echo "  SECRET_ARN=$(terraform -chdir=infra/terraform output -raw aurora_secret_arn)"
+    @echo "  aws secretsmanager get-secret-value --secret-id \"$SECRET_ARN\" --query SecretString --output text | jq ."

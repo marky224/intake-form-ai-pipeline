@@ -19,23 +19,28 @@ output "cluster_identifier" {
 }
 
 output "secret_arn" {
-  description = "ARN of the Secrets Manager secret holding master credentials + endpoint metadata."
-  value       = aws_secretsmanager_secret.master.arn
-}
-
-output "secret_name" {
-  description = "Name of the Secrets Manager secret. Path-prefixed under the project namespace."
-  value       = aws_secretsmanager_secret.master.name
+  description = "ARN of the AWS-managed Secrets Manager secret holding master credentials. Name format: rds!cluster-<UUID>-<6-char-suffix>."
+  value       = aws_rds_cluster.this.master_user_secret[0].secret_arn
 }
 
 output "kms_key_arn" {
-  description = "ARN of the customer-managed KMS key encrypting the cluster volume and the master secret."
+  description = "ARN of the customer-managed KMS key encrypting the cluster volume, master secret, and postgresql log group."
   value       = aws_kms_key.aurora.arn
 }
 
 output "kms_key_alias" {
   description = "Alias of the customer-managed KMS key."
   value       = aws_kms_alias.aurora.name
+}
+
+output "log_group_name" {
+  description = "CloudWatch log group receiving the cluster's postgresql audit/error log export."
+  value       = aws_cloudwatch_log_group.aurora_postgresql.name
+}
+
+output "log_group_arn" {
+  description = "ARN of the postgresql log group."
+  value       = aws_cloudwatch_log_group.aurora_postgresql.arn
 }
 
 output "security_group_id" {
