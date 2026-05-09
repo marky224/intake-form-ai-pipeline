@@ -165,9 +165,13 @@ resource "aws_rds_cluster_parameter_group" "this" {
   family      = "aurora-postgresql16"
   description = "Aurora PostgreSQL 16 cluster parameter group for ${var.name_prefix} — pgvector preload + force_ssl"
 
+  # Append `vector` to Aurora's default preload list rather than
+  # replacing it. The default is `pg_stat_statements`, which powers
+  # the SQL-stats path Aurora exposes. Replacing instead of appending
+  # would silently disable that. CodeRabbit feedback on PR #16.
   parameter {
     name         = "shared_preload_libraries"
-    value        = "vector"
+    value        = "pg_stat_statements,vector"
     apply_method = "pending-reboot"
   }
 
