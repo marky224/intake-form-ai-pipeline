@@ -85,3 +85,18 @@ tf-plan:
 # Main stack: apply
 tf-apply:
     terraform -chdir=infra/terraform apply
+
+# Database: print the SQL needed to initialize demo/eval/staging schemas + pgvector.
+# Phase 2 PR 4 doesn't ship a connection method — bastion / Session Manager / Lambda
+# runner lands in a follow-up PR alongside the compute layer. This recipe is a
+# documentation stub so the schema-init step is visible in the build flow.
+db-init-schemas:
+    @echo "-- Run against the Aurora cluster (connection method TBD in follow-up PR):"
+    @echo "CREATE SCHEMA IF NOT EXISTS demo;"
+    @echo "CREATE SCHEMA IF NOT EXISTS eval;"
+    @echo "CREATE SCHEMA IF NOT EXISTS staging;"
+    @echo "CREATE EXTENSION IF NOT EXISTS vector;"
+    @echo ""
+    @echo "Pull master credentials with the cluster's AWS-managed secret ARN:"
+    @echo "  SECRET_ARN=$(terraform -chdir=infra/terraform output -raw aurora_secret_arn)"
+    @echo "  aws secretsmanager get-secret-value --secret-id \"$SECRET_ARN\" --query SecretString --output text | jq ."
