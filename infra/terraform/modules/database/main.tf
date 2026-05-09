@@ -153,27 +153,23 @@ resource "aws_security_group" "cluster" {
 
 # ---------- Cluster + parameter group ----------
 
-# Cluster parameter group preloads pgvector and enforces SSL/TLS for
-# all client connections. shared_preload_libraries is a static
-# parameter (apply_method = pending-reboot), activated on the first
-# instance reboot. rds.force_ssl is dynamic (immediate); enabling it
+# Cluster parameter group enforces SSL/TLS for all client connections.
+# rds.force_ssl is dynamic (apply_method = immediate); enabling it
 # means the cluster rejects unencrypted connections at the protocol
-# level — defense-in-depth on top of the cluster being in private
+# level - defense-in-depth on top of the cluster being in private
 # subnets with scoped SG ingress.
+#
+# Note: pgvector is NOT in shared_preload_libraries. Aurora rejects
+# the value with "Invalid parameter value: vector for:
+# shared_preload_libraries" because Aurora's allowlist for that
+# parameter does not include `vector`. pgvector on Aurora PostgreSQL
+# is enabled per-database via `CREATE EXTENSION vector` instead -
+# see the just db-init-schemas recipe. The default
+# shared_preload_libraries (pg_stat_statements) is left untouched.
 resource "aws_rds_cluster_parameter_group" "this" {
   name        = "${var.name_prefix}-pg"
   family      = "aurora-postgresql16"
-  description = "Aurora PostgreSQL 16 cluster parameter group for ${var.name_prefix}: pgvector preload + force_ssl"
-
-  # Append `vector` to Aurora's default preload list rather than
-  # replacing it. The default is `pg_stat_statements`, which powers
-  # the SQL-stats path Aurora exposes. Replacing instead of appending
-  # would silently disable that. CodeRabbit feedback on PR #16.
-  parameter {
-    name         = "shared_preload_libraries"
-    value        = "pg_stat_statements,vector"
-    apply_method = "pending-reboot"
-  }
+  description = "Aurora PostgreSQL 16 cluster parameter group for ${var.name_prefix}: force_ssl"
 
   parameter {
     name         = "rds.force_ssl"
