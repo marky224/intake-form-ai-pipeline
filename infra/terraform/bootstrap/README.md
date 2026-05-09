@@ -58,18 +58,23 @@ Subsequent runs from any machine: `terraform init -backend-config=.tfbackend` on
 
 ## After bootstrap
 
-Set four repo-level GitHub Actions variables so the workflow can assume the right role and reach the state backend:
+Set five repo-level GitHub Actions configuration values so the workflow can assume the right role and reach the state backend. **Three are stored as secrets** (they embed the AWS account ID, which we keep out of public CI logs); **two are stored as variables** (no sensitive content):
 
 ```bash
-gh variable set AWS_OIDC_ROLE_ARN_DEPLOY --body "$(terraform output -raw deploy_role_arn)"
-gh variable set AWS_OIDC_ROLE_ARN_PLAN   --body "$(terraform output -raw plan_role_arn)"
-gh variable set TF_STATE_BUCKET          --body "$(terraform output -raw state_bucket_name)"
+# Secrets — embed the AWS account ID. GitHub auto-masks secret values
+# everywhere they appear in workflow logs.
+gh secret set   AWS_OIDC_ROLE_ARN_DEPLOY --body "$(terraform output -raw deploy_role_arn)"
+gh secret set   AWS_OIDC_ROLE_ARN_PLAN   --body "$(terraform output -raw plan_role_arn)"
+gh secret set   TF_STATE_BUCKET          --body "$(terraform output -raw state_bucket_name)"
+
+# Variables — no sensitive content. Lock table name and apply-brake
+# flag stay as variables so they're visible in repo settings.
 gh variable set TF_LOCK_TABLE            --body "$(terraform output -raw state_lock_table_name)"
 ```
 
-The CI workflow picks the role to assume based on event type — `pull_request` → plan, push to `main` → deploy. `TF_STATE_BUCKET` and `TF_LOCK_TABLE` feed `terraform init -backend-config=...` against the main stack so the AWS account ID stays out of the public repo.
+The CI workflow picks the role to assume based on event type — `pull_request` → plan, push to `main` → deploy. The state bucket and lock-table values feed `terraform init -backend-config=...` against the main stack. Storing the role ARNs and bucket name as **secrets** ensures the AWS account ID embedded in those values is auto-masked in workflow logs; the workflow's `mask-aws-account-id: true` setting on `aws-actions/configure-aws-credentials` adds a second mask layer so the standalone account ID also gets masked in subsequent log output (e.g., `aws sts get-caller-identity` JSON, Terraform refresh lines).
 
-A fifth variable, `TF_APPLY_ENABLED`, is the safety brake on the CI `terraform apply` step. The workflow only runs `apply` when `TF_APPLY_ENABLED == 'true'` (strict equality — `'false'` and any other value disables it). Leave it unset until the deploy role's IAM scope matches what you want running in CI; once it does, lift the brake:
+A fifth value, `TF_APPLY_ENABLED`, is the safety brake on the CI `terraform apply` step (variable, not secret — its value is the literal string `'true'` or unset, no sensitive content). The workflow only runs `apply` when `TF_APPLY_ENABLED == 'true'` (strict equality — `'false'` and any other value disables it). Leave it unset until the deploy role's IAM scope matches what you want running in CI; once it does, lift the brake:
 
 ```bash
 gh variable set TF_APPLY_ENABLED --body "true"
