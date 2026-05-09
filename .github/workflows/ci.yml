@@ -64,6 +64,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    # Secrets cannot be referenced in step-level `if:` conditions per GitHub
+    # docs; the documented workaround is to expose them as job-level env vars
+    # first, then check `env.X != ''` in if. The env values inherit the secret
+    # mask, so they remain `***`-masked in workflow logs.
+    env:
+      AWS_OIDC_ROLE_ARN_DEPLOY: ${{ secrets.AWS_OIDC_ROLE_ARN_DEPLOY }}
+      AWS_OIDC_ROLE_ARN_PLAN: ${{ secrets.AWS_OIDC_ROLE_ARN_PLAN }}
+      TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -94,29 +102,37 @@ jobs:
 
       # OIDC: pick the role to assume based on event type. Pull requests
       # use the plan role (read-only). Pushes to main use the deploy role
-      # (write perms). Both gates are conditioned on the repo variables
-      # being set; if a fork PR or a fresh clone runs CI without the vars
+      # (write perms). Both gates are conditioned on the repo secrets
+      # being set; if a fork PR or a fresh clone runs CI without secrets
       # configured, fmt/validate still gate the PR while these steps skip.
+      #
+      # Role ARNs and the state-bucket name are stored as repo SECRETS
+      # (not variables) because they embed the AWS account ID. Secrets
+      # are auto-masked everywhere they appear in workflow logs; variables
+      # are not. `mask-aws-account-id: true` adds a second mask layer so
+      # the account ID itself gets masked in subsequent log output (e.g.,
+      # `aws sts get-caller-identity` JSON, Terraform refresh lines).
       - name: Configure AWS credentials (OIDC)
-        if: vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ github.event_name == 'pull_request' && vars.AWS_OIDC_ROLE_ARN_PLAN || vars.AWS_OIDC_ROLE_ARN_DEPLOY }}
+          role-to-assume: ${{ github.event_name == 'pull_request' && env.AWS_OIDC_ROLE_ARN_PLAN || env.AWS_OIDC_ROLE_ARN_DEPLOY }}
           aws-region: us-east-1
+          mask-aws-account-id: true
 
       - name: Verify OIDC chain
-        if: vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: aws sts get-caller-identity
 
-      # Main-stack plan/apply against the S3 backend. Backend bucket and
-      # lock-table names come from repo variables to keep the AWS account
-      # ID out of the public repo.
+      # Main-stack plan/apply against the S3 backend. Backend bucket
+      # name is a secret (embeds the account ID); lock table is a
+      # variable (no account ID).
       - name: Terraform init (main, S3 backend)
-        if: vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: |
           rm -rf .terraform
           terraform init \
-            -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
             -backend-config="key=main/terraform.tfstate" \
             -backend-config="region=us-east-1" \
             -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
@@ -128,7 +144,7 @@ jobs:
       # plan is read-only. Guard must match the init step exactly so
       # plan never runs against a local backend if init was skipped.
       - name: Terraform plan (main, PR)
-        if: github.event_name == 'pull_request' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: github.event_name == 'pull_request' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: terraform plan -lock=false -no-color
         working-directory: infra/terraform
 
@@ -138,9 +154,9 @@ jobs:
       #
       # SAFETY BRAKE: gated on `vars.TF_APPLY_ENABLED` being the literal
       # string `'true'`. The brake exists because the AWS account hosts
-      # other Mark projects, so any CI apply has cross-project blast
-      # radius if the deploy role is over-scoped. Phase 2 PR 3 narrowed
-      # the role's S3 access to this project's buckets and added the
+      # other projects, so any CI apply has cross-project blast radius
+      # if the deploy role is over-scoped. Phase 2 PR 3 narrowed the
+      # role's S3 access to this project's buckets and added the
       # DynamoDB lock-table allow; once that PR is merged AND the
       # bootstrap stack has been re-applied locally (the live IAM role
       # only updates on bootstrap re-apply, not on PR merge), lift the
@@ -148,6 +164,6 @@ jobs:
       # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
       # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && vars.AWS_OIDC_ROLE_ARN_DEPLOY != '' && vars.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true'
         run: terraform apply -auto-approve -no-color
         working-directory: infra/terraform
