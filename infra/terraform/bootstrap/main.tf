@@ -35,6 +35,28 @@ locals {
     "arn:aws:s3:::${var.project_name}-artifacts-*",
     "arn:aws:s3:::${var.project_name}-artifacts-*/*",
   ]
+
+  # Project-RDS ARN patterns for the deploy role's scoped Aurora allow
+  # (Phase 2 PR 4). RDS resource ARNs are name-prefixed, so a single
+  # wildcard per resource type covers cluster, instances, parameter
+  # groups, subnet group, and DB-level security group as long as
+  # everything created by the main stack carries the project prefix.
+  project_rds_arns = [
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:cluster:${var.project_name}-*",
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:db:${var.project_name}-*",
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:subgrp:${var.project_name}-*",
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:cluster-pg:${var.project_name}-*",
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:pg:${var.project_name}-*",
+    "arn:aws:rds:${var.aws_region}:${local.account_id}:secgrp:${var.project_name}-*",
+  ]
+
+  # Secret-path prefix for the deploy role's scoped Secrets Manager
+  # allow (Phase 2 PR 4). Aurora master-password secret lives at
+  # `<project>/aurora/master`; the wildcard leaves room for additional
+  # secrets under the project namespace without re-scoping IAM.
+  project_secret_arns = [
+    "arn:aws:secretsmanager:${var.aws_region}:${local.account_id}:secret:${var.project_name}/*",
+  ]
 }
 
 resource "aws_s3_bucket" "tfstate" {
