@@ -82,6 +82,7 @@ evals/results/
 *~
 .cursor/
 .claude/
+.claude-context/
 CLAUDE.md
 
 # OS
