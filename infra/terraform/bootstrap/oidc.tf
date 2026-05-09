@@ -178,6 +178,17 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # reliably. The deploy role gets account-wide management of CMKs;
   # the key policy on the CMK itself is the second line of defense
   # (limits which principals can use the key for encrypt/decrypt).
+  #
+  # Cryptographic actions (Encrypt/Decrypt/GenerateDataKey/ReEncrypt*)
+  # plus CreateGrant/RetireGrant/RevokeGrant are required by the
+  # principal calling `RDS.CreateDBCluster` when storage_encrypted is
+  # true and kms_key_id references a customer-managed key. Per AWS
+  # docs, the calling principal needs IAM permissions on the key
+  # in addition to the key policy granting access (key policy allows
+  # the account-root delegation, which only takes effect when IAM
+  # also allows the action). Without these, cluster create fails with
+  # "KMSKeyNotAccessibleFault: ... isn't accessible by the current
+  # user."
   statement {
     sid    = "KmsKeyManage"
     effect = "Allow"
@@ -199,6 +210,14 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "kms:EnableKeyRotation",
       "kms:DisableKey",
       "kms:DisableKeyRotation",
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:GenerateDataKeyWithoutPlaintext",
+      "kms:ReEncrypt*",
+      "kms:CreateGrant",
+      "kms:RetireGrant",
+      "kms:RevokeGrant",
     ]
     resources = ["*"]
   }
