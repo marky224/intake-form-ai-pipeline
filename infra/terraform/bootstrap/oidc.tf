@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
 resource "aws_iam_role" "github_actions_deploy" {
   name               = local.ci_role_name_deploy
   assume_role_policy = data.aws_iam_policy_document.deploy_assume_role.json
-  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend and project S3 buckets, with an inline deny guarding the state bucket and lock table."
+  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets, project Aurora resources (RDS/KMS/Secrets Manager), with an inline deny guarding the state bucket and lock table."
 
   max_session_duration = 3600
 }
@@ -138,6 +138,81 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     effect    = "Allow"
     actions   = ["ec2:DescribeAddressesAttribute"]
     resources = ["*"]
+  }
+
+  # Phase 2 PR 4: Aurora Serverless v2 cluster + KMS CMK + Secrets
+  # Manager secret for the master password. Inline scope rather than
+  # `AmazonRDSFullAccess` so this role can't reach RDS resources
+  # belonging to Mark's other projects in account 444977504043.
+  statement {
+    sid    = "AuroraResourceManage"
+    effect = "Allow"
+    actions = [
+      "rds:*",
+    ]
+    resources = local.project_rds_arns
+  }
+
+  # Provider 6.x runs RDS describe calls on every plan/apply refresh,
+  # and several of them (e.g. DescribeDBClusterEndpoints) list
+  # account-wide rather than accepting an ARN. Without this, the first
+  # main-stack apply 403s on the post-create cluster refresh — same
+  # failure mode as PR #12's `ec2:DescribeAddressesAttribute` patch.
+  # Read-only blast radius: the deploy role can list RDS metadata
+  # across the account. Acceptable since the account is Mark's.
+  statement {
+    sid    = "RdsDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "rds:Describe*",
+      "rds:ListTagsForResource",
+    ]
+    resources = ["*"]
+  }
+
+  # KMS CMK management for the Aurora cluster's encryption key.
+  # KMS key ARNs are UUID-based, so name-prefix scoping does not
+  # apply. Tag-condition scoping does not work either — most of these
+  # actions are evaluated either against a key that does not yet exist
+  # (CreateKey) or in a context that does not surface tag conditions
+  # reliably. The deploy role gets account-wide management of CMKs;
+  # the key policy on the CMK itself is the second line of defense
+  # (limits which principals can use the key for encrypt/decrypt).
+  statement {
+    sid    = "KmsKeyManage"
+    effect = "Allow"
+    actions = [
+      "kms:CreateKey",
+      "kms:CreateAlias",
+      "kms:DeleteAlias",
+      "kms:UpdateAlias",
+      "kms:ListAliases",
+      "kms:Describe*",
+      "kms:Get*",
+      "kms:List*",
+      "kms:Put*",
+      "kms:TagResource",
+      "kms:UntagResource",
+      "kms:ScheduleKeyDeletion",
+      "kms:CancelKeyDeletion",
+      "kms:EnableKey",
+      "kms:EnableKeyRotation",
+      "kms:DisableKey",
+      "kms:DisableKeyRotation",
+    ]
+    resources = ["*"]
+  }
+
+  # Secrets Manager scope for the Aurora master-password secret.
+  # Path-prefixed under `<project>/` so other projects in the account
+  # remain out of reach.
+  statement {
+    sid    = "SecretsManagerManage"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:*",
+    ]
+    resources = local.project_secret_arns
   }
 }
 
