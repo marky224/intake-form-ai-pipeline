@@ -64,6 +64,14 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    # Secrets cannot be referenced in step-level `if:` conditions per GitHub
+    # docs; the documented workaround is to expose them as job-level env vars
+    # first, then check `env.X != ''` in if. The env values inherit the secret
+    # mask, so they remain `***`-masked in workflow logs.
+    env:
+      AWS_OIDC_ROLE_ARN_DEPLOY: ${{ secrets.AWS_OIDC_ROLE_ARN_DEPLOY }}
+      AWS_OIDC_ROLE_ARN_PLAN: ${{ secrets.AWS_OIDC_ROLE_ARN_PLAN }}
+      TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -105,26 +113,26 @@ jobs:
       # the account ID itself gets masked in subsequent log output (e.g.,
       # `aws sts get-caller-identity` JSON, Terraform refresh lines).
       - name: Configure AWS credentials (OIDC)
-        if: ${{ secrets.AWS_OIDC_ROLE_ARN_DEPLOY != '' && secrets.AWS_OIDC_ROLE_ARN_PLAN != '' }}
+        if: env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ github.event_name == 'pull_request' && secrets.AWS_OIDC_ROLE_ARN_PLAN || secrets.AWS_OIDC_ROLE_ARN_DEPLOY }}
+          role-to-assume: ${{ github.event_name == 'pull_request' && env.AWS_OIDC_ROLE_ARN_PLAN || env.AWS_OIDC_ROLE_ARN_DEPLOY }}
           aws-region: us-east-1
           mask-aws-account-id: true
 
       - name: Verify OIDC chain
-        if: ${{ secrets.AWS_OIDC_ROLE_ARN_DEPLOY != '' && secrets.AWS_OIDC_ROLE_ARN_PLAN != '' }}
+        if: env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: aws sts get-caller-identity
 
       # Main-stack plan/apply against the S3 backend. Backend bucket
       # name is a secret (embeds the account ID); lock table is a
       # variable (no account ID).
       - name: Terraform init (main, S3 backend)
-        if: ${{ secrets.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && secrets.AWS_OIDC_ROLE_ARN_DEPLOY != '' && secrets.AWS_OIDC_ROLE_ARN_PLAN != '' }}
+        if: env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: |
           rm -rf .terraform
           terraform init \
-            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
             -backend-config="key=main/terraform.tfstate" \
             -backend-config="region=us-east-1" \
             -backend-config="dynamodb_table=${{ vars.TF_LOCK_TABLE }}" \
@@ -136,7 +144,7 @@ jobs:
       # plan is read-only. Guard must match the init step exactly so
       # plan never runs against a local backend if init was skipped.
       - name: Terraform plan (main, PR)
-        if: ${{ github.event_name == 'pull_request' && secrets.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && secrets.AWS_OIDC_ROLE_ARN_DEPLOY != '' && secrets.AWS_OIDC_ROLE_ARN_PLAN != '' }}
+        if: github.event_name == 'pull_request' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
         run: terraform plan -lock=false -no-color
         working-directory: infra/terraform
 
@@ -156,6 +164,6 @@ jobs:
       # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
       # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && secrets.AWS_OIDC_ROLE_ARN_DEPLOY != '' && secrets.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true' }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true'
         run: terraform apply -auto-approve -no-color
         working-directory: infra/terraform
