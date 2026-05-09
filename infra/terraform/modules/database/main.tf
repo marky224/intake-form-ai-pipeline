@@ -143,7 +143,7 @@ resource "aws_db_subnet_group" "this" {
 # cluster SG.
 resource "aws_security_group" "cluster" {
   name        = "${var.name_prefix}-cluster"
-  description = "Aurora cluster ingress for ${var.name_prefix}. No ingress rules; Lambda/bastion ingress added when compute lands. No egress rules either — Aurora uses AWS service-managed pathways for outbound."
+  description = "Aurora cluster ingress for ${var.name_prefix}. No ingress rules; Lambda/bastion ingress added when compute lands. No egress rules either - Aurora uses AWS service-managed pathways for outbound."
   vpc_id      = var.vpc_id
 
   tags = {
@@ -163,7 +163,7 @@ resource "aws_security_group" "cluster" {
 resource "aws_rds_cluster_parameter_group" "this" {
   name        = "${var.name_prefix}-pg"
   family      = "aurora-postgresql16"
-  description = "Aurora PostgreSQL 16 cluster parameter group for ${var.name_prefix} — pgvector preload + force_ssl"
+  description = "Aurora PostgreSQL 16 cluster parameter group for ${var.name_prefix}: pgvector preload + force_ssl"
 
   # Append `vector` to Aurora's default preload list rather than
   # replacing it. The default is `pg_stat_statements`, which powers
