@@ -1,4 +1,5 @@
 data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 # ---------- KMS CMK ----------
 
@@ -47,16 +48,17 @@ data "aws_iam_policy_document" "kms_key" {
   }
 
   # CloudWatch Logs needs encrypt/decrypt to write to the log group
-  # encrypted under this CMK. The condition restricts the grant to
-  # the project's log groups only — Logs evaluates kms:EncryptionContext
-  # against `aws:logs:arn` which AWS sets to the log-group ARN being
-  # written to.
+  # encrypted under this CMK. The Logs service principal is
+  # REGION-scoped, not account-scoped: `logs.<region>.amazonaws.com`.
+  # The condition restricts the grant to the project's log groups
+  # only — Logs evaluates kms:EncryptionContext against `aws:logs:arn`
+  # which AWS sets to the log-group ARN being written to.
   statement {
     sid    = "AllowCloudWatchLogsServiceUse"
     effect = "Allow"
     principals {
       type        = "Service"
-      identifiers = ["logs.${data.aws_caller_identity.current.account_id}.amazonaws.com"]
+      identifiers = ["logs.${data.aws_region.current.region}.amazonaws.com"]
     }
     actions = [
       "kms:Encrypt*",
@@ -69,7 +71,7 @@ data "aws_iam_policy_document" "kms_key" {
     condition {
       test     = "ArnLike"
       variable = "kms:EncryptionContext:aws:logs:arn"
-      values   = ["arn:aws:logs:*:${data.aws_caller_identity.current.account_id}:log-group:/aws/rds/cluster/${var.name_prefix}*"]
+      values   = ["arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/rds/cluster/${var.name_prefix}*"]
     }
   }
 }
