@@ -72,7 +72,7 @@ resource "aws_iam_role_policy_attachment" "deploy_vpc" {
 # Scoped S3 + DynamoDB allow for the deploy role. Replaces the previous
 # AmazonS3FullAccess managed-policy attachment so the deploy role can no
 # longer touch S3 buckets belonging to Mark's other projects in this
-# account (444977504043 hosts more than just this pipeline).
+# account (the AWS account hosts more than just this pipeline).
 #
 # Three concerns:
 #   1. State bucket — read/write/list state objects so terraform init,
@@ -143,7 +143,7 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # Phase 2 PR 4: Aurora Serverless v2 cluster + KMS CMK + Secrets
   # Manager secret for the master password. Inline scope rather than
   # `AmazonRDSFullAccess` so this role can't reach RDS resources
-  # belonging to Mark's other projects in account 444977504043.
+  # belonging to Mark's other projects in this account.
   statement {
     sid    = "AuroraResourceManage"
     effect = "Allow"
