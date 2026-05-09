@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -38,10 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -56,9 +56,57 @@ jobs:
         env:
           EVAL_LIVE: "false"
 
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # gitleaks scans commit history; needs full clone, not just HEAD.
+          fetch-depth: 0
+
+      # gitleaks-action is free for public repos owned by individual accounts;
+      # GITLEAKS_LICENSE is only required for organization-owned repos.
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iac-scan:
+    name: IaC scan (checkov)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      # Scans both bootstrap and main Terraform stacks. Inline suppressions
+      # via `# checkov:skip=CKV_AWS_xxx:reasoning` keep findings auditable.
+      # Blanket --skip-check should be reserved for project-wide false
+      # positives with documented justification.
+      - name: Run checkov
+        uses: bridgecrewio/checkov-action@99bb2caf247dfd9f03cf984373bc6043d4e32ebf # v12.1347.0
+        with:
+          directory: infra/terraform
+          framework: terraform
+          # Project-wide skips live in .checkov.yaml at repo root. Inline
+          # `# checkov:skip=...` comments handle resource-specific cases.
+          config_file: .checkov.yaml
+          # Hermetic scan — don't fetch external modules over the network.
+          download_external_modules: "false"
+          quiet: true
+          output_format: cli
+
   terraform:
     name: Terraform (fmt + validate + plan/apply)
-    needs: [lint, test]
+    # IaC scan gates the deploy path. Secret-scan is intentionally not in
+    # `needs:` — it's a PR-merge gate via branch protection, not a deploy
+    # gate, so a secret leak doesn't block valid Terraform operations.
+    needs: [lint, test, iac-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -73,10 +121,10 @@ jobs:
       AWS_OIDC_ROLE_ARN_PLAN: ${{ secrets.AWS_OIDC_ROLE_ARN_PLAN }}
       TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: "1.14.0"
           terraform_wrapper: false
@@ -114,7 +162,7 @@ jobs:
       # `aws sts get-caller-identity` JSON, Terraform refresh lines).
       - name: Configure AWS credentials (OIDC)
         if: env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
         with:
           role-to-assume: ${{ github.event_name == 'pull_request' && env.AWS_OIDC_ROLE_ARN_PLAN || env.AWS_OIDC_ROLE_ARN_DEPLOY }}
           aws-region: us-east-1

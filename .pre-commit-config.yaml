@@ -46,6 +46,13 @@ repos:
     hooks:
       - id: terraform_fmt
 
+  # gitleaks — secret scanning. Catches credentials before they leave the
+  # workstation. CI runs gitleaks again as a redundant net (see ci.yml).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
   # pytest — runs the full test suite. Local hook because we want to control
   # the working directory and use uv-managed environment.
   - repo: local

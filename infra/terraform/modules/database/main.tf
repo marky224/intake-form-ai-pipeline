@@ -13,6 +13,9 @@ data "aws_region" "current" {}
 # principal is granted the same encrypt/decrypt set so the log group
 # can be encrypted under the CMK.
 data "aws_iam_policy_document" "kms_key" {
+  # checkov:skip=CKV_AWS_109:CMK key policy delegates admin to account root via kms:* on *. AWS-canonical pattern that prevents CMK lockout; the resource scope is the key itself.
+  # checkov:skip=CKV_AWS_111:Same as CKV_AWS_109 — account-root admin is the documented fallback for KMS key policies. Service-principal grants below use kms:ViaService / kms:GrantIsForAWSResource / kms:EncryptionContext conditions to scope further.
+  # checkov:skip=CKV_AWS_356:Service principals (rds.amazonaws.com, logs.<region>.amazonaws.com) are granted on resources=["*"] because the policy IS the resource scope (the CMK itself); the principal cannot be granted on a narrower KMS resource ARN.
   statement {
     sid    = "AccountRootAdmin"
     effect = "Allow"
@@ -207,6 +210,9 @@ resource "aws_cloudwatch_log_group" "aurora_postgresql" {
 # the security win over the explicit random_password + secret_version
 # pattern that previously lived here.
 resource "aws_rds_cluster" "this" {
+  # checkov:skip=CKV_AWS_139:deletion_protection = false is intentional for portfolio scope (see comment near deletion_protection below). Cluster is recreatable from synthetic data; deploy role's RDS scope is name-prefixed.
+  # checkov:skip=CKV2_AWS_8:Aurora native automated backups (backup_retention_period below) cover the same recovery surface as AWS Backup. AWS Backup adds per-execution cost without changing the recovery model at portfolio scale.
+  # checkov:skip=CKV2_AWS_27:Postgres query logging via pgaudit is deferred — needs `pgaudit` in shared_preload_libraries and a per-database CREATE EXTENSION; tracked for a follow-up alongside the compute layer.
   cluster_identifier = var.name_prefix
   engine             = "aurora-postgresql"
   engine_version     = var.engine_version
@@ -255,6 +261,10 @@ resource "aws_rds_cluster" "this" {
   preferred_backup_window      = "07:00-09:00"
   preferred_maintenance_window = "sun:09:00-sun:11:00"
 
+  # Snapshot tags carry the same Project / Phase metadata as the cluster so
+  # cost allocation and audit trails stay aligned across snapshot-restore.
+  copy_tags_to_snapshot = true
+
   # deletion_protection = false and skip_final_snapshot = true are
   # portfolio choices: the cluster is recreatable from synthetic data,
   # so iteration friction matters more than accidental-destroy
@@ -273,6 +283,7 @@ resource "aws_rds_cluster" "this" {
 }
 
 resource "aws_rds_cluster_instance" "this" {
+  # checkov:skip=CKV_AWS_118:Enhanced monitoring (OS-level metrics every 1-60s, separate IAM role + CloudWatch costs) is overkill at portfolio scale. Performance Insights below provides query-level visibility; CW log exports cover audit needs.
   identifier         = "${var.name_prefix}-instance-1"
   cluster_identifier = aws_rds_cluster.this.id
   engine             = aws_rds_cluster.this.engine
@@ -281,8 +292,18 @@ resource "aws_rds_cluster_instance" "this" {
 
   db_subnet_group_name = aws_db_subnet_group.this.name
 
-  performance_insights_enabled = false
-  monitoring_interval          = 0
+  # Performance Insights at 7-day retention is free; gives query-level
+  # visibility without the cost of enhanced monitoring's OS-level stream.
+  # PI is encrypted under the same CMK as the cluster volume + master secret
+  # so the key inventory stays minimal.
+  performance_insights_enabled          = true
+  performance_insights_retention_period = 7
+  performance_insights_kms_key_id       = aws_kms_key.aurora.arn
+  monitoring_interval                   = 0
+
+  # Aurora minor versions ship with security patches; auto-upgrade keeps
+  # the cluster current without manual intervention.
+  auto_minor_version_upgrade = true
 
   apply_immediately = true
 

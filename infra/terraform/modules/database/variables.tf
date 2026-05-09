@@ -66,7 +66,7 @@ variable "backup_retention_period" {
 }
 
 variable "log_retention_days" {
-  description = "Retention days for the postgresql CloudWatch log group. Aurora Serverless v2 logs aren't massive at portfolio scale, so 30 days is a sensible default for forensic visibility."
+  description = "Retention days for the postgresql CloudWatch log group. Aurora Serverless v2 logs aren't massive at portfolio scale; 365 days satisfies the HIPAA-aligned 1-year minimum (CKV_AWS_338) at trivial cost."
   type        = number
-  default     = 30
+  default     = 365
 }

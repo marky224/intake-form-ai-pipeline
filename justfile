@@ -62,6 +62,25 @@ tf-check:
     terraform -chdir=infra/terraform init -backend=false
     terraform -chdir=infra/terraform validate
 
+# Security scans: gitleaks (via pre-commit) + checkov (via uvx, no install).
+# Mirrors the CI secret-scan + iac-scan jobs. Run before pushing to catch
+# findings locally rather than in the PR.
+#
+# Platform-split because uvx on Windows doesn't auto-resolve `checkov` to
+# the `.cmd` shim (uv issue with Python entry-point resolution on Windows);
+# Linux/macOS pick up the bare `checkov` binary fine. The two recipes are
+# otherwise identical.
+
+[unix]
+sec-scan:
+    uv run pre-commit run gitleaks --all-files
+    uvx --from checkov checkov -d infra/terraform --framework terraform --config-file .checkov.yaml --download-external-modules false --quiet
+
+[windows]
+sec-scan:
+    uv run pre-commit run gitleaks --all-files
+    uvx --from checkov checkov.cmd -d infra/terraform --framework terraform --config-file .checkov.yaml --download-external-modules false --quiet
+
 # Bootstrap stack: first-time init with local state (no backend yet)
 tf-bootstrap-init:
     terraform -chdir=infra/terraform/bootstrap init -backend=false
