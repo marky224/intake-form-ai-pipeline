@@ -223,20 +223,19 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # password for the Aurora cluster (`manage_master_user_password = true`
   # on aws_rds_cluster). Per the AWS docs, the principal calling
   # CreateDBCluster needs `secretsmanager:CreateSecret` so RDS can
-  # provision the secret on its behalf. The secret name is AWS-owned
-  # (`rds!cluster-<UUID>-<suffix>`), which means we can't ARN-scope
-  # CreateSecret at policy-eval time — the secret doesn't exist yet
-  # and AWS picks the name. Blast-radius mitigation: out-of-project
-  # clusters can't be created (AuroraResourceManage is project-prefixed),
-  # so there's no path that would invoke CreateSecret outside the
-  # project's scope.
+  # provision the secret on its behalf. CreateSecret accepts
+  # resource-level scoping against the requested secret ARN; AWS-owned
+  # secrets always start with `rds!cluster-`, so we can scope here
+  # against the same ARN pattern used by AuroraManagedSecretManage.
+  # This is tighter than the `*` scope the AWS docs example shows by
+  # default (cf. CodeRabbit feedback on PR #18).
   statement {
     sid    = "AuroraManagedSecretCreate"
     effect = "Allow"
     actions = [
       "secretsmanager:CreateSecret",
     ]
-    resources = ["*"]
+    resources = local.project_managed_secret_arns
   }
 
   # Tag and rotate the AWS-managed Aurora master secret. Both actions
