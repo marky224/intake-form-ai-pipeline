@@ -24,6 +24,12 @@ data "aws_iam_policy_document" "kms_key" {
     resources = ["*"]
   }
 
+  # Aurora cryptographic ops on the CMK. `kms:GrantIsForAWSResource`
+  # only applies to grant operations (CreateGrant/ListGrants/RevokeGrant)
+  # — putting it on Encrypt/Decrypt is a no-op (the actions are
+  # allowed unconditionally). Use `kms:ViaService` instead, which DOES
+  # apply to cryptographic ops and restricts the grant to calls made
+  # via the regional RDS service. CodeRabbit feedback on PR #16.
   statement {
     sid    = "AllowAuroraServiceUse"
     effect = "Allow"
@@ -37,7 +43,31 @@ data "aws_iam_policy_document" "kms_key" {
       "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
       "kms:DescribeKey",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["rds.${data.aws_region.current.region}.amazonaws.com"]
+    }
+  }
+
+  # Aurora grant operations. `kms:GrantIsForAWSResource = true` is the
+  # documented condition for this action set — ensures grants can only
+  # be created on behalf of AWS-managed resources, not arbitrary
+  # principals. Aurora uses CreateGrant when configuring storage
+  # encryption and the AWS-managed master-password secret.
+  statement {
+    sid    = "AllowAuroraServiceCreateGrant"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["rds.amazonaws.com"]
+    }
+    actions = [
       "kms:CreateGrant",
+      "kms:ListGrants",
+      "kms:RevokeGrant",
     ]
     resources = ["*"]
     condition {
