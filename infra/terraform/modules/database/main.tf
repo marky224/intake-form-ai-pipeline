@@ -165,10 +165,16 @@ resource "aws_rds_cluster" "this" {
 
   iam_database_authentication_enabled = true
 
+  # AWS rejects seconds_until_auto_pause when min_capacity is non-zero
+  # ("SecondsUntilAutoPause can only be specified when minimum capacity is 0"
+  # — auto-pause is incompatible with always-warm clusters). Pass null in
+  # that case so the module behaves correctly when callers raise
+  # min_capacity for an always-warm config without having to also unset
+  # seconds_until_auto_pause.
   serverlessv2_scaling_configuration {
     min_capacity             = var.min_capacity
     max_capacity             = var.max_capacity
-    seconds_until_auto_pause = var.seconds_until_auto_pause
+    seconds_until_auto_pause = var.min_capacity == 0 ? var.seconds_until_auto_pause : null
   }
 
   backup_retention_period      = var.backup_retention_period
