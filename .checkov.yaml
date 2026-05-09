@@ -1,0 +1,30 @@
+# Project-wide checkov configuration. Resource-specific suppressions live
+# inline as `# checkov:skip=CKV_AWS_xxx:reasoning` so they're discoverable
+# next to the resource they apply to; this file holds policies suppressed
+# across all resources of a given type.
+#
+# Run locally:  just sec-scan
+# CI:           .github/workflows/ci.yml `iac-scan` job
+
+skip-check:
+  # SSE-S3 (AES256) is locked over SSE-KMS for state + project buckets. State
+  # holds account ID + ARNs (sensitive but not customer data); the KMS cost
+  # and operational tradeoff don't change the threat model. CLAUDE.md "Build
+  # gotchas" carries the long-form reasoning. CodeRabbit/Trivy AWS-0132 is
+  # the same finding from a different scanner.
+  - CKV_AWS_145
+  # Cross-region replication is a DR control; portfolio scope (single-region
+  # demo, recreatable from synthetic data) doesn't justify the cost. Revisit
+  # if a multi-region production deployment lands.
+  - CKV_AWS_144
+  # S3 event notifications are an application-integration mechanism, not a
+  # security control. Re-evaluate per-bucket if a future PR specifically
+  # wants event-driven workflows on these buckets.
+  - CKV2_AWS_62
+  # DynamoDB lock table holds Terraform state-lock records, no customer data.
+  # Same SSE-S3-over-KMS reasoning as the state bucket: AWS-owned key is fine.
+  - CKV_AWS_119
+  # Public subnets need `map_public_ip_on_launch = true` so the NAT gateway
+  # and any future bastion get auto-assigned public IPs. Workloads that ever
+  # touch PHI live in private subnets where this flag is intentionally absent.
+  - CKV_AWS_130

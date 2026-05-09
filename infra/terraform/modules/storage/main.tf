@@ -1,4 +1,5 @@
 resource "aws_s3_bucket" "this" {
+  # checkov:skip=CKV_AWS_18:S3 access logging lands in PR 4 alongside the Aurora-related audit-trail work (CloudTrail data events + RDS audit log export). Co-located so the audit story ships as one coherent change.
   bucket        = var.bucket_name
   force_destroy = var.force_destroy
 

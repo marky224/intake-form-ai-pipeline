@@ -4,12 +4,25 @@ locals {
 }
 
 resource "aws_vpc" "this" {
+  # checkov:skip=CKV2_AWS_11:VPC flow logs land in PR 5 (CloudFront/WAF) — natural co-location with the network/edge work. Tracking comment in CLAUDE.md "Next" section.
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
 
   tags = {
     Name = "${var.project_name}-vpc"
+  }
+}
+
+# Restrict the VPC's default security group to deny all traffic. Best-practice
+# baseline (CKV2_AWS_12): workloads should always attach their own SGs;
+# anything that ends up on the default SG by accident gets nothing. Empty
+# ingress and egress blocks effectively block all rules.
+resource "aws_default_security_group" "this" {
+  vpc_id = aws_vpc.this.id
+
+  tags = {
+    Name = "${var.project_name}-default-sg-locked"
   }
 }
 

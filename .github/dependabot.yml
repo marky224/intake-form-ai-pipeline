@@ -1,0 +1,24 @@
+# Dependabot config — keeps pinned GitHub Action SHAs current.
+#
+# Why github-actions only (for now): pre-commit hook versions are pinned in
+# .pre-commit-config.yaml and updated by `pre-commit autoupdate`, not Dependabot.
+# Python deps are managed by `uv lock --upgrade`, not Dependabot (Dependabot's
+# uv support is preview as of 2026; revisit when it stabilizes).
+#
+# Grouped: a single weekly PR bumps all action SHAs together rather than one
+# PR per action. Reduces review churn given the slow cadence of action updates.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"
+      include: "scope"
