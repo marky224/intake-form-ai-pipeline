@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
 resource "aws_iam_role" "github_actions_deploy" {
   name               = local.ci_role_name_deploy
   assume_role_policy = data.aws_iam_policy_document.deploy_assume_role.json
-  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets, project Aurora resources (RDS/KMS/Secrets Manager), with an inline deny guarding the state bucket and lock table."
+  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets, project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), with an inline deny guarding the state bucket and lock table."
 
   max_session_duration = 3600
 }
@@ -203,9 +203,13 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     resources = ["*"]
   }
 
-  # Secrets Manager scope for the Aurora master-password secret.
+  # Secrets Manager scope for explicit project-namespaced secrets.
   # Path-prefixed under `<project>/` so other projects in the account
-  # remain out of reach.
+  # remain out of reach. Phase 2 PR 4b initially used this for the
+  # explicit Aurora master-password secret; PR 4c swapped that for
+  # AWS-managed master passwords (see the next two statements), so
+  # this scope now only covers any future explicit secrets the
+  # project creates outside the RDS-managed flow.
   statement {
     sid    = "SecretsManagerManage"
     effect = "Allow"
@@ -213,6 +217,78 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "secretsmanager:*",
     ]
     resources = local.project_secret_arns
+  }
+
+  # Phase 2 PR 4c — Tier 1 security improvement #1: AWS-managed master
+  # password for the Aurora cluster (`manage_master_user_password = true`
+  # on aws_rds_cluster). Per the AWS docs, the principal calling
+  # CreateDBCluster needs `secretsmanager:CreateSecret` so RDS can
+  # provision the secret on its behalf. CreateSecret accepts
+  # resource-level scoping against the requested secret ARN; AWS-owned
+  # secrets always start with `rds!cluster-`, so we can scope here
+  # against the same ARN pattern used by AuroraManagedSecretManage.
+  # This is tighter than the `*` scope the AWS docs example shows by
+  # default (cf. CodeRabbit feedback on PR #18).
+  statement {
+    sid    = "AuroraManagedSecretCreate"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:CreateSecret",
+    ]
+    resources = local.project_managed_secret_arns
+  }
+
+  # Tag and rotate the AWS-managed Aurora master secret. Both actions
+  # support resource-level perms; scope to the `rds!cluster-*` AWS-owned
+  # namespace so other RDS clusters in the account stay out of reach.
+  statement {
+    sid    = "AuroraManagedSecretManage"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:TagResource",
+      "secretsmanager:RotateSecret",
+    ]
+    resources = local.project_managed_secret_arns
+  }
+
+  # Phase 2 PR 4c — Tier 1 security improvement #3: CloudWatch log
+  # exports for the Aurora cluster. Terraform manages the
+  # aws_cloudwatch_log_group resource at
+  # `/aws/rds/cluster/<cluster>/postgresql`; RDS itself populates the
+  # streams. Resource-level scope is the project-prefixed log-group ARN
+  # (and `:*` suffix for streams within). AssociateKmsKey /
+  # DisassociateKmsKey support log-group encryption under our existing
+  # CMK; the key policy already allows account root admin so the
+  # cross-service flow works without an explicit Logs-service grant.
+  statement {
+    sid    = "LogGroupForAuroraExports"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:DeleteLogGroup",
+      "logs:PutRetentionPolicy",
+      "logs:DeleteRetentionPolicy",
+      "logs:TagResource",
+      "logs:UntagResource",
+      "logs:ListTagsForResource",
+      "logs:AssociateKmsKey",
+      "logs:DisassociateKmsKey",
+    ]
+    resources = local.project_log_group_arns
+  }
+
+  # Provider 6.x runs `logs:DescribeLogGroups` on every refresh and the
+  # action doesn't accept resource-level constraints (lists across the
+  # account by name prefix). Read-only blast radius: the deploy role
+  # can list log-group metadata across the account. Same shape as the
+  # RdsDescribeForRefresh shim above.
+  statement {
+    sid    = "LogsDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "logs:Describe*",
+    ]
+    resources = ["*"]
   }
 }
 

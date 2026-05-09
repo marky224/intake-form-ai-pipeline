@@ -51,11 +51,36 @@ locals {
   ]
 
   # Secret-path prefix for the deploy role's scoped Secrets Manager
-  # allow (Phase 2 PR 4). Aurora master-password secret lives at
-  # `<project>/aurora/master`; the wildcard leaves room for additional
-  # secrets under the project namespace without re-scoping IAM.
+  # allow (Phase 2 PR 4). Wildcard leaves room for additional secrets
+  # under the project namespace without re-scoping IAM. Phase 2 PR 4b
+  # initially used this for an explicit `<project>/aurora/master` secret;
+  # PR 4c switched the cluster to AWS-managed master passwords (which
+  # live at `rds!cluster-*` instead — see `project_managed_secret_arns`
+  # below), so this scope now only covers any future explicit secrets.
   project_secret_arns = [
     "arn:aws:secretsmanager:${var.aws_region}:${local.account_id}:secret:${var.project_name}/*",
+  ]
+
+  # AWS RDS owns the naming for managed master-user-password secrets:
+  # the format is `rds!cluster-<UUID>-<6-char-suffix>` and the principal
+  # creating the cluster needs `secretsmanager:TagResource` and
+  # `secretsmanager:RotateSecret` on the secret ARN. Scope the deploy
+  # role to that AWS-owned namespace; out-of-project clusters in this
+  # account still get implicitDeny because the cluster create itself is
+  # blocked by `AuroraResourceManage` (project-prefixed cluster ARNs).
+  project_managed_secret_arns = [
+    "arn:aws:secretsmanager:${var.aws_region}:${local.account_id}:secret:rds!cluster-*",
+  ]
+
+  # CloudWatch Log Group ARN pattern for Aurora log exports (Phase 2
+  # PR 4c). RDS owns the log-group name format
+  # `/aws/rds/cluster/<cluster-id>/<log-type>` (e.g.,
+  # `/aws/rds/cluster/intake-form-ai-pipeline-aurora/postgresql`). The
+  # `:*` suffix covers log streams inside the group, which Terraform
+  # never directly manages but provider refresh sometimes touches.
+  project_log_group_arns = [
+    "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*",
+    "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*:*",
   ]
 }
 
