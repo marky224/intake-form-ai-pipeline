@@ -16,9 +16,11 @@ The chart updates as eval batches run. Phase 6 produces the first real points; u
 
 ## Live demo
 
-*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *demo lands Phase 7. URL is reserved and DNS is configured; the cascade behind it is in development.*
+*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *placeholder served by CloudFront as of Phase 2. Phase 7 swaps the bucket contents for the React review UI.*
 
-The deployed demo wakes Aurora Serverless v2 on request (~30-90 second cold start), shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
+The current page is a static placeholder so the production edge can stabilize before any application code lands behind it. CloudFront fronts an S3-origin landing bucket via Origin Access Control (signing CloudFront → S3 requests with SigV4), AWS WAF v2 enforces a per-IP rate limit (100 req / 5 min) plus a User-Agent block list and three AWS-managed rule groups, the AWS-managed `SecurityHeadersPolicy` adds HSTS / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` / `X-XSS-Protection` to every response, and access logs deliver to S3 via the v2 CloudWatch Logs Delivery primitives (`DeliverySource → DeliveryDestination → Delivery`) for downstream Athena querying.
+
+Phase 7 swaps the placeholder for a wake-on-request flow: Aurora Serverless v2 wakes on request (~30-90 second cold start), the page shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
 
 ## Architecture overview
 
@@ -176,7 +178,7 @@ These are starting values, not final ones. The Phase 6 eval harness sweeps thres
 
 The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Visitors discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
 
-The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), but the demo behind it doesn't go live until Phase 7. Until then, the URL renders the wake page with a "demo lands Phase 7" caveat. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
+The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), and the production edge (CloudFront + WAF + ACM cert + landing bucket) lands in Phase 2 serving a static placeholder. The cascade behind it doesn't go live until Phase 7, which swaps the bucket contents for the wake-on-request landing page and the React review UI without changing any of the surrounding edge configuration. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
 
 Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1.
 
