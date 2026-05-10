@@ -120,6 +120,13 @@ jobs:
       AWS_OIDC_ROLE_ARN_DEPLOY: ${{ secrets.AWS_OIDC_ROLE_ARN_DEPLOY }}
       AWS_OIDC_ROLE_ARN_PLAN: ${{ secrets.AWS_OIDC_ROLE_ARN_PLAN }}
       TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
+      # Phase 2 PR 6b: alert_email var for the cost-alerts SNS subscription.
+      # Repo secret set out-of-band (`gh secret set ALERT_EMAIL --body "..."`).
+      # Plan/apply guards below skip when this is missing so a fresh clone
+      # or fork PR doesn't fail with "No value for required variable
+      # alert_email" on every run; the secret-mask layer keeps the email
+      # address `***`-redacted in workflow logs.
+      TF_VAR_alert_email: ${{ secrets.ALERT_EMAIL }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -176,7 +183,7 @@ jobs:
       # name is a secret (embeds the account ID); lock table is a
       # variable (no account ID).
       - name: Terraform init (main, S3 backend)
-        if: env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && env.TF_VAR_alert_email != ''
         run: |
           rm -rf .terraform
           terraform init \
@@ -192,7 +199,7 @@ jobs:
       # plan is read-only. Guard must match the init step exactly so
       # plan never runs against a local backend if init was skipped.
       - name: Terraform plan (main, PR)
-        if: github.event_name == 'pull_request' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != ''
+        if: github.event_name == 'pull_request' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && env.TF_VAR_alert_email != ''
         run: terraform plan -lock=false -no-color
         working-directory: infra/terraform
 
@@ -212,6 +219,6 @@ jobs:
       # Strict `== 'true'` (not `!= ''`) so `TF_APPLY_ENABLED=false`
       # disables instead of enabling — the string `'false'` is non-empty.
       - name: Terraform apply (main, push to main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && vars.TF_APPLY_ENABLED == 'true'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.TF_STATE_BUCKET != '' && vars.TF_LOCK_TABLE != '' && env.AWS_OIDC_ROLE_ARN_DEPLOY != '' && env.AWS_OIDC_ROLE_ARN_PLAN != '' && env.TF_VAR_alert_email != '' && vars.TF_APPLY_ENABLED == 'true'
         run: terraform apply -auto-approve -no-color
         working-directory: infra/terraform
