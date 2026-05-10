@@ -22,8 +22,17 @@ variable "demo_domain" {
   default     = "ai-intake.markandrewmarquez.com"
 
   validation {
-    condition     = can(regex("^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$", var.demo_domain))
-    error_message = "demo_domain must be a lowercase DNS name (letters, digits, dot, hyphen)."
+    condition     = length(var.demo_domain) >= 1 && length(var.demo_domain) <= 253
+    error_message = "demo_domain must be 1-253 characters per DNS hostname spec."
+  }
+
+  validation {
+    # Each DNS label: starts and ends with alphanumeric, internal hyphens
+    # only (no leading/trailing hyphen), 1-63 chars. At least two labels
+    # required (no bare hostname). Lookahead-free for Terraform's
+    # RE2-based regex engine.
+    condition     = can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$", var.demo_domain))
+    error_message = "demo_domain must be a valid lowercase DNS name (per-label rules: 1-63 chars, alphanumeric with internal hyphens only, no empty labels, at least one dot)."
   }
 }
 
@@ -60,4 +69,11 @@ variable "blocked_user_agents" {
     "scrapy",
     "wget",
   ]
+
+  validation {
+    condition = alltrue([
+      for ua in var.blocked_user_agents : trimspace(ua) != ""
+    ]) && length(distinct(var.blocked_user_agents)) == length(var.blocked_user_agents)
+    error_message = "blocked_user_agents entries must be non-empty (after whitespace trim) and unique — duplicate or blank entries waste WAF rule budget."
+  }
 }
