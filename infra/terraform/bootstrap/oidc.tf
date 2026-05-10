@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
 resource "aws_iam_role" "github_actions_deploy" {
   name               = local.ci_role_name_deploy
   assume_role_policy = data.aws_iam_policy_document.deploy_assume_role.json
-  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets (incl. access-logs and cloudtrail-logs targets), project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), and project CloudTrail trails, with an inline deny guarding the state bucket and lock table."
+  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets (incl. access-logs and cloudtrail-logs targets), project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), project CloudTrail trails, project CloudFront distributions and ACM certificates, project WAFv2 web ACLs, the project's Route 53 hosted zone, and CloudWatch Logs delivery for CloudFront access logs, with an inline deny guarding the state bucket and lock table."
 
   max_session_duration = 3600
 }
@@ -356,6 +356,242 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "cloudtrail:Describe*",
       "cloudtrail:Get*",
       "cloudtrail:List*",
+    ]
+    resources = ["*"]
+  }
+
+  # Phase 2 PR 5: edge protection (CloudFront + WAFv2 + ACM + Route 53 +
+  # CloudFront v2 access-log delivery).
+  #
+  # CloudFront is split Create / Manage / Describe to follow the PR #28
+  # pattern. Create-flavored actions cannot evaluate `aws:ResourceTag`
+  # because the resource does not exist at evaluation time, so they sit
+  # on `*` without a tag condition. Manage-flavored actions (Update*,
+  # Delete*, Tag*, Untag*) operate on existing resources and do support
+  # ResourceTag, so they get the tighter `Project` tag condition. The
+  # describe shim mirrors RdsDescribeForRefresh / LogsDescribeForRefresh
+  # / CloudTrailDescribeForRefresh: read-only across the account, which
+  # is acceptable since the account is Mark's. CloudFront resource ARNs
+  # are UUID-based, so name-prefix scoping does not apply (cf. KMS
+  # precedent above).
+  # CloudFrontCreate is enumerated rather than wildcarded because
+  # `cloudfront:Create*` matches several actions that operate on
+  # *existing* resources (CreateInvalidation,
+  # CreateInvalidationForDistributionTenant,
+  # CreateMonitoringSubscription) — putting those here would leave
+  # them unconditioned across the account. They live in
+  # CloudFrontManage instead, where the `aws:ResourceTag/Project`
+  # condition gates them. List below covers the genuine
+  # create-new-resource actions PR 5b needs (distribution + OAC).
+  # CopyDistribution intentionally NOT included — the action requires
+  # resource-level perms on a distribution ARN (cannot use `*`) and
+  # PR 5b creates fresh distributions rather than cloning. If a future
+  # PR needs CopyDistribution, add it as a separate tag-gated statement
+  # scoped to distribution ARNs.
+  statement {
+    sid    = "CloudFrontCreate"
+    effect = "Allow"
+    actions = [
+      "cloudfront:CreateDistribution",
+      "cloudfront:CreateDistributionWithTags",
+      "cloudfront:CreateOriginAccessControl",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "CloudFrontManage"
+    effect = "Allow"
+    actions = [
+      "cloudfront:Update*",
+      "cloudfront:Delete*",
+      "cloudfront:TagResource",
+      "cloudfront:UntagResource",
+      "cloudfront:Associate*",
+      "cloudfront:Disassociate*",
+      "cloudfront:Publish*",
+      # Create-flavored actions that operate on existing resources;
+      # gated by the tag condition below so the deploy role can't
+      # invalidate or attach monitoring to other projects' distributions.
+      "cloudfront:CreateInvalidation",
+      "cloudfront:CreateInvalidationForDistributionTenant",
+      "cloudfront:CreateMonitoringSubscription",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = [var.project_name]
+    }
+  }
+
+  # Origin Access Control (OAC) resources do NOT support tagging via
+  # CloudFront's TagResource API — only distributions can be tagged.
+  # The `Update*`/`Delete*` wildcards in CloudFrontManage above match
+  # UpdateOriginAccessControl and DeleteOriginAccessControl, but the
+  # `aws:ResourceTag/Project` condition evaluates to false on OAC
+  # resources (no Project tag exists to match), which would block the
+  # deploy role's own OAC update/delete during normal Terraform
+  # lifecycle. Carve those two actions out into a separate statement
+  # with explicit OAC ARN scoping and no tag condition. Resource scope
+  # is account-wide for OAC because OAC IDs are UUID-generated and
+  # cannot be name-prefix-scoped; tagging is unavailable as an
+  # alternative narrowing mechanism.
+  statement {
+    sid    = "CloudFrontOriginAccessControlManage"
+    effect = "Allow"
+    actions = [
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+    ]
+    resources = [
+      "arn:aws:cloudfront::${local.account_id}:origin-access-control/*",
+    ]
+  }
+
+  statement {
+    sid    = "CloudFrontDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "cloudfront:Get*",
+      "cloudfront:List*",
+    ]
+    resources = ["*"]
+  }
+
+  # ACM certificate management for the CloudFront distribution's TLS
+  # cert (`ai-intake.<apex>`). Resource ARNs are UUID-based, so the
+  # resource scope is the account-region certificate namespace; the
+  # tag condition on the Manage statement narrows mutating actions
+  # to project-tagged certs. RequestCertificate cannot accept a tag
+  # condition (resource doesn't exist yet) and ACM does not accept tags
+  # inline on RequestCertificate, so the create stays unconditioned.
+  statement {
+    sid    = "AcmCreate"
+    effect = "Allow"
+    actions = [
+      "acm:RequestCertificate",
+      "acm:ImportCertificate",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AcmManage"
+    effect = "Allow"
+    actions = [
+      "acm:DeleteCertificate",
+      "acm:UpdateCertificateOptions",
+      "acm:RenewCertificate",
+      "acm:AddTagsToCertificate",
+      "acm:RemoveTagsFromCertificate",
+      "acm:ResendValidationEmail",
+    ]
+    resources = local.project_acm_arns
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = [var.project_name]
+    }
+  }
+
+  statement {
+    sid    = "AcmDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "acm:Describe*",
+      "acm:Get*",
+      "acm:List*",
+    ]
+    resources = ["*"]
+  }
+
+  # WAFv2 web ACL management. Names are user-controlled, so name-prefix
+  # scoping bounds the deploy role to project-owned web ACLs, regex
+  # pattern sets, and IP sets without needing a tag condition.
+  # CLOUDFRONT-scope WAF lives in us-east-1 globally — the ARN's
+  # `global` segment in `local.project_wafv2_arns` reflects that.
+  statement {
+    sid    = "WafV2Manage"
+    effect = "Allow"
+    actions = [
+      "wafv2:*",
+    ]
+    resources = local.project_wafv2_arns
+  }
+
+  # Provider 6.x runs `wafv2:List*` and `wafv2:GetWebACLForResource`
+  # account-wide on refresh; the Get/Describe call against the project's
+  # own ARN is already covered by WafV2Manage's wildcard, but the List*
+  # surface needs `*` because lists don't accept resource constraints.
+  statement {
+    sid    = "WafV2DescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "wafv2:List*",
+      "wafv2:GetWebACLForResource",
+    ]
+    resources = ["*"]
+  }
+
+  # Route 53 record-set management on the project's public hosted zone.
+  # The zone itself is created out-of-band on Mark's apex domain; this
+  # statement scopes record changes to that zone only, so the deploy
+  # role cannot mutate other zones in the account. Read access is
+  # account-wide for refresh shims (same shape as RdsDescribeForRefresh).
+  statement {
+    sid    = "Route53RecordManage"
+    effect = "Allow"
+    actions = [
+      "route53:ChangeResourceRecordSets",
+    ]
+    resources = local.project_route53_zone_arns
+  }
+
+  statement {
+    sid    = "Route53DescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "route53:Get*",
+      "route53:List*",
+    ]
+    resources = ["*"]
+  }
+
+  # CloudFront v2 access-log delivery wiring. The v2 path uses CloudWatch
+  # Logs Delivery primitives (DeliverySource + DeliveryDestination +
+  # Delivery) to route distribution logs to the project's access-logs
+  # S3 bucket under `cloudfront/`. These actions do not accept resource
+  # ARNs (the delivery, source, and destination resources are created
+  # by these actions; refreshing them needs account-wide list).
+  # `logs:Describe*` and `logs:Get*` overlap with LogsDescribeForRefresh
+  # above, so they are not duplicated here.
+  statement {
+    sid    = "LogDeliveryManage"
+    effect = "Allow"
+    actions = [
+      "logs:CreateDelivery",
+      "logs:CreateDeliverySource",
+      "logs:CreateDeliveryDestination",
+      "logs:UpdateDeliveryConfiguration",
+      "logs:DeleteDelivery",
+      "logs:DeleteDeliverySource",
+      "logs:DeleteDeliveryDestination",
+      "logs:PutDeliverySource",
+      "logs:PutDeliveryDestination",
+      "logs:PutDeliveryDestinationPolicy",
+      "logs:DeleteDeliveryDestinationPolicy",
+      "logs:GetDelivery",
+      "logs:GetDeliverySource",
+      "logs:GetDeliveryDestination",
+      "logs:GetDeliveryDestinationPolicy",
+      "logs:ListDeliveries",
+      "logs:ListDeliverySources",
+      "logs:ListDeliveryDestinations",
+      "logs:TagDelivery",
+      "logs:UntagDelivery",
     ]
     resources = ["*"]
   }

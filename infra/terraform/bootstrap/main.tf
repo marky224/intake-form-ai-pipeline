@@ -15,8 +15,19 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 locals {
-  account_id          = data.aws_caller_identity.current.account_id
-  state_bucket_name   = "${var.project_name}-tfstate-${local.account_id}"
+  account_id        = data.aws_caller_identity.current.account_id
+  state_bucket_name = "${var.project_name}-tfstate-${local.account_id}"
+
+  # CloudFront edge resources (ACM certs for CloudFront, CLOUDFRONT-scope
+  # WAF web ACLs / regex sets / IP sets) MUST live in us-east-1
+  # regardless of the project's primary region. Pinning the literal here
+  # keeps the deploy role's IAM scope correct even if `var.aws_region`
+  # is ever overridden to a non-us-east-1 region for the rest of the
+  # stack. Used only for `project_acm_arns` and `project_wafv2_arns`
+  # below; project-region resources (RDS, KMS, secrets, log groups,
+  # CloudTrail) keep using `var.aws_region`.
+  edge_region = "us-east-1"
+
   lock_table_name     = "${var.project_name}-tflock"
   oidc_provider_url   = "token.actions.githubusercontent.com"
   oidc_audience       = "sts.amazonaws.com"
@@ -88,6 +99,41 @@ locals {
   project_log_group_arns = [
     "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*",
     "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*:*",
+  ]
+
+  # ACM certificate ARNs for the deploy role's scoped allow (Phase 2
+  # PR 5). ACM resource ARNs are UUID-based, so name-prefix scoping
+  # does not apply. The deploy role gets account-region management of
+  # certificates; the AcmManage statement narrows further with an
+  # `aws:ResourceTag/Project` condition so other projects' certs in this
+  # account stay out of reach for mutating actions. Region pinned to
+  # `local.edge_region` — ACM certs for CloudFront must be in us-east-1
+  # regardless of the project's primary region.
+  project_acm_arns = [
+    "arn:aws:acm:${local.edge_region}:${local.account_id}:certificate/*",
+  ]
+
+  # WAF v2 ARN patterns for the deploy role's scoped allow (Phase 2
+  # PR 5). CLOUDFRONT-scope web ACLs (and their regex/IP sets) live in
+  # us-east-1 globally with `global` segment in the ARN; REGIONAL
+  # resources would use the actual region. This project ships a single
+  # CLOUDFRONT-scope web ACL — the global segment is what we need.
+  # Names are user-controlled, so name-prefix scoping works without
+  # tag conditions. Region pinned to `local.edge_region` for the same
+  # reason as ACM above.
+  project_wafv2_arns = [
+    "arn:aws:wafv2:${local.edge_region}:${local.account_id}:global/webacl/${var.project_name}-*/*",
+    "arn:aws:wafv2:${local.edge_region}:${local.account_id}:global/regexpatternset/${var.project_name}-*/*",
+    "arn:aws:wafv2:${local.edge_region}:${local.account_id}:global/ipset/${var.project_name}-*/*",
+  ]
+
+  # Route 53 hosted-zone ARN for the deploy role's scoped allow (Phase 2
+  # PR 5). The hosted zone itself is created out-of-band on Mark's apex
+  # domain; this stack only manages records inside it. ARN scope here
+  # is the single zone, so changes can't leak to other zones in the
+  # account.
+  project_route53_zone_arns = [
+    "arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}",
   ]
 }
 
