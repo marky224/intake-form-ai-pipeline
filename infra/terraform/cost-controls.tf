@@ -1,21 +1,30 @@
 # Phase 2 PR 6: cost guardrails.
 #
-# Daily-spend Budget at $5 (100% actual + 80% forecasted thresholds),
-# Cost Anomaly Detection on AWS-services dimension with $1 threshold,
-# both routed to a single SNS topic with email subscription. The
-# breaker story: portfolio target is ~$10-15/month total; either
-# alarm firing means something unexpected happened the same day.
+# Daily-spend Budget at $5 (100% actual threshold) routed to an SNS
+# topic. The breaker story: portfolio target is ~$10-15/month total;
+# the budget firing means something unexpected happened the same day.
 #
-# IAM scope for these resources lives in the bootstrap stack
+# Cost Anomaly Detection is intentionally NOT managed here. The
+# account already has a Default-Services-Monitor (auto-suggested by
+# AWS when the CE console is first opened) with a Default-Services-
+# Subscription delivering anomaly alerts directly to mark's email at
+# a $100/40% threshold - and AWS's per-account quota on dimensional
+# monitors blocks creating a parallel monitor here. If the IMMEDIATE-
+# frequency / $1-threshold pattern is wanted later, the path is to
+# import the existing Default-Services-Monitor into this stack and
+# either modify or replace its subscription. The
+# CostExplorerAnomalyCreate / CostExplorerAnomalyManage statements
+# in the bootstrap deploy role IAM (added in PR 6a) cover that
+# future change without further bootstrap work.
+#
+# IAM scope for the resources here lives in the bootstrap stack
 # (oidc.tf statements: BudgetsManage / BudgetsDescribeForRefresh /
-# CostExplorerAnomalyCreate / CostExplorerAnomalyManage / SnsTopicManage
-# / SnsListAccountWide). Bootstrap re-applied as part of PR 6a.
+# SnsTopicManage / SnsListAccountWide). Bootstrap re-applied as
+# part of PR 6a.
 
 locals {
-  cost_alerts_topic_name       = "${var.project_name}-cost-alerts"
-  daily_budget_name            = "${var.project_name}-daily"
-  ce_anomaly_monitor_name      = "${var.project_name}-services-anomalies"
-  ce_anomaly_subscription_name = "${var.project_name}-anomaly-alerts"
+  cost_alerts_topic_name = "${var.project_name}-cost-alerts"
+  daily_budget_name      = "${var.project_name}-daily"
 }
 
 # SNS topic for cost alerts. Encrypted with the AWS-managed
@@ -139,10 +148,15 @@ resource "aws_sns_topic_policy" "cost_alerts" {
 # overhead) - that's correct at portfolio scale where the project's
 # explicit-tag spend is the actionable surface.
 #
-# Two notifications: 100% actual + 80% forecasted, both routed to the
-# cost-alerts SNS topic. Budgets resolves the SNS topic ARN against
-# this account at apply time; the topic policy above grants
-# budgets.amazonaws.com the sns:Publish permission needed to deliver.
+# Single ACTUAL notification at 100% threshold. AWS Budgets only
+# supports ACTUAL notifications on DAILY budgets - FORECASTED is
+# reserved for monthly/quarterly time units (per the AWS API
+# contract; CreateNotification returns InvalidParameterException
+# "this budget time unit: DAILY only supports notification type as
+# ACTUAL" if FORECASTED is attempted on a DAILY budget). The
+# notification routes to the cost-alerts SNS topic; the topic
+# policy above grants budgets.amazonaws.com the sns:Publish
+# permission needed to deliver.
 resource "aws_budgets_budget" "daily_spend" {
   name         = local.daily_budget_name
   budget_type  = "COST"
@@ -168,51 +182,6 @@ resource "aws_budgets_budget" "daily_spend" {
     threshold_type            = "PERCENTAGE"
     notification_type         = "ACTUAL"
     subscriber_sns_topic_arns = [aws_sns_topic.cost_alerts.arn]
-  }
-
-  notification {
-    comparison_operator       = "GREATER_THAN"
-    threshold                 = 80
-    threshold_type            = "PERCENTAGE"
-    notification_type         = "FORECASTED"
-    subscriber_sns_topic_arns = [aws_sns_topic.cost_alerts.arn]
-  }
-
-  depends_on = [aws_sns_topic_policy.cost_alerts]
-}
-
-# Cost Anomaly Detection: dimensional monitor on SERVICE. Tracks
-# anomalous spend across all AWS services. At portfolio scale the top
-# expected services are RDS / NAT / CloudFront / WAF; anomalies in any
-# of those surface here regardless of which Project tag they carry,
-# complementing the project-tag-filtered Budget above.
-resource "aws_ce_anomaly_monitor" "services" {
-  name              = local.ce_anomaly_monitor_name
-  monitor_type      = "DIMENSIONAL"
-  monitor_dimension = "SERVICE"
-}
-
-# IMMEDIATE delivery: anomalies above $1 absolute impact notify the
-# SNS topic as soon as detected. At portfolio scale a $1 anomaly is
-# meaningful (~10% of monthly baseline); the breaker pattern wants to
-# know immediately, not in a daily digest.
-resource "aws_ce_anomaly_subscription" "alerts" {
-  name      = local.ce_anomaly_subscription_name
-  frequency = "IMMEDIATE"
-
-  monitor_arn_list = [aws_ce_anomaly_monitor.services.arn]
-
-  subscriber {
-    type    = "SNS"
-    address = aws_sns_topic.cost_alerts.arn
-  }
-
-  threshold_expression {
-    dimension {
-      key           = "ANOMALY_TOTAL_IMPACT_ABSOLUTE"
-      values        = ["1"]
-      match_options = ["GREATER_THAN_OR_EQUAL"]
-    }
   }
 
   depends_on = [aws_sns_topic_policy.cost_alerts]
