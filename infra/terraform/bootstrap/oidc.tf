@@ -669,35 +669,72 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     resources = ["*"]
   }
 
-  # Cost Explorer anomaly monitoring (Phase 2 PR 6). CE's IAM surface is
-  # account-level — most ce:* actions don't accept resource-level perms
-  # or `aws:ResourceTag` conditions reliably (the documented IAM limitation
-  # is account-wide auth on these APIs). Same shape as `KmsKeyManage`
-  # above: account-wide allow with the constraint documented inline. The
-  # deploy role can manage CE anomaly resources across the account; in
-  # practice this account hosts only Mark's projects, so the broader
-  # scope is acceptable. If CE ever publishes resource-level IAM support,
-  # tighten this statement at that point.
+  # Cost Explorer anomaly monitoring (Phase 2 PR 6). The anomaly
+  # primitives DO support resource-level IAM (the `anomalymonitor` and
+  # `anomalysubscription` resource types in the
+  # `arn:aws:ce::<account>:` namespace) and `aws:ResourceTag` conditions
+  # on the Manage surface, so we follow the Create vs Manage split
+  # established by AuroraManagedSecretCreate / AuroraManagedSecretManage
+  # above (per the IAM tag-condition pattern: Manage actions get
+  # `aws:ResourceTag/Project` once the resource exists; Create actions
+  # use `aws:RequestTag/Project` since the resource doesn't exist yet at
+  # evaluation time).
+  #
+  # ce:Describe* / ce:List* / ce:ProvideAnomalyFeedback are intentionally
+  # not granted — the deploy role only needs the anomaly-CRUD surface,
+  # not the broader Cost Explorer query APIs (GetCostAndUsage,
+  # reservation/Savings Plan recommendations, etc.). Provider 6.x
+  # refresh uses the scoped GetAnomaly* actions in the Manage statement
+  # below.
+  #
+  # The Create statement assumes the AWS provider passes
+  # `Project = var.project_name` (from the main stack's `default_tags`)
+  # in the CreateAnomalyMonitor / CreateAnomalySubscription
+  # `ResourceTags` request parameter. If a future provider upgrade
+  # changes that flow (e.g., separate post-create TagResource call), the
+  # condition would need to come off and the statement would carry the
+  # documented broader scope — same shape as AuroraManagedSecretCreate.
+  statement {
+    sid    = "CostExplorerAnomalyCreate"
+    effect = "Allow"
+    actions = [
+      "ce:CreateAnomalyMonitor",
+      "ce:CreateAnomalySubscription",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/Project"
+      values   = [var.project_name]
+    }
+  }
+
   statement {
     sid    = "CostExplorerAnomalyManage"
     effect = "Allow"
     actions = [
-      "ce:CreateAnomalyMonitor",
       "ce:UpdateAnomalyMonitor",
       "ce:DeleteAnomalyMonitor",
-      "ce:CreateAnomalySubscription",
       "ce:UpdateAnomalySubscription",
       "ce:DeleteAnomalySubscription",
       "ce:GetAnomalies",
       "ce:GetAnomalyMonitors",
       "ce:GetAnomalySubscriptions",
-      "ce:ProvideAnomalyFeedback",
-      "ce:Describe*",
-      "ce:List*",
       "ce:TagResource",
       "ce:UntagResource",
+      "ce:ListTagsForResource",
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:ce::${local.account_id}:anomalymonitor/*",
+      "arn:aws:ce::${local.account_id}:anomalysubscription/*",
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = [var.project_name]
+    }
   }
 
   # SNS topic management for the project's cost-alerts topic (and any
