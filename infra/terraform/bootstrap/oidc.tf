@@ -416,6 +416,13 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "cloudfront:CreateInvalidation",
       "cloudfront:CreateInvalidationForDistributionTenant",
       "cloudfront:CreateMonitoringSubscription",
+      # Cross-service auth check that AWS evaluates when CloudWatch Logs
+      # Delivery `PutDeliverySource` is called for a CloudFront source
+      # (v2 access logs delivery). Without this, log-delivery-source
+      # creation 403s on the distribution ARN even though the
+      # logs:CreateDeliverySource call itself is permitted by
+      # LogDeliveryManage above.
+      "cloudfront:AllowVendedLogDeliveryForResource",
     ]
     resources = ["*"]
 
