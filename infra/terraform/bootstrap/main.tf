@@ -92,7 +92,7 @@ locals {
 }
 
 resource "aws_s3_bucket" "tfstate" {
-  # checkov:skip=CKV_AWS_18:Access logging on the state bucket would mean a separate logging bucket bootstrapped before the state bucket — chicken-and-egg without manual setup. CloudTrail data events on this bucket (PR 4) cover the audit need at less operational cost.
+  # checkov:skip=CKV_AWS_18:Access logging on the state bucket would mean a separate logging bucket bootstrapped before the state bucket — chicken-and-egg without manual setup. CloudTrail data events on this bucket cover the audit need at less operational cost (see infra/terraform/cloudtrail.tf — the trail's data_resource block lists this bucket explicitly).
   bucket = local.state_bucket_name
 
   lifecycle {
