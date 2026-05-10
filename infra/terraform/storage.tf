@@ -96,7 +96,7 @@ module "cloudtrail_logs_bucket" {
           identifiers = ["cloudtrail.amazonaws.com"]
         }
       ]
-      resources = ["arn:aws:s3:::${local.cloudtrail_logs_bucket_name}/AWSLogs/${local.account_id}/*"]
+      resources = ["arn:aws:s3:::${local.cloudtrail_logs_bucket_name}/${local.cloudtrail_trail_s3_prefix}/AWSLogs/${local.account_id}/*"]
       conditions = [
         {
           test     = "StringEquals"

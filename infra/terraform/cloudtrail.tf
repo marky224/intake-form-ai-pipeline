@@ -26,7 +26,7 @@ resource "aws_cloudtrail" "this" {
   # checkov:skip=CKV2_AWS_10:S3-only delivery is the locked tradeoff. CW Logs ingest is $0.50/GB and metric-filter/SNS alerting belongs in the compute layer; revisit once there's something concrete to alarm on.
   name           = local.cloudtrail_trail_name
   s3_bucket_name = module.cloudtrail_logs_bucket.bucket_id
-  s3_key_prefix  = "cloudtrail"
+  s3_key_prefix  = local.cloudtrail_trail_s3_prefix
 
   include_global_service_events = true
   is_multi_region_trail         = false

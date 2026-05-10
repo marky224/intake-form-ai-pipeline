@@ -35,9 +35,16 @@ locals {
   cloudtrail_logs_bucket_name = "${var.project_name}-cloudtrail-logs-${local.account_id}"
   state_bucket_name           = "${var.project_name}-tfstate-${local.account_id}"
 
-  # CloudTrail trail name + log file prefix. The trail itself lives in
-  # cloudtrail.tf; reused here so the bucket policy on cloudtrail-logs
-  # can scope its grant to this trail's ARN via aws:SourceArn.
-  cloudtrail_trail_name = "${var.project_name}-trail"
-  cloudtrail_trail_arn  = "arn:aws:cloudtrail:${var.aws_region}:${local.account_id}:trail/${local.cloudtrail_trail_name}"
+  # CloudTrail trail name + S3 key prefix + log file prefix. The trail
+  # itself lives in cloudtrail.tf; reused here so the bucket policy on
+  # cloudtrail-logs can scope its grant to this trail's ARN via
+  # aws:SourceArn AND so the PutObject Resource pattern matches the
+  # actual CloudTrail object key (which embeds the prefix).
+  #
+  # CloudTrail's pre-create policy validation rejects the policy if the
+  # PutObject Resource doesn't cover the prefix path — see
+  # https://docs.aws.amazon.com/awscloudtrail/latest/userguide/create-s3-bucket-policy-for-cloudtrail.html
+  cloudtrail_trail_name      = "${var.project_name}-trail"
+  cloudtrail_trail_arn       = "arn:aws:cloudtrail:${var.aws_region}:${local.account_id}:trail/${local.cloudtrail_trail_name}"
+  cloudtrail_trail_s3_prefix = "cloudtrail"
 }
