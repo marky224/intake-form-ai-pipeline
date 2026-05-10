@@ -62,3 +62,28 @@ output "aurora_log_group_name" {
   description = "CloudWatch log group receiving the cluster's postgresql audit/error log export."
   value       = module.database.log_group_name
 }
+
+output "landing_bucket_id" {
+  description = "Name of the landing bucket (CloudFront origin for the demo page)."
+  value       = module.landing_bucket.bucket_id
+}
+
+output "cloudfront_distribution_domain_name" {
+  description = "CloudFront-assigned domain name for the demo distribution. Public DNS resolves the demo_domain through the Route 53 alias to this name."
+  value       = aws_cloudfront_distribution.this.domain_name
+}
+
+output "cloudfront_distribution_arn" {
+  description = "ARN of the demo CloudFront distribution."
+  value       = aws_cloudfront_distribution.this.arn
+}
+
+output "edge_waf_web_acl_arn" {
+  description = "ARN of the CloudFront-fronting WAFv2 web ACL."
+  value       = aws_wafv2_web_acl.edge.arn
+}
+
+output "demo_url" {
+  description = "Public URL for the demo. Resolves to the CloudFront distribution via Route 53 alias once Phase 7's React UI lands; today serves the placeholder index.html."
+  value       = "https://${var.demo_domain}/"
+}
