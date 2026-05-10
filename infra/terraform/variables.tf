@@ -44,8 +44,10 @@ variable "waf_rate_limit_per_5min" {
   default     = 100
 
   validation {
-    condition     = var.waf_rate_limit_per_5min >= 100 && var.waf_rate_limit_per_5min <= 20000000
-    error_message = "WAF rate-based rules require a limit between 100 and 20,000,000."
+    # Bounds reflect the August 2024 AWS WAF update: minimum lowered from
+    # 100 to 10, maximum raised to 2,000,000,000.
+    condition     = var.waf_rate_limit_per_5min >= 10 && var.waf_rate_limit_per_5min <= 2000000000
+    error_message = "WAF rate-based rules require a limit between 10 and 2,000,000,000."
   }
 }
 

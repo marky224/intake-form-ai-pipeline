@@ -134,8 +134,15 @@ resource "aws_cloudwatch_log_delivery_destination" "cloudfront_s3" {
   name          = "${var.project_name}-cloudfront-dest"
   output_format = "json"
 
+  # destination_resource_arn is the BUCKET ARN only — the v2 delivery API
+  # rejects bucket+prefix-style ARNs (the prefix is configured on the
+  # delivery, not the destination). AWS auto-prepends
+  # `AWSLogs/<account>/CloudFront/<dist>/<date>/...` after the suffix_path
+  # configured on aws_cloudwatch_log_delivery below, so the bucket policy
+  # statement on access-logs targeting `cloudfront/*` still matches the
+  # actual write path: `<bucket>/cloudfront/AWSLogs/<account>/CloudFront/...`.
   delivery_destination_configuration {
-    destination_resource_arn = "${module.access_logs_bucket.bucket_arn}/${local.cloudfront_log_s3_prefix}"
+    destination_resource_arn = module.access_logs_bucket.bucket_arn
   }
 }
 
@@ -145,8 +152,13 @@ resource "aws_cloudwatch_log_delivery" "cloudfront" {
   delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront.name
   delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_s3.arn
 
+  # suffix_path = "cloudfront" lands logs at
+  # `<bucket>/cloudfront/AWSLogs/<account>/CloudFront/<distid>/<date>/...`
+  # (AWS inserts the user-supplied path BEFORE the auto-AWSLogs prefix).
+  # AWSLogs/<account> is added by AWS — do not include it in suffix_path
+  # or it'll be duplicated.
   s3_delivery_configuration {
-    suffix_path                 = "AWSLogs/${local.account_id}"
+    suffix_path                 = local.cloudfront_log_s3_prefix
     enable_hive_compatible_path = false
   }
 }
