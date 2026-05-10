@@ -24,7 +24,7 @@ Three layers, evaluated in WAF priority order at every request:
 
 Default action is ALLOW; sampled requests and CloudWatch metrics are enabled per-rule so blocked-traffic patterns surface in the console without needing a separate logging pipeline today. Full WAF logging (Kinesis Firehose or S3 destination) is deferred to the compute-layer monitoring story; sampled requests are sufficient for the placeholder window.
 
-The decision was AWS WAF rate-based vs Lambda@Edge + DynamoDB rate counters. WAF is the production-grade answer: rules are managed in one console, the rate-limit primitive is purpose-built rather than reverse-engineered, and the cost differential at portfolio scale (~$5/month) doesn't outweigh the ~10-15 build hours saved or the cleaner architecture story. Documented at the time of the decision in `.claude-context/architecture-locked.md`.
+The decision was AWS WAF rate-based vs Lambda@Edge + DynamoDB rate counters. WAF is the production-grade answer: rules are managed in one console, the rate-limit primitive is purpose-built rather than reverse-engineered, and the cost differential at portfolio scale (~$5/month) doesn't outweigh the ~10-15 build hours saved or the cleaner architecture story.
 
 ### Security headers and TLS
 
@@ -44,7 +44,7 @@ TLS 1.2 minimum (`TLSv1.2_2021`), SNI-only (no IP-bound SSL — costs $600/month
 
 The distribution's access logs flow through the v2 CloudWatch Logs Delivery primitives:
 
-```
+```text
 aws_cloudwatch_log_delivery_source.cloudfront         # source = distribution ARN
        ↓
 aws_cloudwatch_log_delivery.cloudfront                # joins source to destination
