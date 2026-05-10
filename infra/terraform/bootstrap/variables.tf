@@ -31,3 +31,14 @@ variable "github_main_branch" {
     error_message = "github_main_branch must be a literal branch name (no wildcards or shell metacharacters); patterns would widen the IAM StringLike sub match."
   }
 }
+
+variable "route53_hosted_zone_id" {
+  description = "Route 53 hosted zone ID for the project's public DNS (e.g., ai-intake.<apex>). Scoped into the deploy role's Route53Manage IAM statement so record-set changes are bounded to this zone."
+  type        = string
+  default     = "Z04568022MZ21HXK15I1D"
+
+  validation {
+    condition     = can(regex("^Z[A-Z0-9]+$", var.route53_hosted_zone_id))
+    error_message = "route53_hosted_zone_id must be a Route 53 zone ID (uppercase alphanumeric starting with Z)."
+  }
+}

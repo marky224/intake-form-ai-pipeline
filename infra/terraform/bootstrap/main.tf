@@ -89,6 +89,38 @@ locals {
     "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*",
     "arn:aws:logs:${var.aws_region}:${local.account_id}:log-group:/aws/rds/cluster/${var.project_name}-*:*",
   ]
+
+  # ACM certificate ARNs for the deploy role's scoped allow (Phase 2
+  # PR 5). ACM resource ARNs are UUID-based, so name-prefix scoping
+  # does not apply. The deploy role gets account-region management of
+  # certificates; the AcmManage statement narrows further with an
+  # `aws:ResourceTag/Project` condition so other projects' certs in this
+  # account stay out of reach for mutating actions.
+  project_acm_arns = [
+    "arn:aws:acm:${var.aws_region}:${local.account_id}:certificate/*",
+  ]
+
+  # WAF v2 ARN patterns for the deploy role's scoped allow (Phase 2
+  # PR 5). CLOUDFRONT-scope web ACLs (and their regex/IP sets) live in
+  # us-east-1 globally with `global` segment in the ARN; REGIONAL
+  # resources would use the actual region. This project ships a single
+  # CLOUDFRONT-scope web ACL — the global segment is what we need.
+  # Names are user-controlled, so name-prefix scoping works without
+  # tag conditions.
+  project_wafv2_arns = [
+    "arn:aws:wafv2:${var.aws_region}:${local.account_id}:global/webacl/${var.project_name}-*/*",
+    "arn:aws:wafv2:${var.aws_region}:${local.account_id}:global/regexpatternset/${var.project_name}-*/*",
+    "arn:aws:wafv2:${var.aws_region}:${local.account_id}:global/ipset/${var.project_name}-*/*",
+  ]
+
+  # Route 53 hosted-zone ARN for the deploy role's scoped allow (Phase 2
+  # PR 5). The hosted zone itself is created out-of-band on Mark's apex
+  # domain; this stack only manages records inside it. ARN scope here
+  # is the single zone, so changes can't leak to other zones in the
+  # account.
+  project_route53_zone_arns = [
+    "arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}",
+  ]
 }
 
 resource "aws_s3_bucket" "tfstate" {
