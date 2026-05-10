@@ -34,6 +34,13 @@ locals {
     "arn:aws:s3:::${var.project_name}-documents-*/*",
     "arn:aws:s3:::${var.project_name}-artifacts-*",
     "arn:aws:s3:::${var.project_name}-artifacts-*/*",
+    # Audit-trail buckets (PR 4 closeout): S3 access logs target and
+    # CloudTrail delivery target. Same wildcard shape so per-environment
+    # variants land without re-scoping IAM.
+    "arn:aws:s3:::${var.project_name}-access-logs-*",
+    "arn:aws:s3:::${var.project_name}-access-logs-*/*",
+    "arn:aws:s3:::${var.project_name}-cloudtrail-logs-*",
+    "arn:aws:s3:::${var.project_name}-cloudtrail-logs-*/*",
   ]
 
   # Project-RDS ARN patterns for the deploy role's scoped Aurora allow
