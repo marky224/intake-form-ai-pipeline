@@ -59,6 +59,8 @@ resource "aws_cloudfront_distribution" "this" {
   # checkov:skip=CKV_AWS_310:Custom error responses for 404/403 are deferred until Phase 7's React SPA lands; the placeholder index.html does not need SPA-style fallback. Adding noisy default error pages now would just churn when the SPA arrives.
   # checkov:skip=CKV_AWS_174:Minimum TLS 1.2 + viewer_certificate.cloudfront_default_certificate=false is the locked posture; the cert lives on a custom domain via ACM. Trivy/Checkov sometimes flag this at the wrong layer.
   # checkov:skip=CKV_AWS_86:Standard logging (access_logs block) is intentionally NOT used; this distribution uses v2 CWL Delivery primitives instead because the access-logs bucket has BucketOwnerEnforced on (legacy ACL-based logging is incompatible). See aws_cloudwatch_log_delivery.cloudfront below.
+  # checkov:skip=CKV_AWS_374:No geo restriction by design. Recruiter audience for this portfolio demo is globally distributed (US/EU/APAC), and the cost of a false-negative block on a recruiter outweighs any anti-scrape benefit — WAF rate-limit + UA block + IP reputation cover that surface at finer granularity.
+  # checkov:skip=CKV2_AWS_47:False positive. The attached WAF web ACL DOES include AWSManagedRulesKnownBadInputsRuleSet (waf.tf priority 4, sid AWSManagedKnownBadInputs) which provides Log4Shell / Spring4Shell coverage. Checkov's cross-resource graph traversal does not always follow web_acl_id back to the WAF resource's rule list, so this check spuriously fails even though the protection is in place.
   enabled         = true
   is_ipv6_enabled = true
   comment         = "Demo edge for ${var.demo_domain} - landing bucket origin (Phase 5b placeholder; Phase 7 swaps content)."

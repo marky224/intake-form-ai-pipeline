@@ -22,6 +22,7 @@
 # blocked-traffic patterns surface in the console before the React UI
 # lands in Phase 7.
 resource "aws_wafv2_web_acl" "edge" {
+  # checkov:skip=CKV2_AWS_31:WAF logging is compute-layer territory — mirrors the CloudTrail SNS / CW Logs delivery deferral on aws_cloudtrail.this. Adding it requires a logging destination (Kinesis Firehose, CloudWatch log group, or S3 bucket) plus PutLoggingConfiguration IAM scope on the deploy role. Sampled requests + CloudWatch metrics are already enabled per-rule (visibility_config blocks below) so blocked-traffic patterns surface in the console; that's sufficient until there's a SOC-style monitoring story to attach to.
   provider = aws.edge
 
   name        = "${var.project_name}-edge-waf"
