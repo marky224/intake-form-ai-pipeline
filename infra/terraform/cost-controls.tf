@@ -31,17 +31,28 @@ resource "aws_sns_topic" "cost_alerts" {
 }
 
 # Topic policy: allow AWS service principals (Budgets + Cost Anomaly
-# Detection) to publish. Scoped via aws:SourceAccount to close the
-# cross-account confused-deputy attack surface.
+# Detection) to publish. Scoped via aws:SourceAccount AND, where AWS
+# publishes a documented pattern, aws:SourceArn at account-wildcard
+# level - both close the cross-account confused-deputy attack
+# surface.
 #
-# aws:SourceArn would tighten further (per-budget / per-subscription),
-# but the budget's notification block and the anomaly subscription's
-# subscriber address both reference this topic's ARN - making the
-# topic policy depend on those resource ARNs would force a two-phase
-# apply (topic without policy, then resources, then policy attaches).
-# Single-account scoping closes the meaningful risk; document the
-# trade-off here so a future reader doesn't tighten without thinking
-# through the apply ordering.
+# Per-resource ARN scoping (e.g., scoping SourceArn to the specific
+# `aws_budgets_budget.daily_spend.arn` or
+# `aws_ce_anomaly_subscription.alerts.arn`) WOULD create a circular
+# dependency: those resources reference the topic ARN as their
+# notification target, and the topic policy would in turn reference
+# their ARNs. AWS sidesteps this by documenting wildcard-at-account
+# patterns - `arn:aws:budgets::<account>:*` for the Budgets leg -
+# which depend only on `local.account_id`, no cycle.
+#
+# For Cost Anomaly Detection (`costalerts.amazonaws.com`), AWS hasn't
+# published a verified SNS policy template I could confirm against
+# their docs, so the costalerts leg uses aws:SourceAccount only. The
+# CE Service Authorization Reference suggests the analog pattern
+# would be `arn:aws:ce::<account>:anomalysubscription/*`, but
+# applying it speculatively risks silently dropping anomaly
+# notifications if the actual SourceArn AWS sends doesn't match.
+# Tighten in a follow-up after verifying post-apply.
 data "aws_iam_policy_document" "cost_alerts_topic" {
   statement {
     sid    = "AllowBudgetsServicePublish"
@@ -59,6 +70,17 @@ data "aws_iam_policy_document" "cost_alerts_topic" {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
       values   = [local.account_id]
+    }
+
+    # AWS-documented pattern for Budgets SNS policies: wildcard at the
+    # account level (no per-budget ARN reference) so the policy depends
+    # only on local.account_id - no circular dependency on the budget
+    # resource that uses this topic.
+    # https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-sns-policy.html
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:budgets::${local.account_id}:*"]
     }
   }
 
