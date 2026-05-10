@@ -87,3 +87,18 @@ output "demo_url" {
   description = "Public URL for the demo. Resolves to the CloudFront distribution via Route 53 alias once Phase 7's React UI lands; today serves the placeholder index.html."
   value       = "https://${var.demo_domain}/"
 }
+
+output "cost_alerts_sns_topic_arn" {
+  description = "ARN of the SNS topic receiving budget threshold alerts and Cost Anomaly Detection notifications."
+  value       = aws_sns_topic.cost_alerts.arn
+}
+
+output "daily_budget_name" {
+  description = "Name of the daily-spend budget. Tag-filtered to project-tagged spend; threshold $5/day with 100% actual + 80% forecasted notifications."
+  value       = aws_budgets_budget.daily_spend.name
+}
+
+output "cost_anomaly_monitor_arn" {
+  description = "ARN of the Cost Anomaly Detection dimensional monitor (tracks anomalies per AWS service across the account)."
+  value       = aws_ce_anomaly_monitor.services.arn
+}
