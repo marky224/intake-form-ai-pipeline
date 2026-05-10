@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
 resource "aws_iam_role" "github_actions_deploy" {
   name               = local.ci_role_name_deploy
   assume_role_policy = data.aws_iam_policy_document.deploy_assume_role.json
-  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets, project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), with an inline deny guarding the state bucket and lock table."
+  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets (incl. access-logs and cloudtrail-logs targets), project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), and project CloudTrail trails, with an inline deny guarding the state bucket and lock table."
 
   max_session_duration = 3600
 }
@@ -309,6 +309,38 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     effect = "Allow"
     actions = [
       "logs:Describe*",
+    ]
+    resources = ["*"]
+  }
+
+  # Phase 2 PR 4 closeout: CloudTrail trail management for the project's
+  # audit trail (S3 data events on documents/artifacts/tfstate buckets +
+  # RDS management events). Resource-level perms supported on trail ARNs;
+  # scope to the project name prefix so the deploy role can't touch other
+  # trails in the account.
+  statement {
+    sid    = "CloudTrailManage"
+    effect = "Allow"
+    actions = [
+      "cloudtrail:*",
+    ]
+    resources = [
+      "arn:aws:cloudtrail:${var.aws_region}:${local.account_id}:trail/${var.project_name}-*",
+    ]
+  }
+
+  # Provider 6.x reads several CloudTrail status/selector APIs on every
+  # refresh, and most of them list account-wide rather than accepting a
+  # trail ARN. Same shape as the RdsDescribeForRefresh and
+  # LogsDescribeForRefresh shims above. Read-only blast radius: the
+  # deploy role can list trail metadata across the account.
+  statement {
+    sid    = "CloudTrailDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "cloudtrail:Describe*",
+      "cloudtrail:Get*",
+      "cloudtrail:List*",
     ]
     resources = ["*"]
   }
