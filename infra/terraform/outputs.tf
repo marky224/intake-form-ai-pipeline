@@ -94,11 +94,6 @@ output "cost_alerts_sns_topic_arn" {
 }
 
 output "daily_budget_name" {
-  description = "Name of the daily-spend budget. Tag-filtered to project-tagged spend; threshold $5/day with 100% actual + 80% forecasted notifications."
+  description = "Name of the daily-spend budget. Tag-filtered to project-tagged spend; threshold $5/day with a single 100% actual notification (DAILY budgets don't support FORECASTED per the AWS API)."
   value       = aws_budgets_budget.daily_spend.name
-}
-
-output "cost_anomaly_monitor_arn" {
-  description = "ARN of the Cost Anomaly Detection dimensional monitor (tracks anomalies per AWS service across the account)."
-  value       = aws_ce_anomaly_monitor.services.arn
 }
