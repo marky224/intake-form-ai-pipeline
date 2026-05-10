@@ -281,7 +281,7 @@ The cascade has two cost modes.
 
 **Deployed demo.** The demo at ai-intake.markandrewmarquez.com routes Tier 1 to Novita and Tier 3a to Together AI for cost-efficient cloud hosting. Tier 2 (Textract Regular Queries) and Tier 3b (Bedrock Sonnet) are cloud-only by architecture. Per-1,000-document inference cost: **~$24 in standard mode, ~$150 in HIPAA mode** at estimated escalation rates of ~30% to Tier 2, ~10% to Tier 3a, ~3% to Tier 3b. These rates are industry-prior estimates for cascade extraction on form-like documents; Phase 6 eval harness will measure actual rates on this corpus and update the cost figures accordingly. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly run cost at portfolio traffic: ~$10-15.
 
-The 13× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold), per-IP rate-limit Lambda, and Cost Anomaly Detection are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
+The 13× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold routing breach notifications to an SNS topic), the AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), and Cost Anomaly Detection (account-level Default-Services-Subscription delivering anomaly alerts to email) are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
 
 ## What's not in scope
 
