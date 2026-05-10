@@ -16,9 +16,11 @@ The chart updates as eval batches run. Phase 6 produces the first real points; u
 
 ## Live demo
 
-*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *demo lands Phase 7. URL is reserved and DNS is configured; the cascade behind it is in development.*
+*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *placeholder served by CloudFront as of Phase 2. Phase 7 swaps the bucket contents for the React review UI.*
 
-The deployed demo wakes Aurora Serverless v2 on request (~30-90 second cold start), shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
+The current page is a static placeholder so the production edge can stabilize before any application code lands behind it. CloudFront fronts an S3-origin landing bucket via Origin Access Control (signing CloudFront → S3 requests with SigV4), AWS WAF v2 enforces a per-IP rate limit (100 req / 5 min) plus a User-Agent block list and three AWS-managed rule groups, the AWS-managed `SecurityHeadersPolicy` adds HSTS / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` / `X-XSS-Protection` to every response, and access logs deliver to S3 via the v2 CloudWatch Logs Delivery primitives (`DeliverySource → DeliveryDestination → Delivery`) for downstream Athena querying.
+
+Phase 7 swaps the placeholder for a wake-on-request flow: Aurora Serverless v2 wakes on request (~30-90 second cold start), the page shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
 
 ## Architecture overview
 
