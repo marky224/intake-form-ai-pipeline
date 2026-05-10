@@ -263,6 +263,15 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # Tag and rotate the AWS-managed Aurora master secret. Both actions
   # support resource-level perms; scope to the `rds!cluster-*` AWS-owned
   # namespace so other RDS clusters in the account stay out of reach.
+  # The `aws:ResourceTag/Project` condition narrows further: any AWS-
+  # managed Aurora secret already in this account that doesn't carry the
+  # project tag (e.g., from other projects sharing the account) is
+  # excluded. RDS auto-propagates the cluster's tags onto its managed
+  # secret, so this project's secret keeps the `Project` tag set by
+  # `aws_rds_cluster.tags` and remains in scope. Verified post-PR-#16
+  # apply that the tag does propagate. CreateSecret cannot use this
+  # condition (the resource doesn't exist yet at evaluation time), so
+  # the tag-condition tightening applies only to Manage actions.
   statement {
     sid    = "AuroraManagedSecretManage"
     effect = "Allow"
@@ -271,6 +280,12 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "secretsmanager:RotateSecret",
     ]
     resources = local.project_managed_secret_arns
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/Project"
+      values   = [var.project_name]
+    }
   }
 
   # Phase 2 PR 4c — Tier 1 security improvement #3: CloudWatch log
