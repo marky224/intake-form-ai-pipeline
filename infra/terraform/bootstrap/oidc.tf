@@ -382,9 +382,12 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # them unconditioned across the account. They live in
   # CloudFrontManage instead, where the `aws:ResourceTag/Project`
   # condition gates them. List below covers the genuine
-  # create-new-resource actions PR 5b needs (distribution + OAC) plus
-  # CopyDistribution. Add new entries here only when actually
-  # required — keep the surface narrow.
+  # create-new-resource actions PR 5b needs (distribution + OAC).
+  # CopyDistribution intentionally NOT included — the action requires
+  # resource-level perms on a distribution ARN (cannot use `*`) and
+  # PR 5b creates fresh distributions rather than cloning. If a future
+  # PR needs CopyDistribution, add it as a separate tag-gated statement
+  # scoped to distribution ARNs.
   statement {
     sid    = "CloudFrontCreate"
     effect = "Allow"
@@ -392,7 +395,6 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "cloudfront:CreateDistribution",
       "cloudfront:CreateDistributionWithTags",
       "cloudfront:CreateOriginAccessControl",
-      "cloudfront:CopyDistribution",
     ]
     resources = ["*"]
   }
@@ -422,6 +424,30 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       variable = "aws:ResourceTag/Project"
       values   = [var.project_name]
     }
+  }
+
+  # Origin Access Control (OAC) resources do NOT support tagging via
+  # CloudFront's TagResource API — only distributions can be tagged.
+  # The `Update*`/`Delete*` wildcards in CloudFrontManage above match
+  # UpdateOriginAccessControl and DeleteOriginAccessControl, but the
+  # `aws:ResourceTag/Project` condition evaluates to false on OAC
+  # resources (no Project tag exists to match), which would block the
+  # deploy role's own OAC update/delete during normal Terraform
+  # lifecycle. Carve those two actions out into a separate statement
+  # with explicit OAC ARN scoping and no tag condition. Resource scope
+  # is account-wide for OAC because OAC IDs are UUID-generated and
+  # cannot be name-prefix-scoped; tagging is unavailable as an
+  # alternative narrowing mechanism.
+  statement {
+    sid    = "CloudFrontOriginAccessControlManage"
+    effect = "Allow"
+    actions = [
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+    ]
+    resources = [
+      "arn:aws:cloudfront::${local.account_id}:origin-access-control/*",
+    ]
   }
 
   statement {
