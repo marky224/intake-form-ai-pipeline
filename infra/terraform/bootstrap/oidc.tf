@@ -640,12 +640,23 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # Phase 2 PR 6: cost guardrails (AWS Budgets daily-spend alarm + Cost
   # Anomaly Detection + project SNS topic for alert delivery).
   #
-  # Budgets resource ARNs are name-prefixed under the project, so
-  # `budgets:*` on `local.project_budget_arns` covers both create
-  # (CreateBudget, CreateBudgetAction) and manage (Modify, Delete,
-  # Describe-by-name, View, BudgetActions). No tag condition needed —
-  # name-prefix scoping is already tight. Same shape as `rds:*` and
-  # `wafv2:*` precedents above.
+  # AWS Budgets has two resource types: budgets themselves
+  # (`budget/${BudgetName}`) and Budget Actions
+  # (`budget/${BudgetName}/action/${ActionId}` — auto-execute responses
+  # like detach-IAM-policy / run-SSM-document / apply-IAM-target on
+  # threshold breach). PR 6b's design uses notification-only budgets
+  # (SNS delivery via `notification` blocks on `aws_budgets_budget`),
+  # not action-driven budgets, so this statement only scopes the
+  # budget-resource ARN namespace. If a future PR introduces
+  # `aws_budgets_budget_action` resources, extend `local.project_budget_arns`
+  # (or a sibling local) to include `budget/PROJECT-*/action/*` —
+  # CreateBudgetAction / DeleteBudgetAction / ExecuteBudgetAction etc.
+  # all require that ARN type per the AWS service authorization
+  # reference, and they also depend on `iam:PassRole` for the action's
+  # execution role.
+  #
+  # No tag condition needed — name-prefix scoping is already tight.
+  # Same shape as `rds:*` and `wafv2:*` precedents above.
   statement {
     sid    = "BudgetsManage"
     effect = "Allow"
