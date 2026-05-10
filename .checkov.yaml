@@ -43,3 +43,13 @@ skip-check:
   # legitimate use of an EIP in this project. The check pre-dates NAT-attached
   # EIPs as a common pattern.
   - CKV2_AWS_19
+  # CKV_AWS_300 ("ensure S3 lifecycle config sets period for aborting failed
+  # uploads") evaluates per-rule in checkov 3.x rather than per-bucket. The
+  # storage module's lifecycle config DOES set abort_incomplete_multipart_upload
+  # in a dedicated rule (days_after_initiation = 1), but checkov 3.x flags the
+  # adjacent noncurrent-version and expire-log-objects rules for not having
+  # their own copy. The rule's stated intent ("ensure config sets period for
+  # aborting failed uploads") is satisfied; the per-rule strictness is a false
+  # positive. CI bumped to checkov 3.2.527 via bridgecrewio/checkov-action
+  # v12.3102.0; older v12.1347.0 (checkov 2.0.930) didn't surface this.
+  - CKV_AWS_300
