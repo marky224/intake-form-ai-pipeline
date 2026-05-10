@@ -374,11 +374,24 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
   # is acceptable since the account is Mark's. CloudFront resource ARNs
   # are UUID-based, so name-prefix scoping does not apply (cf. KMS
   # precedent above).
+  # CloudFrontCreate is enumerated rather than wildcarded because
+  # `cloudfront:Create*` matches several actions that operate on
+  # *existing* resources (CreateInvalidation,
+  # CreateInvalidationForDistributionTenant,
+  # CreateMonitoringSubscription) — putting those here would leave
+  # them unconditioned across the account. They live in
+  # CloudFrontManage instead, where the `aws:ResourceTag/Project`
+  # condition gates them. List below covers the genuine
+  # create-new-resource actions PR 5b needs (distribution + OAC) plus
+  # CopyDistribution. Add new entries here only when actually
+  # required — keep the surface narrow.
   statement {
     sid    = "CloudFrontCreate"
     effect = "Allow"
     actions = [
-      "cloudfront:Create*",
+      "cloudfront:CreateDistribution",
+      "cloudfront:CreateDistributionWithTags",
+      "cloudfront:CreateOriginAccessControl",
       "cloudfront:CopyDistribution",
     ]
     resources = ["*"]
@@ -395,6 +408,12 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "cloudfront:Associate*",
       "cloudfront:Disassociate*",
       "cloudfront:Publish*",
+      # Create-flavored actions that operate on existing resources;
+      # gated by the tag condition below so the deploy role can't
+      # invalidate or attach monitoring to other projects' distributions.
+      "cloudfront:CreateInvalidation",
+      "cloudfront:CreateInvalidationForDistributionTenant",
+      "cloudfront:CreateMonitoringSubscription",
     ]
     resources = ["*"]
 
