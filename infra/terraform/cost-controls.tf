@@ -87,18 +87,28 @@ resource "aws_sns_topic_policy" "cost_alerts" {
   policy = data.aws_iam_policy_document.cost_alerts_topic.json
 }
 
-# Email subscription. var.alert_email is set out-of-band via tfvars
-# or TF_VAR_alert_email env var (sensitive, no default) so the email
-# never lands in the public repo. First apply triggers an AWS
-# confirmation email to that address; until the link is clicked the
-# subscription stays in `PendingConfirmation` and Terraform sees it
-# that way (no provisioner workaround needed - accept the manual
-# one-time confirmation step).
-resource "aws_sns_topic_subscription" "cost_alerts_email" {
-  topic_arn = aws_sns_topic.cost_alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
-}
+# Email/HTTPS subscriptions are intentionally NOT managed in Terraform.
+# AWS SNS persists `aws_sns_topic_subscription.endpoint` in plaintext
+# to the Terraform state file regardless of any `sensitive = true`
+# flag on the source variable - that flag only masks CLI output, not
+# state storage (state holds the rendered attribute values, not the
+# variable references). For personal-email destinations, the residual
+# exposure (state in the project S3 bucket, replicated through 90-day
+# versioning, accessible to any principal with admin or deploy-role
+# read on the state bucket) is undesirable even with strong bucket
+# protections.
+#
+# Operational pattern: subscribe endpoints manually via the AWS console
+# or `aws sns subscribe --topic-arn <arn> --protocol email --notification-endpoint <addr>`
+# post-apply. The topic + budget + anomaly subscription resources here
+# all reference the topic ARN, which is stable and IaC-defined; only
+# the human-facing endpoint addresses live outside Terraform.
+#
+# Non-PII subscription types (Lambda, SQS, account-internal HTTPS
+# webhooks) CAN be IaC-managed safely since their endpoints are
+# technical identifiers rather than personal contact info — add those
+# as `aws_sns_topic_subscription` resources here if/when they're
+# needed.
 
 # Daily-spend budget at $5 limit. Tag-filtered to project-tagged
 # spend only, so other projects in this AWS account stay outside this

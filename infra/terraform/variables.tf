@@ -77,19 +77,3 @@ variable "blocked_user_agents" {
     error_message = "blocked_user_agents entries must be non-empty (after whitespace trim) and unique — duplicate or blank entries waste WAF rule budget."
   }
 }
-
-variable "alert_email" {
-  description = "Email address subscribed to the cost-alerts SNS topic. Receives budget threshold alerts and Cost Anomaly Detection notifications. Set out-of-band via .tfvars or TF_VAR_alert_email env var (no default; kept out of the public repo). First apply triggers an AWS confirmation email; subscription stays in PendingConfirmation until the link is clicked."
-  type        = string
-  sensitive   = true
-
-  validation {
-    # Simplified syntactic check: at least one non-@ non-whitespace char,
-    # an @, at least one domain label with a dot. Catches typos (bare
-    # local-part, missing TLD, embedded whitespace) without trying to
-    # enforce the full RFC 5322 grammar (which Terraform's RE2 engine
-    # can't anyway).
-    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.alert_email))
-    error_message = "alert_email must be a syntactically valid email (something like name@domain.tld)."
-  }
-}
