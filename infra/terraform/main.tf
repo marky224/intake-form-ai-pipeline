@@ -12,6 +12,28 @@ provider "aws" {
   }
 }
 
+# Aliased provider for CloudFront-edge resources that AWS forces into
+# us-east-1 regardless of the project's primary region: ACM certificates
+# attached to a CloudFront distribution, and CLOUDFRONT-scope WAFv2 web
+# ACLs (and their regex/IP sets). Pinning the literal here keeps these
+# resources correct even if `var.aws_region` is ever overridden.
+# Default-tags inherit the Stack=main posture so downstream resources
+# remain attributable.
+provider "aws" {
+  alias  = "edge"
+  region = "us-east-1"
+
+  default_tags {
+    tags = {
+      Project     = var.project_name
+      Environment = "demo"
+      ManagedBy   = "terraform"
+      Owner       = "mark"
+      Stack       = "main"
+    }
+  }
+}
+
 data "aws_caller_identity" "current" {}
 
 # Pick the first 3 availability zones that don't require explicit opt-in.
@@ -47,4 +69,20 @@ locals {
   cloudtrail_trail_name      = "${var.project_name}-trail"
   cloudtrail_trail_arn       = "arn:aws:cloudtrail:${var.aws_region}:${local.account_id}:trail/${local.cloudtrail_trail_name}"
   cloudtrail_trail_s3_prefix = "cloudtrail"
+
+  # Phase 2 PR 5b — edge protection.
+  #
+  # Landing bucket is the CloudFront origin: serves the placeholder
+  # index.html + robots.txt today, swaps to the React review UI in
+  # Phase 7. Same name shape as documents/artifacts so per-environment
+  # variants land without re-scoping IAM.
+  landing_bucket_name = "${var.project_name}-landing-${local.account_id}"
+
+  # CloudFront v2 access logs delivery prefix on the access-logs bucket.
+  # Same lesson as `cloudtrail_trail_s3_prefix` above: promoted to a
+  # local so the delivery destination's S3-suffix and the access-logs
+  # bucket-policy PutObject Resource ARN can't drift (cf. PR #27, where
+  # CloudTrail's prefix-vs-bucket-policy mismatch caused the trail
+  # CreateTrail call to fail validation).
+  cloudfront_log_s3_prefix = "cloudfront"
 }

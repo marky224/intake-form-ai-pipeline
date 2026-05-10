@@ -43,7 +43,66 @@ module "access_logs_bucket" {
           values = [
             "arn:aws:s3:::${local.documents_bucket_name}",
             "arn:aws:s3:::${local.artifacts_bucket_name}",
+            "arn:aws:s3:::${local.landing_bucket_name}",
           ]
+        },
+      ]
+    },
+    # CloudFront v2 access logs delivery (Phase 2 PR 5b). The distribution
+    # routes its logs through CloudWatch Logs Delivery primitives to this
+    # bucket under `${local.cloudfront_log_s3_prefix}/`. Resource ARN MUST
+    # include the prefix path or the delivery destination create call
+    # fails its pre-create policy validation (same shape as the
+    # CloudTrail prefix bug fixed in PR #27).
+    #
+    # `aws:SourceAccount` scopes the delivery to this account; full
+    # cross-region delivery destinations from other accounts can't write
+    # here. SourceArn would over-narrow because the delivery
+    # destination's ARN is owned by the Logs service.
+    {
+      sid     = "AllowCloudFrontAccessLogsDeliveryWrite"
+      effect  = "Allow"
+      actions = ["s3:PutObject"]
+      principals = [
+        {
+          type        = "Service"
+          identifiers = ["delivery.logs.amazonaws.com"]
+        }
+      ]
+      resources = ["arn:aws:s3:::${local.access_logs_bucket_name}/${local.cloudfront_log_s3_prefix}/*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        },
+        {
+          test     = "StringEquals"
+          variable = "s3:x-amz-acl"
+          values   = ["bucket-owner-full-control"]
+        },
+      ]
+    },
+    # Bucket-level GetBucketAcl for the delivery service. The
+    # cloudwatch_log_delivery_destination call validates write access by
+    # reading the bucket ACL during pre-create, so the service principal
+    # needs ACL read on the bucket itself (not the prefix path).
+    {
+      sid     = "AllowCloudFrontAccessLogsDeliveryAclCheck"
+      effect  = "Allow"
+      actions = ["s3:GetBucketAcl"]
+      principals = [
+        {
+          type        = "Service"
+          identifiers = ["delivery.logs.amazonaws.com"]
+        }
+      ]
+      resources = ["arn:aws:s3:::${local.access_logs_bucket_name}"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
         },
       ]
     },
