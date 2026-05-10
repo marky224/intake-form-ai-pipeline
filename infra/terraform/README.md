@@ -2,21 +2,22 @@
 
 The second Terraform stack in the project, holding everything that isn't bootstrap-state-backend or bootstrap-IAM. The state lives in the same S3 bucket the bootstrap stack created, but under a different key (`main/terraform.tfstate`) so the two stacks don't share state files.
 
-## Current scope (Phase 2 PRs 2 + 3 + 4)
+## Current scope (Phase 2 complete)
 
 - `module.network` — VPC (`10.0.0.0/16`), 3 public + 3 private subnets, single NAT gateway, IGW, route tables, S3 + DynamoDB gateway endpoints. CIDR plan: public `10.0.{0,1,2}.0/24`, private `10.0.{10,11,12}.0/24`.
 - `module.documents_bucket` — `<project>-documents-<account>`. Synthea + DocILE inputs and downstream outputs.
 - `module.artifacts_bucket` — `<project>-artifacts-<account>`. Rendered PDFs, eval fixtures.
 - `module.database` — Aurora Serverless v2 PostgreSQL 16.4 cluster (`<project>-aurora`), single `db.serverless` instance, `min 0 / max 1.0 ACU` with 5-minute auto-pause. Tier 1 security pass: AWS-managed master password (`manage_master_user_password = true`, 7-day rotation default; secret name `rds!cluster-<UUID>-<suffix>`, RDS-owned), `rds.force_ssl = 1` enforces TLS at the parameter level, postgresql logs exported to a CloudWatch log group with 30-day retention. Cluster parameter group preloads pgvector. A customer-managed KMS CMK encrypts the cluster volume, the master secret, and the log group; the key policy grants account root admin plus the Aurora and CloudWatch Logs service principals their respective grants. Cluster security group with no ingress yet (Lambda/bastion ingress lands with the compute layer); single initial database (`intake`) — schemas `demo`/`eval`/`staging` are added post-apply via `just db-init-schemas`.
+- `module.access_logs_bucket` + `module.cloudtrail_logs_bucket` + `module.landing_bucket` — audit-trail and CloudFront-origin buckets, same hardening as the documents/artifacts buckets. The access-logs bucket is the S3 server-access-log target AND the CloudFront v2 access-logs delivery destination; the cloudtrail-logs bucket is the CloudTrail delivery target with a `cloudtrail/` key prefix.
+- `aws_cloudtrail.this` — single-region us-east-1 trail with management events (read+write, including global service events) plus S3 data events on documents/artifacts/tfstate. Log file validation enabled.
+- `aws_cloudfront_distribution.this` + `aws_cloudfront_origin_access_control.landing` + ACM cert + Route 53 alias records — public demo edge at `https://ai-intake.markandrewmarquez.com/`. PriceClass_100, HTTP/2 + HTTP/3, IPv6, TLS 1.2 SNI minimum, AWS-managed `CachingOptimized` cache policy + `SecurityHeadersPolicy` response headers (HSTS, X-Frame-Options, etc.), redirect-to-https, GET/HEAD only.
+- `aws_wafv2_web_acl.edge` — CLOUDFRONT-scope WAF with five rules (priority order): per-IP rate-based 100 req/5 min (BLOCK), `BlockKnownScrapeUserAgents` byte-match on `python-requests`/`curl`/`scrapy`/`wget` + empty UA, plus three AWS-managed rule groups (`CommonRuleSet`, `KnownBadInputs`, `AmazonIpReputationList`). Default action ALLOW, sampled requests + CW metrics enabled per-rule.
+- v2 CloudFront access logs delivery: `aws_cloudwatch_log_delivery_source.cloudfront` → `aws_cloudwatch_log_delivery_destination.cloudfront_s3` → `aws_cloudwatch_log_delivery.cloudfront`. Logs land at `<access-logs>/cloudfront/AWSLogs/<account>/CloudFront/<distid>/...`.
+- `aws_sns_topic.cost_alerts` + `aws_sns_topic_policy.cost_alerts` + `aws_budgets_budget.daily_spend` — cost circuit breaker. Daily $5 USD budget, tag-filtered to project-tagged spend, single 100% ACTUAL notification routes to the SNS topic. Topic policy grants `budgets.amazonaws.com` and `costalerts.amazonaws.com` `sns:Publish` scoped via `aws:SourceAccount`. Subscriptions managed manually post-apply via `aws sns subscribe` (see `docs/production-roadmap.md` for the rationale on keeping personal-PII endpoints out of Terraform state).
 
-Both buckets mirror the state bucket's posture: versioning, SSE-S3 (AES256), public-access-block, TLS-only deny policy, lifecycle (90-day noncurrent expiry, 1-day MPU abort).
+All project buckets (documents, artifacts, access-logs, cloudtrail-logs, landing) mirror the state bucket's posture: versioning, SSE-S3 (AES256), public-access-block, TLS-only deny policy, lifecycle (90-day noncurrent expiry, 1-day MPU abort, 365-day current-version expiry on the audit-log buckets).
 
-The first end-to-end CI apply went through on commit `e2f2bd7` after PR 3 scoped the deploy role's IAM and a one-line hotfix added `ec2:DescribeAddressesAttribute` (a gap in `AmazonVPCFullAccess` v13 that AWS provider 6.x reads on every EIP refresh). `vars.TF_APPLY_ENABLED` is `true` on the repo, so subsequent pushes to `main` apply automatically without further manual gating.
-
-## What lands in later Phase 2 PRs
-
-- PR 5: CloudFront + edge bot blocking + per-IP rate limit Lambda
-- PR 6: AWS Budgets + Cost Anomaly Detection
+The first end-to-end CI apply went through on commit `e2f2bd7` after PR 3 scoped the deploy role's IAM and a one-line hotfix added `ec2:DescribeAddressesAttribute` (a gap in `AmazonVPCFullAccess` v13 that AWS provider 6.x reads on every EIP refresh). `vars.TF_APPLY_ENABLED` is `true` on the repo, so subsequent pushes to `main` apply automatically without further manual gating. See `docs/architecture-deep-dive.md` for the public-edge architecture detail.
 
 ## First-time apply (local)
 

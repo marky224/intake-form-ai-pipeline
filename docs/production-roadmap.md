@@ -62,11 +62,11 @@ Defer because the deployed demo runs Tier 1 on Novita and Tier 3a on Together AI
 
 ## Cost circuit breaker upgrade
 
-Current cost controls: AWS Budgets ($5/day threshold, alerts via SNS), Cost Anomaly Detection (free, anomaly alerts via SNS), per-IP rate-limit Lambda, robots.txt + CloudFront UA blocking. Realistic monthly cost: $10–15.
+Current cost controls: AWS Budgets ($5/day threshold, alerts via SNS topic), AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), Cost Anomaly Detection (account-level via the AWS-suggested Default-Services-Subscription delivering anomaly alerts to email at $100/40% threshold), robots.txt + CloudFront UA blocking. Personal-PII subscription endpoints (e.g., the SNS-topic email subscriber) live outside Terraform — `aws_sns_topic_subscription.endpoint` persists to state regardless of any `sensitive = true` flag on the source variable, so personal email gets subscribed manually post-apply via `aws sns subscribe`. Realistic monthly cost: $10–15.
 
 Upgrade trigger: deployed-demo monthly cost sustained above $25. At that point, revisit:
 
-1. **AWS WAF Bot Control** — currently deferred because per-IP rate limiting catches most abuse patterns at lower cost. WAF Bot Control is ~$10/month base + per-request charges, only worth it if abuse is sophisticated enough to evade simple rate limiting.
+1. **AWS WAF Bot Control** — currently deferred because the per-IP rate-based rule catches most abuse patterns at lower cost. WAF Bot Control is ~$10/month base + per-request charges, only worth it if abuse is sophisticated enough to evade simple rate limiting.
 2. **Tighter Budget thresholds** — drop daily threshold to $3, or move to hourly budgets for finer-grained alerts.
 3. **Aurora Serverless v2 → RDS Proxy + always-on minimum-size instance** — Aurora Serverless v2's minimum 0 ACU + auto-pause is great for portfolio traffic but creates unpredictable spikes during cold-start scaling. Always-on Aurora at the smallest instance size is more expensive baseline but more predictable.
 
@@ -80,7 +80,7 @@ Specifically: sustained abuse pattern not caught by per-IP rate limit. Examples 
 - Requests with valid User-Agent strings that pass the CloudFront UA filter but are programmatic
 - Account-takeover-style attacks if authentication is added later
 
-Single-IP abuse won't trigger this — the existing Lambda handles that at lower cost. Defer until first observed sustained distributed pattern.
+Single-IP abuse won't trigger this — the WAF rate-based rule handles that at lower cost. Defer until first observed sustained distributed pattern.
 
 ## Self-hosted demo deployment vs cloud
 
