@@ -280,6 +280,21 @@ resource "aws_rds_cluster" "this" {
   tags = {
     Name = var.name_prefix
   }
+
+  # Aurora auto-applies minor-version patches inside the maintenance
+  # window because `auto_minor_version_upgrade` (set on the cluster
+  # instance below) defaults to true. AWS surfaces the post-patch
+  # version (e.g. 16.11) on subsequent refresh, but Terraform sees the
+  # variable-driven engine_version (e.g. 16.4) in state and tries to
+  # ModifyDBCluster back to the older minor — which AWS rejects with
+  # "InvalidParameterCombination: Cannot upgrade aurora-postgresql from
+  # X.Y to X.Z" (Aurora has no downgrade path). Ignoring engine_version
+  # lets the AWS-managed patch cadence proceed without Terraform
+  # fighting it. Major version bumps are still tracked manually via
+  # var.engine_version on initial apply / replacement.
+  lifecycle {
+    ignore_changes = [engine_version]
+  }
 }
 
 resource "aws_rds_cluster_instance" "this" {
