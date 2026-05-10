@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "deploy_assume_role" {
 resource "aws_iam_role" "github_actions_deploy" {
   name               = local.ci_role_name_deploy
   assume_role_policy = data.aws_iam_policy_document.deploy_assume_role.json
-  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets (incl. access-logs and cloudtrail-logs targets), project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), project CloudTrail trails, project CloudFront distributions and ACM certificates, project WAFv2 web ACLs, the project's Route 53 hosted zone, and CloudWatch Logs delivery for CloudFront access logs, with an inline deny guarding the state bucket and lock table."
+  description        = "Assumed by GitHub Actions on push to main. AmazonVPCFullAccess plus scoped inline allow for the Terraform state backend, project S3 buckets (incl. access-logs and cloudtrail-logs targets), project Aurora resources (RDS / KMS / Secrets Manager incl. AWS-managed master password / CloudWatch log exports), project CloudTrail trails, project CloudFront distributions and ACM certificates, project WAFv2 web ACLs, the project's Route 53 hosted zone, CloudWatch Logs delivery for CloudFront access logs, AWS Budgets / Cost Anomaly Detection, and project SNS topics, with an inline deny guarding the state bucket and lock table."
 
   max_session_duration = 3600
 }
@@ -633,6 +633,95 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "logs:TagResource",
       "logs:UntagResource",
       "logs:ListTagsForResource",
+    ]
+    resources = ["*"]
+  }
+
+  # Phase 2 PR 6: cost guardrails (AWS Budgets daily-spend alarm + Cost
+  # Anomaly Detection + project SNS topic for alert delivery).
+  #
+  # Budgets resource ARNs are name-prefixed under the project, so
+  # `budgets:*` on `local.project_budget_arns` covers both create
+  # (CreateBudget, CreateBudgetAction) and manage (Modify, Delete,
+  # Describe-by-name, View, BudgetActions). No tag condition needed —
+  # name-prefix scoping is already tight. Same shape as `rds:*` and
+  # `wafv2:*` precedents above.
+  statement {
+    sid    = "BudgetsManage"
+    effect = "Allow"
+    actions = [
+      "budgets:*",
+    ]
+    resources = local.project_budget_arns
+  }
+
+  # Provider 6.x runs `budgets:DescribeBudgets` and other account-wide
+  # list/view actions on every refresh. These don't accept resource-level
+  # constraints. Read-only blast radius: the deploy role can list budget
+  # metadata across the account. Same shape as RdsDescribeForRefresh.
+  statement {
+    sid    = "BudgetsDescribeForRefresh"
+    effect = "Allow"
+    actions = [
+      "budgets:Describe*",
+      "budgets:View*",
+    ]
+    resources = ["*"]
+  }
+
+  # Cost Explorer anomaly monitoring (Phase 2 PR 6). CE's IAM surface is
+  # account-level — most ce:* actions don't accept resource-level perms
+  # or `aws:ResourceTag` conditions reliably (the documented IAM limitation
+  # is account-wide auth on these APIs). Same shape as `KmsKeyManage`
+  # above: account-wide allow with the constraint documented inline. The
+  # deploy role can manage CE anomaly resources across the account; in
+  # practice this account hosts only Mark's projects, so the broader
+  # scope is acceptable. If CE ever publishes resource-level IAM support,
+  # tighten this statement at that point.
+  statement {
+    sid    = "CostExplorerAnomalyManage"
+    effect = "Allow"
+    actions = [
+      "ce:CreateAnomalyMonitor",
+      "ce:UpdateAnomalyMonitor",
+      "ce:DeleteAnomalyMonitor",
+      "ce:CreateAnomalySubscription",
+      "ce:UpdateAnomalySubscription",
+      "ce:DeleteAnomalySubscription",
+      "ce:GetAnomalies",
+      "ce:GetAnomalyMonitors",
+      "ce:GetAnomalySubscriptions",
+      "ce:ProvideAnomalyFeedback",
+      "ce:Describe*",
+      "ce:List*",
+      "ce:TagResource",
+      "ce:UntagResource",
+    ]
+    resources = ["*"]
+  }
+
+  # SNS topic management for the project's cost-alerts topic (and any
+  # future project topics). Name-prefix scoping bounds Create + Manage
+  # to project-owned topics. SNS subscribe/publish actions on the topic
+  # itself are also covered by `sns:*` against the topic ARN.
+  statement {
+    sid    = "SnsTopicManage"
+    effect = "Allow"
+    actions = [
+      "sns:*",
+    ]
+    resources = local.project_sns_topic_arns
+  }
+
+  # SNS account-wide list shim. ListTopics / ListSubscriptions don't
+  # accept resource constraints. Same shape as the other ForRefresh
+  # statements above.
+  statement {
+    sid    = "SnsListAccountWide"
+    effect = "Allow"
+    actions = [
+      "sns:ListTopics",
+      "sns:ListSubscriptions",
     ]
     resources = ["*"]
   }

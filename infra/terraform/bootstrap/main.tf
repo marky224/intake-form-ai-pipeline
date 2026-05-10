@@ -139,6 +139,22 @@ locals {
   project_route53_zone_arns = [
     "arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}",
   ]
+
+  # Phase 2 PR 6: Budgets ARN pattern. Budgets is a global service, so
+  # the ARN has no region segment (the double-colon is intentional).
+  # Name-prefix scoping keeps the deploy role bounded to project-owned
+  # budgets; other budgets in this account remain out of reach.
+  project_budget_arns = [
+    "arn:aws:budgets::${local.account_id}:budget/${var.project_name}-*",
+  ]
+
+  # SNS topic ARN pattern for the project's cost-alerts topic (Phase 2
+  # PR 6) and any future project SNS topics. Name-prefix scoping bounds
+  # the deploy role to project-owned topics without needing a tag
+  # condition. Region-scoped (SNS is regional).
+  project_sns_topic_arns = [
+    "arn:aws:sns:${var.aws_region}:${local.account_id}:${var.project_name}-*",
+  ]
 }
 
 resource "aws_s3_bucket" "tfstate" {
