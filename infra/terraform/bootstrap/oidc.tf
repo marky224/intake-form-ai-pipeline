@@ -522,6 +522,33 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
     resources = local.project_wafv2_arns
   }
 
+  # Managed rule groups (AWSManagedRulesCommonRuleSet etc.) live in the
+  # AWS-owned `managedruleset/*/*` namespace. CreateWebACL / UpdateWebACL
+  # /DeleteWebACL evaluate auth against EACH referenced resource in the
+  # rule list, including the managed rule group ARNs. Without this
+  # statement the deploy role gets `wafv2:CreateWebACL` denied with a
+  # resource ARN of `arn:aws:wafv2:us-east-1:<acct>:global/managedruleset/*/*`
+  # even though the project's own web ACL is otherwise creatable.
+  # Read-only Describe/List actions on managed rule groups are also
+  # part of the create-time auth flow, so they're co-located here.
+  statement {
+    sid    = "WafV2ManagedRuleReference"
+    effect = "Allow"
+    actions = [
+      "wafv2:CreateWebACL",
+      "wafv2:UpdateWebACL",
+      "wafv2:DeleteWebACL",
+      "wafv2:GetManagedRuleSet",
+      "wafv2:DescribeManagedRuleGroup",
+      "wafv2:DescribeAllManagedProducts",
+      "wafv2:ListAvailableManagedRuleGroups",
+      "wafv2:ListAvailableManagedRuleGroupVersions",
+    ]
+    resources = [
+      "arn:aws:wafv2:us-east-1:${local.account_id}:global/managedruleset/*/*",
+    ]
+  }
+
   # Provider 6.x runs `wafv2:List*` and `wafv2:GetWebACLForResource`
   # account-wide on refresh; the Get/Describe call against the project's
   # own ARN is already covered by WafV2Manage's wildcard, but the List*
@@ -592,6 +619,13 @@ data "aws_iam_policy_document" "deploy_scoped_allow" {
       "logs:ListDeliveryDestinations",
       "logs:TagDelivery",
       "logs:UntagDelivery",
+      # Generic logs:TagResource / UntagResource / ListTagsForResource —
+      # the v2 Logs Delivery API uses the generic Tag/Untag surface
+      # (not the *Delivery-specific actions above) when default_tags on
+      # the AWS provider populates tags at create time.
+      "logs:TagResource",
+      "logs:UntagResource",
+      "logs:ListTagsForResource",
     ]
     resources = ["*"]
   }

@@ -52,6 +52,10 @@ locals {
     "arn:aws:s3:::${var.project_name}-access-logs-*/*",
     "arn:aws:s3:::${var.project_name}-cloudtrail-logs-*",
     "arn:aws:s3:::${var.project_name}-cloudtrail-logs-*/*",
+    # Landing bucket (PR 5b): CloudFront origin for the demo. Same
+    # wildcard shape covers per-environment variants.
+    "arn:aws:s3:::${var.project_name}-landing-*",
+    "arn:aws:s3:::${var.project_name}-landing-*/*",
   ]
 
   # Project-RDS ARN patterns for the deploy role's scoped Aurora allow
