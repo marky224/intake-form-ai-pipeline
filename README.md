@@ -178,7 +178,7 @@ These are starting values, not final ones. The Phase 6 eval harness sweeps thres
 
 The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Visitors discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
 
-The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), but the demo behind it doesn't go live until Phase 7. Until then, the URL renders the wake page with a "demo lands Phase 7" caveat. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
+The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), and the production edge (CloudFront + WAF + ACM cert + landing bucket) lands in Phase 2 serving a static placeholder. The cascade behind it doesn't go live until Phase 7, which swaps the bucket contents for the wake-on-request landing page and the React review UI without changing any of the surrounding edge configuration. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
 
 Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1.
 
