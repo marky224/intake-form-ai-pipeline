@@ -117,9 +117,12 @@ jobs:
       # it mirrors. See infra/bicep/README.md for why this exists.
       - name: Install bicep CLI
         run: |
-          curl -fsSL https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64 -o /usr/local/bin/bicep
-          chmod +x /usr/local/bin/bicep
-          bicep --version
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64 -o "$HOME/.local/bin/bicep"
+          chmod +x "$HOME/.local/bin/bicep"
+          # Persist on PATH for subsequent steps in this job.
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/bicep" --version
 
       - name: Bicep build (main.bicep + all modules transitively)
         run: bicep build main.bicep --outfile /tmp/main.json
