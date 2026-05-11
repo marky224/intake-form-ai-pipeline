@@ -81,6 +81,14 @@ sec-scan:
     uv run pre-commit run gitleaks --all-files
     uvx --from checkov checkov.cmd -d infra/terraform --framework terraform --config-file .checkov.yaml --download-external-modules false --quiet
 
+# Bicep (Azure parallel) syntax check. Mirrors the CI bicep-build job —
+# compiles main.bicep + the bicepparam file via the standalone bicep CLI.
+# Requires `bicep` on PATH (single Go binary from
+# https://github.com/Azure/bicep/releases). Does not deploy.
+bicep-build:
+    bicep build infra/bicep/main.bicep --outfile /tmp/main.json
+    bicep build-params infra/bicep/main.bicepparam --outfile /tmp/main.parameters.json
+
 # Bootstrap stack: first-time init with local state (no backend yet)
 tf-bootstrap-init:
     terraform -chdir=infra/terraform/bootstrap init -backend=false

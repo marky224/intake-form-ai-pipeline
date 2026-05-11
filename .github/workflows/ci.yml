@@ -101,6 +101,34 @@ jobs:
           quiet: true
           output_format: cli
 
+  bicep-build:
+    name: Bicep build (Azure parallel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # Standalone bicep CLI from GitHub releases — no .NET runtime, no
+      # Azure auth, no subscription. Just a syntax + reference gate so
+      # the Azure parallel branch (infra/bicep/, module-structure-only,
+      # not deployed) doesn't silently drift from the Terraform stack
+      # it mirrors. See infra/bicep/README.md for why this exists.
+      - name: Install bicep CLI
+        run: |
+          curl -fsSL https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64 -o /usr/local/bin/bicep
+          chmod +x /usr/local/bin/bicep
+          bicep --version
+
+      - name: Bicep build (main.bicep + all modules transitively)
+        run: bicep build main.bicep --outfile /tmp/main.json
+        working-directory: infra/bicep
+
+      - name: Bicep build-params (default parameter file)
+        run: bicep build-params main.bicepparam --outfile /tmp/main.parameters.json
+        working-directory: infra/bicep
+
   terraform:
     name: Terraform (fmt + validate + plan/apply)
     # IaC scan gates the deploy path. Secret-scan is intentionally not in
