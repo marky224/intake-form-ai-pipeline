@@ -39,8 +39,8 @@ param projectName string
 @description('Custom domain for the demo (e.g. ai-intake.markandrewmarquez.com).')
 param demoDomain string
 
-@description('Name of the landing Storage Account that Front Door fronts.')
-param originStorageAccountName string
+@description('Front Door origin hostname — the static-website endpoint of the landing Storage Account, NOT the blob endpoint. Format: <accountname>.z<region-code>.web.<env>.core.windows.net. Resolved from the Storage Account\'s primaryEndpoints.web in main.bicep and passed in.')
+param originHostname string
 
 @description('Per-IP rate limit over a rolling window (Azure unit: requests per minute, see note in code).')
 param wafRateLimitPer5Min int
@@ -118,16 +118,15 @@ resource frontDoorOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2024-09-01
   parent: frontDoorOriginGroup
   name: 'landing-origin'
   properties: {
-    // Static website endpoint for the landing storage account. Format:
-    // `<accountname>.z<region-code>.web.core.windows.net`. The exact
-    // regional suffix is auto-resolved by Azure when the static-website
-    // feature is enabled on the storage account; this template uses the
-    // primary blob endpoint as a placeholder. The deployment-time fix-up
-    // would happen via a deploymentScript or be parameterized.
-    hostName: '${originStorageAccountName}.blob.${environment().suffixes.storage}'
+    // Static-website endpoint of the landing storage account, passed in
+    // as `originHostname`. The blob endpoint won't serve static-website
+    // content — Front Door must point at `<account>.z<region>.web.<env>.core.windows.net`,
+    // which Azure exposes at storageAccount.properties.primaryEndpoints.web
+    // (resolved in main.bicep).
+    hostName: originHostname
     httpPort: 80
     httpsPort: 443
-    originHostHeader: '${originStorageAccountName}.blob.${environment().suffixes.storage}'
+    originHostHeader: originHostname
     priority: 1
     weight: 1000
     enabledState: 'Enabled'
@@ -153,6 +152,11 @@ resource frontDoorOrigin 'Microsoft.Cdn/profiles/originGroups/origins@2024-09-01
 // Azure's rate-limit window is per-minute (RateLimitDurationInMinutes) with
 // a per-minute threshold. AWS WAFv2 uses a 5-minute window. The conversion:
 // AWS_5min_limit / 5 ≈ Azure per-minute limit.
+//
+// Bicep's `/` is integer division on int operands, so this truncates. At
+// the default 100/5 = 20, the result is exact; at non-multiples-of-5 the
+// truncation is the intended floor (better to under-limit than over-limit
+// when converting between window units). Documented for clarity.
 var azureRateLimitPerMinute = wafRateLimitPer5Min / 5
 
 resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@2024-02-01' = {
@@ -177,13 +181,19 @@ resource wafPolicy 'Microsoft.Network/FrontDoorWebApplicationFirewallPolicies@20
           ruleType: 'RateLimitRule'
           rateLimitDurationInMinutes: 1
           rateLimitThreshold: azureRateLimitPerMinute
+          // Match on RequestUri "starts with /" — i.e. any request. Azure
+          // requires a matchConditions block on RateLimitRule; matching all
+          // requests is the way to apply the rule globally per-IP. An earlier
+          // version of this file used `IPMatch 0.0.0.0/0 negateCondition=true`,
+          // which inverts "all IPs" to "no IPs" and meant the rule never
+          // fired (caught in CodeRabbit review).
           matchConditions: [
             {
-              matchVariable: 'RemoteAddr'
-              operator: 'IPMatch'
-              negateCondition: true
+              matchVariable: 'RequestUri'
+              operator: 'BeginsWith'
+              negateCondition: false
               matchValue: [
-                '0.0.0.0/0'
+                '/'
               ]
             }
           ]

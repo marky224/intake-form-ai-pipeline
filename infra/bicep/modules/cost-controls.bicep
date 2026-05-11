@@ -61,7 +61,7 @@ param actionGroupId string
 // Time grain choice: Monthly. Azure does not support DAILY budgets; see
 // the module-header impedance note for the rationale on the $150 monthly
 // equivalent.
-resource dailyBudget 'Microsoft.Consumption/budgets@2024-08-01' = {
+resource monthlyBudget 'Microsoft.Consumption/budgets@2024-08-01' = {
   name: '${projectName}-monthly'
   properties: {
     category: 'Cost'
@@ -194,7 +194,7 @@ resource anomalyAlert 'Microsoft.CostManagement/scheduledActions@2024-08-01' = {
 // ---------- Outputs ----------
 
 @description('Budget name — mirrors TF output daily_budget_name (renamed monthly here).')
-output budgetName string = dailyBudget.name
+output budgetName string = monthlyBudget.name
 
 @description('Anomaly alert scheduled-action resource ID.')
 output anomalyAlertId string = anomalyAlert.id

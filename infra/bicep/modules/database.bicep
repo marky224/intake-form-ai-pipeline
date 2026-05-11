@@ -66,6 +66,20 @@ param databaseName string = 'intake'
 @maxValue(35)
 param backupRetentionDays int = 7
 
+@description('Object ID of the Microsoft Entra principal to register as the PostgreSQL admin. Required because authConfig declares activeDirectoryAuth=Enabled with passwordAuth=Disabled — without an admin principal, the server has no reachable login. Pass an empty string to skip the admin registration (e.g. for compile-only validation); a real deploy must supply this.')
+param entraAdminObjectId string = ''
+
+@description('Display name of the Entra admin principal (user UPN, group display name, or service principal name). Required iff entraAdminObjectId is set.')
+param entraAdminLoginName string = ''
+
+@description('Principal type for the Entra admin: User, Group, or ServicePrincipal.')
+@allowed([
+  'User'
+  'Group'
+  'ServicePrincipal'
+])
+param entraAdminPrincipalType string = 'User'
+
 @description('Common tags.')
 param tags object
 
@@ -92,7 +106,17 @@ resource keyVault 'Microsoft.KeyVault/vaults@2024-04-01-preview' = {
     enableSoftDelete: true
     softDeleteRetentionInDays: 30
     enablePurgeProtection: true // Required for use as a CMK source by Storage / PG / SQL.
-    publicNetworkAccess: 'Disabled' // VNet-restricted; Private Endpoints carry the access in a follow-up.
+    // PG Flexible Server's CMK access goes through Azure's control plane
+    // and requires the vault to be reachable by the AzureServices bypass.
+    // publicNetworkAccess=Enabled + networkAcls.defaultAction=Deny +
+    // bypass=AzureServices is the documented pattern: the vault rejects
+    // arbitrary internet traffic but allows the platform's CMK plumbing.
+    // (An earlier revision set publicNetworkAccess=Disabled with no
+    // Private Endpoint, which would have made PG unable to reach the
+    // key for encryption — caught in CodeRabbit review.) For a real
+    // VNet-isolation posture, layer a Private Endpoint on the vault and
+    // flip back to Disabled.
+    publicNetworkAccess: 'Enabled'
     networkAcls: {
       defaultAction: 'Deny'
       bypass: 'AzureServices'
@@ -217,6 +241,12 @@ resource flexibleServer 'Microsoft.DBforPostgreSQL/flexibleServers@2024-08-01' =
     storage: {
       storageSizeGB: storageSizeGb
       autoGrow: 'Enabled'
+      // Premium_LRS is the only storage type Flexible Server's Burstable
+      // tier supports — PremiumV2_LRS is restricted to General Purpose
+      // and Memory Optimized tiers per the Azure PG storage compatibility
+      // matrix. (CodeRabbit suggested PremiumV2_LRS; rejected because
+      // it pairs only with non-Burstable SKUs and would fail at deploy
+      // time against the Standard_B1ms tier above.)
       type: 'Premium_LRS'
     }
     backup: {
@@ -260,6 +290,23 @@ resource configRequireSecureTransport 'Microsoft.DBforPostgreSQL/flexibleServers
 // pgaudit deferral (mirrors the TF stack's CKV2_AWS_27 inline-suppress
 // note that pgaudit requires shared_preload_libraries + per-database
 // CREATE EXTENSION; tied to the compute layer, not this PR).
+
+// ---------- Entra ID admin (required because passwordAuth=Disabled) ----------
+
+// Without an admin principal, the server is unreachable. Conditional on
+// entraAdminObjectId so the module compiles cleanly for no-deploy
+// validation; a real deploy must supply a non-empty objectId.
+// (Earlier revision shipped without this resource — caught in CodeRabbit
+// review.)
+resource pgAdmin 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2024-08-01' = if (!empty(entraAdminObjectId)) {
+  parent: flexibleServer
+  name: entraAdminObjectId
+  properties: {
+    principalType: entraAdminPrincipalType
+    principalName: entraAdminLoginName
+    tenantId: subscription().tenantId
+  }
+}
 
 // ---------- Database ----------
 

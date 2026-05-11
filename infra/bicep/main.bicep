@@ -72,33 +72,41 @@ var storageAccountBaseName = replace(replace(projectName, '-', ''), '_', '')
 // Each storage account hosts a single primary container so the bucket-level
 // policy / access-log / lifecycle isolation that S3 gives natively maps
 // cleanly.
-var storageAccounts = [
-  {
-    role: 'documents'
+//
+// Keyed by role (rather than ordered list + numeric indexing) so reordering
+// or insertion can't silently rewire which account becomes the audit-log
+// target, Front Door origin, etc. Module invocations + downstream wiring
+// below reference these by role name. (Caught in CodeRabbit review.)
+var storageAccountsByRole = {
+  documents: {
     // Max 24 chars. Truncate base to 14 to leave room for role + suffix.
     name: take('${take(storageAccountBaseName, 14)}doc${nameSuffix}', 24)
     containerName: 'documents'
   }
-  {
-    role: 'artifacts'
+  artifacts: {
     name: take('${take(storageAccountBaseName, 14)}art${nameSuffix}', 24)
     containerName: 'artifacts'
   }
-  {
-    role: 'access-logs'
+  'access-logs': {
     name: take('${take(storageAccountBaseName, 14)}log${nameSuffix}', 24)
     containerName: 'access-logs'
   }
-  {
-    role: 'activity-log'
+  'activity-log': {
     name: take('${take(storageAccountBaseName, 14)}act${nameSuffix}', 24)
     containerName: 'activity-log'
   }
-  {
-    role: 'landing'
+  landing: {
     name: take('${take(storageAccountBaseName, 14)}lnd${nameSuffix}', 24)
     containerName: '$web' // Static website hosting container; Front Door origin.
   }
+}
+
+var storageRoles = [
+  'documents'
+  'artifacts'
+  'access-logs'
+  'activity-log'
+  'landing'
 ]
 
 // ---------- Resource group ----------
@@ -126,21 +134,34 @@ module network 'modules/network.bicep' = {
 
 @batchSize(1) // Sequential apply so any service-quota pacing issues surface one-by-one.
 module storage 'modules/storage.bicep' = [
-  for (acct, i) in storageAccounts: {
+  for role in storageRoles: {
     scope: rg
-    name: 'storage-${acct.role}'
+    name: 'storage-${role}'
     params: {
-      storageAccountName: acct.name
-      containerName: acct.containerName
-      role: acct.role
+      storageAccountName: storageAccountsByRole[role].name
+      containerName: storageAccountsByRole[role].containerName
+      role: role
       location: location
       // Mirrors the TF stack: documents/artifacts/landing get TLS+private+CMK
       // hardening; access-logs + activity-log are the audit-log targets.
-      isAuditLogTarget: acct.role == 'access-logs' || acct.role == 'activity-log'
+      isAuditLogTarget: role == 'access-logs' || role == 'activity-log'
       tags: commonTags
     }
   }
 ]
+
+// Resolve role → module index (preserves the for-loop ordering of
+// storageRoles). Bicep cannot index into a module array by role string
+// directly, so the explicit lookup variable is the cleanest pattern for
+// downstream wiring. Reordering storageRoles above keeps this in sync
+// automatically.
+var storageIndexByRole = {
+  documents: 0
+  artifacts: 1
+  'access-logs': 2
+  'activity-log': 3
+  landing: 4
+}
 
 // ---------- Database ----------
 
@@ -166,9 +187,7 @@ module auditLog 'modules/audit-log.bicep' = {
   name: 'audit-log'
   params: {
     projectName: projectName
-    // Resolve the activity-log storage account from the storage module
-    // array's 4th element (index 3, 'activity-log' role).
-    storageAccountResourceId: storage[3].outputs.storageAccountId
+    storageAccountResourceId: storage[storageIndexByRole['activity-log']].outputs.storageAccountId
   }
 }
 
@@ -181,11 +200,13 @@ module frontDoor 'modules/front-door.bicep' = {
     projectName: projectName
     demoDomain: demoDomain
     // Front Door origin is the landing storage account's static-website
-    // endpoint. Index 4 in the storageAccounts array.
-    originStorageAccountName: storage[4].outputs.storageAccountName
+    // endpoint — NOT the blob endpoint. webEndpoint returns a full URL
+    // (https://<acct>.z<n>.web.<env>.core.windows.net/); strip the
+    // scheme + trailing slash so Front Door's `hostName` gets the bare host.
+    originHostname: replace(replace(storage[storageIndexByRole.landing].outputs.webEndpoint, 'https://', ''), '/', '')
     wafRateLimitPer5Min: wafRateLimitPer5Min
     blockedUserAgents: blockedUserAgents
-    diagnosticsStorageAccountId: storage[2].outputs.storageAccountId // access-logs
+    diagnosticsStorageAccountId: storage[storageIndexByRole['access-logs']].outputs.storageAccountId
     tags: commonTags
   }
 }
@@ -244,11 +265,11 @@ output postgresHostname string = database.outputs.serverFqdn
 
 @description('Storage account names by role. Mirrors TF outputs documents_bucket_name + artifacts_bucket_name + access_logs_bucket_name + landing_bucket_name + cloudtrail_logs_bucket_name (renamed to activity-log here).')
 output storageAccounts object = {
-  documents: storage[0].outputs.storageAccountName
-  artifacts: storage[1].outputs.storageAccountName
-  accessLogs: storage[2].outputs.storageAccountName
-  activityLog: storage[3].outputs.storageAccountName
-  landing: storage[4].outputs.storageAccountName
+  documents: storage[storageIndexByRole.documents].outputs.storageAccountName
+  artifacts: storage[storageIndexByRole.artifacts].outputs.storageAccountName
+  accessLogs: storage[storageIndexByRole['access-logs']].outputs.storageAccountName
+  activityLog: storage[storageIndexByRole['activity-log']].outputs.storageAccountName
+  landing: storage[storageIndexByRole.landing].outputs.storageAccountName
 }
 
 @description('Front Door endpoint hostname (default `<endpoint>.azurefd.net`). Mirrors TF output cloudfront_domain_name.')

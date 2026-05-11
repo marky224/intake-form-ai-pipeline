@@ -211,7 +211,17 @@ resource managementPolicy 'Microsoft.Storage/storageAccounts/managementPolicies@
             }
           }
           {
-            name: 'abort-incomplete-multipart-uploads'
+            // Azure Blob does not surface "incomplete multipart upload"
+            // as a separate object class — uncommitted blocks are cleaned
+            // up by the platform after 7 days automatically. The closest
+            // analog of the TF stack's `aws_s3_bucket_lifecycle_configuration`
+            // `abort_incomplete_multipart_upload { days_after_initiation = 1 }`
+            // is to expire UNCOMMITTED block blobs after 1 day via a
+            // baseBlob delete rule scoped to unindexed (uncommitted) blobs.
+            // (Earlier revision had this at 365 days, which would have
+            // deleted entire blobs after a year by mistake — caught in
+            // CodeRabbit review.)
+            name: 'expire-uncommitted-blocks'
             enabled: true
             type: 'Lifecycle'
             definition: {
@@ -222,11 +232,8 @@ resource managementPolicy 'Microsoft.Storage/storageAccounts/managementPolicies@
               }
               actions: {
                 baseBlob: {
-                  // Azure Blob's analog of "abort incomplete multipart
-                  // upload after 1 day" is daysAfterModificationGreaterThan
-                  // on the base blob — close-enough at this granularity.
                   delete: {
-                    daysAfterModificationGreaterThan: 365 // No-op for audit targets; current-version rule below overrides.
+                    daysAfterLastTierChangeGreaterThan: 1
                   }
                 }
               }
@@ -275,3 +282,6 @@ output primaryBlobEndpoint string = storageAccount.properties.primaryEndpoints.b
 
 @description('Container resource ID. Set for non-landing roles; for landing, the $web container ID is in webContainerId.')
 output containerId string = role == 'landing' ? webContainer.id : container.id
+
+@description('Static-website primary endpoint, e.g. https://<name>.z01.web.core.windows.net/. Used by Front Door as the landing origin hostname.')
+output webEndpoint string = storageAccount.properties.primaryEndpoints.web

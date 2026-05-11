@@ -29,19 +29,20 @@ CI runs `bicep build` on every push so syntax stays clean as the Terraform side 
 
 Mirrors `infra/terraform/` 1:1 except for the bootstrap stack (see "Out of scope"):
 
-```
+```text
 infra/bicep/
 ├── README.md                     # this file
 ├── main.bicep                    # subscription-scoped orchestrator; creates the RG and invokes modules
 ├── main.bicepparam               # parameter file with defaults mirroring TF defaults
 └── modules/
-    ├── network.bicep             # VNet + subnets + NAT + NSGs + Service Endpoints
+    ├── network.bicep             # VNet + subnets + NAT + Service Endpoints + PG private DNS zone
     ├── storage.bicep             # reusable Storage Account + container module (invoked 5x for the 5 buckets)
-    ├── database.bicep            # PostgreSQL Flexible Server + Key Vault key
+    ├── database.bicep            # PostgreSQL Flexible Server + Key Vault key + UAMI + Entra admin
     ├── front-door.bicep          # Front Door Standard + WAF policy + custom domain
     ├── dns.bicep                 # Azure DNS zone + A/AAAA records
-    ├── audit-log.bicep           # Activity Log Diagnostic Settings (CloudTrail analog)
-    └── cost-controls.bicep       # Action Group + Budget + anomaly alert
+    ├── audit-log.bicep           # Activity Log Diagnostic Settings (CloudTrail analog, subscription scope)
+    ├── action-group.bicep        # Action Group for cost alerts (RG-scoped; SNS-topic analog)
+    └── cost-controls.bicep       # Budget + anomaly alert (subscription scope; consumes the Action Group)
 ```
 
 ## Local syntax check

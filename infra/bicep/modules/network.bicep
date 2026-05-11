@@ -50,49 +50,15 @@ var privateSubnetCidrs = [
 ]
 var databaseSubnetCidr = cidrSubnet(vnetCidr, 24, 20)
 
-// ---------- Deny-all NSG (analog of TF's aws_default_security_group lockdown) ----------
-
-resource denyAllNsg 'Microsoft.Network/networkSecurityGroups@2024-01-01' = {
-  name: '${projectName}-deny-all-nsg'
-  location: location
-  tags: tags
-  properties: {
-    // Azure NSGs ship with three default-allow rules (intra-VNet, AzureLoadBalancer-inbound,
-    // internet-outbound) and three default-deny rules. The default-allow
-    // inbound rules can't be deleted but can be overridden by higher-priority
-    // explicit denies. Adding an explicit deny-all at priority 100 produces
-    // the analog of the TF stack's locked-down default SG: any subnet that
-    // ends up tagged with this NSG gets nothing.
-    securityRules: [
-      {
-        name: 'DenyAllInbound'
-        properties: {
-          priority: 100
-          direction: 'Inbound'
-          access: 'Deny'
-          protocol: '*'
-          sourceAddressPrefix: '*'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '*'
-        }
-      }
-      {
-        name: 'DenyAllOutbound'
-        properties: {
-          priority: 100
-          direction: 'Outbound'
-          access: 'Deny'
-          protocol: '*'
-          sourceAddressPrefix: '*'
-          sourcePortRange: '*'
-          destinationAddressPrefix: '*'
-          destinationPortRange: '*'
-        }
-      }
-    ]
-  }
-}
+// NOTE on the TF stack's "deny-all default SG" analog: Azure has no
+// concept of a "default NSG" that auto-attaches to subnets without an
+// explicit one. The TF stack's `aws_default_security_group` lockdown
+// addresses a specific AWS gotcha (the per-VPC default SG carries
+// allow-all rules that auto-bind to resources without explicit SGs) —
+// that gotcha doesn't exist on Azure, so this module doesn't carry an
+// analog resource. Subnet-level NSGs are added per-tier when compute
+// lands. (Earlier revision declared a `denyAllNsg` resource and never
+// attached it to anything — caught in CodeRabbit review.)
 
 // ---------- Public IP + NAT Gateway ----------
 
@@ -244,7 +210,12 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
               service: 'Microsoft.Storage'
             }
           ]
-          privateEndpointNetworkPolicies: 'Enabled'
+          // Disabled because these subnets host Private Endpoints in
+          // follow-up work; PE creation fails on subnets with policies
+          // enabled. The TF stack's gateway endpoints don't have this
+          // gotcha because Gateway VPC Endpoints aren't a per-subnet
+          // resource. (Caught in CodeRabbit review.)
+          privateEndpointNetworkPolicies: 'Disabled'
         }
       }
       {
@@ -262,7 +233,12 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
               service: 'Microsoft.Storage'
             }
           ]
-          privateEndpointNetworkPolicies: 'Enabled'
+          // Disabled because these subnets host Private Endpoints in
+          // follow-up work; PE creation fails on subnets with policies
+          // enabled. The TF stack's gateway endpoints don't have this
+          // gotcha because Gateway VPC Endpoints aren't a per-subnet
+          // resource. (Caught in CodeRabbit review.)
+          privateEndpointNetworkPolicies: 'Disabled'
         }
       }
       {
@@ -280,7 +256,12 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
               service: 'Microsoft.Storage'
             }
           ]
-          privateEndpointNetworkPolicies: 'Enabled'
+          // Disabled because these subnets host Private Endpoints in
+          // follow-up work; PE creation fails on subnets with policies
+          // enabled. The TF stack's gateway endpoints don't have this
+          // gotcha because Gateway VPC Endpoints aren't a per-subnet
+          // resource. (Caught in CodeRabbit review.)
+          privateEndpointNetworkPolicies: 'Disabled'
         }
       }
       // Delegated subnet for PostgreSQL Flexible Server. Azure requires
