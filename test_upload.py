@@ -190,6 +190,15 @@ def test_load_sidecar_rejects_empty_source_id(tmp_path: Path) -> None:
         _load_sidecar(sidecar_path)
 
 
+def test_load_sidecar_rejects_whitespace_only_source_id(tmp_path: Path) -> None:
+    """A whitespace-only string is non-empty but functionally invalid as a metadata value."""
+    sidecar_path = tmp_path / "x.json"
+    bad = _make_sidecar_dict("x.png", "a" * 64, source_id="   ")
+    sidecar_path.write_text(json.dumps(bad), encoding="utf-8")
+    with pytest.raises(ValueError, match="source_id"):
+        _load_sidecar(sidecar_path)
+
+
 def test_find_render_pairs_matches_stems(tmp_path: Path) -> None:
     _write_render_pair(tmp_path, stem="a-11111111")
     _write_render_pair(tmp_path, stem="b-22222222", png_bytes=b"second")

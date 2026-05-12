@@ -35,24 +35,26 @@ DOC_ID_SINGLE = "aaa000000000000000000001"  # 1 page, train
 DOC_ID_MULTI = "aaa000000000000000000002"  # 3 pages, train
 DOC_ID_MINIMAL = "aaa000000000000000000003"  # 1 page, val
 
-# Page counts mirror what each annotation fixture's metadata.page_count claims.
-DOC_PAGE_COUNTS = {DOC_ID_SINGLE: 1, DOC_ID_MULTI: 3, DOC_ID_MINIMAL: 1}
+FIXTURE_DOC_IDS = (DOC_ID_SINGLE, DOC_ID_MULTI, DOC_ID_MINIMAL)
 
 
 @pytest.fixture
 def dataset_root(tmp_path: Path) -> Path:
     """Materialize a DocILE-shaped dataset dir backed by the committed annotations
-    plus synthesized PDFs matching each annotation's declared page count.
+    plus synthesized PDFs whose page counts come from each annotation's own
+    ``metadata.page_count`` (single source of truth — avoids duplicating
+    page-count knowledge between the fixtures and this helper).
     """
     root = tmp_path / "docile"
     (root / "annotations").mkdir(parents=True)
     (root / "pdfs").mkdir()
 
-    # Copy annotation fixtures + split indexes into the synthetic root.
-    for doc_id in DOC_PAGE_COUNTS:
+    for doc_id in FIXTURE_DOC_IDS:
         src = ANNOTATIONS_DIR / f"{doc_id}.json"
+        annotation = json.loads(src.read_text(encoding="utf-8"))
+        page_count = annotation["metadata"]["page_count"]
         (root / "annotations" / f"{doc_id}.json").write_bytes(src.read_bytes())
-        make_blank_pdf(root / "pdfs" / f"{doc_id}.pdf", num_pages=DOC_PAGE_COUNTS[doc_id])
+        make_blank_pdf(root / "pdfs" / f"{doc_id}.pdf", num_pages=page_count)
 
     (root / "train.json").write_bytes((FIXTURE_DIR / "train.json").read_bytes())
     (root / "val.json").write_bytes((FIXTURE_DIR / "val.json").read_bytes())
@@ -137,11 +139,16 @@ def test_ingest_dataset_limit_zero_means_no_cap(dataset_root: Path, tmp_path: Pa
     assert processed == 3
 
 
-def test_ingest_dataset_limit_negative_means_no_cap(dataset_root: Path, tmp_path: Path) -> None:
-    """Negative limits are treated as ``None``, not 'process 0 docs'."""
+def test_ingest_dataset_rejects_negative_limit(dataset_root: Path, tmp_path: Path) -> None:
+    """Negative limit is invalid input — fails fast rather than silently meaning 'no cap'.
+
+    A recipe that accidentally passes ``--limit -5`` (e.g., from a malformed
+    env-substitution) should surface the typo instead of processing the
+    whole corpus.
+    """
     render_dir = tmp_path / "render"
-    processed = ingest_dataset(dataset_root, render_dir, limit=-1)
-    assert processed == 3
+    with pytest.raises(ValueError, match="non-negative"):
+        ingest_dataset(dataset_root, render_dir, limit=-1)
 
 
 def test_ingest_dataset_train_only(dataset_root: Path, tmp_path: Path) -> None:
@@ -154,10 +161,36 @@ def test_ingest_dataset_train_only(dataset_root: Path, tmp_path: Path) -> None:
 
 
 def test_ingest_dataset_rejects_test_split(dataset_root: Path, tmp_path: Path) -> None:
-    """Defense-in-depth: ingest_dataset refuses 'test' even before iter_split sees it."""
+    """Defense-in-depth: ingest_dataset refuses 'test' even before iter_split sees it.
+
+    Matches on ``process-batch`` rather than the ``half-now-half-later``
+    marketing phrase so the test stays green if the error wording is
+    polished. ``process-batch`` is the locked Phase 7 recipe name in
+    ``cost-model.md`` — semantically stable.
+    """
     render_dir = tmp_path / "render"
-    with pytest.raises(ValueError, match="half-now-half-later"):
+    with pytest.raises(ValueError, match="process-batch"):
         ingest_dataset(dataset_root, render_dir, splits=("train", "test"))
+
+
+def test_ingest_document_raises_on_page_count_mismatch(dataset_root: Path, tmp_path: Path) -> None:
+    """A PDF whose page count disagrees with the annotation metadata aborts cleanly.
+
+    Replace the matching PDF with a single-page blank — the annotation
+    still says 3 pages, so the rasterizer produces 1 page and the
+    page-count check raises before any sidecar is written.
+    """
+    pdf_path = dataset_root / "pdfs" / f"{DOC_ID_MULTI}.pdf"
+    pdf_path.unlink()
+    make_blank_pdf(pdf_path, num_pages=1)
+    doc = load_document(dataset_root / "annotations" / f"{DOC_ID_MULTI}.json", split="train")
+    render_dir = tmp_path / "render"
+
+    with pytest.raises(ValueError, match="Page count mismatch"):
+        ingest_document(doc, pdf_path, render_dir)
+
+    # No sidecars/PNGs leaked into render_dir before the raise.
+    assert not list(render_dir.glob("*.json"))
 
 
 def test_ingest_dataset_raises_when_pdf_missing(dataset_root: Path, tmp_path: Path) -> None:

@@ -61,9 +61,20 @@ def ingest_document(
     Idempotent at the page level: re-rasterizing overwrites the same
     PNG bytes (deterministic given the same pypdfium2 version), so a
     half-finished run can resume by re-invoking the same call.
+
+    Raises ``ValueError`` if the PDF's actual page count disagrees
+    with ``doc.page_count`` (which comes from the upstream annotation
+    metadata). A mismatch indicates corrupted data — silently emitting
+    extra/missing sidecars would leak the inconsistency downstream.
     """
     render_dir.mkdir(parents=True, exist_ok=True)
     pages = rasterize_document(pdf_path, render_dir, doc.doc_id)
+    if len(pages) != doc.page_count:
+        raise ValueError(
+            f"Page count mismatch for {doc.doc_id}: PDF rasterized "
+            f"{len(pages)} page(s), annotation metadata declares "
+            f"{doc.page_count}. Refusing to write inconsistent sidecars."
+        )
     for page in pages:
         image_sha256 = hashlib.sha256(page.png_path.read_bytes()).hexdigest()
         sidecar = build_docile_sidecar(doc, page, image_sha256)
@@ -96,8 +107,10 @@ def ingest_dataset(
     ``None`` or ``0`` means process everything — the latter lets the
     ``just`` recipe pass an unconditional ``--limit {{limit}}`` with
     a sentinel default rather than conditionally building the flag).
-    Counts documents, not pages, so a ``limit=5`` against multi-page
-    docs yields more than 5 (PNG, sidecar) pairs.
+    Negative values are rejected with ``ValueError`` rather than
+    treated as a no-cap synonym, so a typo in the recipe surfaces
+    immediately. Counts documents, not pages, so a ``limit=5``
+    against multi-page docs yields more than 5 (PNG, sidecar) pairs.
 
     Returns the number of documents processed.
     """
@@ -108,6 +121,11 @@ def ingest_dataset(
                 f"The 'test' split is reserved for the Phase 7 process-batch "
                 f"recipe per the half-now-half-later partitioning lock."
             )
+
+    if limit is not None and limit < 0:
+        raise ValueError(
+            f"ingest_dataset: limit must be non-negative (None or 0 means no cap), " f"got {limit}"
+        )
 
     dataset_root = Path(dataset_root)
     pdfs_dir = dataset_root / "pdfs"

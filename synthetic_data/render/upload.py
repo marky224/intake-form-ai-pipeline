@@ -123,7 +123,10 @@ def _load_sidecar(sidecar_path: Path) -> dict:
         raise ValueError(f"Sidecar {sidecar_path} image_sha256 must be a 64-char hex string")
 
     source_id = data.get("source_id")
-    if not isinstance(source_id, str) or not source_id:
+    # `.strip()` catches whitespace-only values (e.g., `"  "`) — those
+    # are non-empty by `not source_id`'s check but invalid as an S3
+    # metadata value and meaningless as an audit identifier.
+    if not isinstance(source_id, str) or not source_id.strip():
         raise ValueError(f"Sidecar {sidecar_path} source_id must be a non-empty string")
 
     return data

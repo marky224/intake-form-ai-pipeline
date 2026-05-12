@@ -30,7 +30,15 @@ LETTER_HEIGHT_PT = 792
 
 
 def make_blank_pdf(out_path: Path, *, num_pages: int = 1) -> Path:
-    """Write a US-Letter-sized ``num_pages``-page blank PDF at ``out_path``."""
+    """Write a US-Letter-sized ``num_pages``-page blank PDF at ``out_path``.
+
+    Raises ``ValueError`` for ``num_pages <= 0`` rather than producing
+    an empty PDF — a zero-page file would silently break the rasterizer
+    contract (``rasterize_document`` returns ``list[RasterizedPage]``,
+    callers reasonably assume non-empty for a valid PDF).
+    """
+    if num_pages <= 0:
+        raise ValueError(f"num_pages must be a positive int, got {num_pages}")
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     doc = pdfium.PdfDocument.new()

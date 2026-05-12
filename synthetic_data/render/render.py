@@ -125,7 +125,8 @@ def _safe_stem(patient_id: str) -> str:
     Windows-illegal char that NTFS treats specially.
 
     The original ``patient_id`` is preserved verbatim inside the
-    sidecar JSON's ``patient_id`` field, so the audit trail survives
+    sidecar JSON's ``source_id`` field (renamed from ``patient_id``
+    in PR #45 for cross-vertical reuse), so the audit trail survives
     regardless of how aggressively the stem is rewritten.
     """
     cleaned = _SAFE_STEM_RE.sub("_", patient_id)

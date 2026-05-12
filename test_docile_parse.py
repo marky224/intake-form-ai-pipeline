@@ -96,7 +96,7 @@ def test_load_document_minimal_val() -> None:
 
 def test_load_document_rejects_test_split() -> None:
     """``test`` is reserved per the partitioning lock; parser refuses it."""
-    with pytest.raises(ValueError, match="half-now-half-later"):
+    with pytest.raises(ValueError, match="process-batch"):
         load_document(ANNOTATIONS_DIR / f"{DOC_ID_SINGLE}.json", split="test")
 
 
@@ -203,7 +203,7 @@ def test_iter_split_val_yields_minimal() -> None:
 
 def test_iter_split_rejects_test() -> None:
     """Defense-in-depth: even if a test.json file appeared on disk, iter_split refuses."""
-    with pytest.raises(ValueError, match="half-now-half-later"):
+    with pytest.raises(ValueError, match="process-batch"):
         list(iter_split(FIXTURE_DIR, "test"))
 
 

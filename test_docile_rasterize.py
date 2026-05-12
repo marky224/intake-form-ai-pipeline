@@ -109,3 +109,19 @@ def test_rasterize_overwrites_existing_png(tmp_path: Path) -> None:
 def test_points_per_inch_constant() -> None:
     """PDF spec constant — guards against accidental edits."""
     assert PDF_POINTS_PER_INCH == 72
+
+
+def test_make_blank_pdf_rejects_zero_pages(tmp_path: Path) -> None:
+    """A zero-page PDF would silently break rasterizer contracts."""
+    import pytest
+
+    with pytest.raises(ValueError, match="positive int"):
+        make_blank_pdf(tmp_path / "bad.pdf", num_pages=0)
+
+
+def test_make_blank_pdf_rejects_negative_pages(tmp_path: Path) -> None:
+    """Negative page counts are obvious input typos — fail fast."""
+    import pytest
+
+    with pytest.raises(ValueError, match="positive int"):
+        make_blank_pdf(tmp_path / "bad.pdf", num_pages=-3)

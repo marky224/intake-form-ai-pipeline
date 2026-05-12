@@ -57,6 +57,17 @@ def test_verify_vendored_script_raises_on_drift(tmp_path: Path) -> None:
         verify_vendored_script(drifted)
 
 
+def test_verify_vendored_script_raises_on_missing_file(tmp_path: Path) -> None:
+    """A missing vendored script surfaces as DocileScriptMismatchError, not FileNotFoundError.
+
+    Lets the CLI map both drift and absence to the same exit code; a
+    raw ``FileNotFoundError`` would skip the wrapper's error handler.
+    """
+    missing = tmp_path / "does-not-exist.sh"
+    with pytest.raises(DocileScriptMismatchError, match="not found"):
+        verify_vendored_script(missing)
+
+
 def test_resolve_token_returns_env_value() -> None:
     """Token comes from the injected env dict, not the real os.environ."""
     assert resolve_token(env={TOKEN_ENV_VAR: "abc123"}) == "abc123"
@@ -85,16 +96,37 @@ def test_annotations_dir_is_populated_false_when_dir_exists_empty(tmp_path: Path
     assert annotations_dir_is_populated(tmp_path) is False
 
 
-def test_annotations_dir_is_populated_true_with_any_json(tmp_path: Path) -> None:
-    """A single JSON in ``annotations/`` is enough to satisfy the idempotency check."""
+def _make_populated(tmp_path: Path) -> None:
+    """Materialize the three-signal complete-extraction shape used by the idempotency check."""
     (tmp_path / "annotations").mkdir()
     (tmp_path / "annotations" / "abc.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "train.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "val.json").write_text("[]", encoding="utf-8")
+
+
+def test_annotations_dir_is_populated_true_when_all_signals_present(tmp_path: Path) -> None:
+    """annotations/ + train.json + val.json all present → populated."""
+    _make_populated(tmp_path)
     assert annotations_dir_is_populated(tmp_path) is True
+
+
+def test_annotations_dir_is_populated_false_when_train_index_missing(tmp_path: Path) -> None:
+    """Missing train.json (e.g., unzip aborted before writing it) → not populated."""
+    _make_populated(tmp_path)
+    (tmp_path / "train.json").unlink()
+    assert annotations_dir_is_populated(tmp_path) is False
+
+
+def test_annotations_dir_is_populated_false_when_val_index_missing(tmp_path: Path) -> None:
+    """Missing val.json → not populated."""
+    _make_populated(tmp_path)
+    (tmp_path / "val.json").unlink()
+    assert annotations_dir_is_populated(tmp_path) is False
 
 
 def test_download_rejects_test_split(tmp_path: Path) -> None:
     """``test`` is reserved for Phase 7; download wrapper refuses it."""
-    with pytest.raises(ValueError, match="half-now-half-later"):
+    with pytest.raises(ValueError, match="process-batch"):
         download_labeled_trainval(
             tmp_path,
             dataset="test",
@@ -104,7 +136,7 @@ def test_download_rejects_test_split(tmp_path: Path) -> None:
 
 def test_download_rejects_synthetic_split(tmp_path: Path) -> None:
     """``synthetic`` is reserved; download wrapper refuses it."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="process-batch"):
         download_labeled_trainval(
             tmp_path,
             dataset="synthetic",
@@ -114,7 +146,7 @@ def test_download_rejects_synthetic_split(tmp_path: Path) -> None:
 
 def test_download_rejects_unlabeled_split(tmp_path: Path) -> None:
     """``unlabeled`` is reserved; download wrapper refuses it."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="process-batch"):
         download_labeled_trainval(
             tmp_path,
             dataset="unlabeled",
@@ -128,10 +160,13 @@ def test_download_invokes_script_with_expected_args(tmp_path: Path) -> None:
 
     def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
         calls.append(argv)
-        # Simulate a successful extraction by writing one annotation file.
+        # Simulate a successful extraction by writing one annotation file
+        # plus the train/val split indexes the idempotency check expects.
         ann_dir = tmp_path / "annotations"
         ann_dir.mkdir(parents=True, exist_ok=True)
         (ann_dir / "doc-001.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "train.json").write_text("[]", encoding="utf-8")
+        (tmp_path / "val.json").write_text("[]", encoding="utf-8")
         return subprocess.CompletedProcess(argv, 0)
 
     result = download_labeled_trainval(
@@ -152,11 +187,36 @@ def test_download_invokes_script_with_expected_args(tmp_path: Path) -> None:
     assert argv[5] == "--unzip"
 
 
+def test_download_redacts_token_from_subprocess_stdout(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The vendored script echoes the token-bearing URL; the wrapper redacts it."""
+    token = "secret-tok-abc123"
+
+    def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+        _make_populated(tmp_path)
+        # Mirror the real script's stdout shape: one Downloading line + one Unzipping line.
+        script_stdout = (
+            f"Downloading https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/"
+            f"{token}/labeled-trainval.zip\n"
+            f"Unzipping labeled-trainval.zip\n"
+        )
+        return subprocess.CompletedProcess(argv, 0, stdout=script_stdout, stderr=None)
+
+    download_labeled_trainval(
+        tmp_path,
+        env={TOKEN_ENV_VAR: token},
+        runner=fake_runner,
+    )
+
+    out = capsys.readouterr().out
+    assert token not in out, f"token leaked into stdout: {out!r}"
+    assert "<TOKEN-REDACTED>" in out
+
+
 def test_download_skip_if_present_avoids_runner(tmp_path: Path) -> None:
-    """Pre-populated annotations/ → wrapper short-circuits without calling the script."""
-    ann_dir = tmp_path / "annotations"
-    ann_dir.mkdir()
-    (ann_dir / "existing.json").write_text("{}", encoding="utf-8")
+    """Pre-populated dataset root → wrapper short-circuits without calling the script."""
+    _make_populated(tmp_path)
     calls: list[list[str]] = []
 
     def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
@@ -175,9 +235,7 @@ def test_download_skip_if_present_avoids_runner(tmp_path: Path) -> None:
 
 def test_download_force_redownload_invokes_runner_even_when_populated(tmp_path: Path) -> None:
     """``skip_if_present=False`` re-runs the download even with annotations present."""
-    ann_dir = tmp_path / "annotations"
-    ann_dir.mkdir()
-    (ann_dir / "existing.json").write_text("{}", encoding="utf-8")
+    _make_populated(tmp_path)
     calls: list[list[str]] = []
 
     def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
@@ -232,3 +290,19 @@ def test_main_returns_2_when_script_drifted(
     monkeypatch.setattr("synthetic_data.docile.download.verify_vendored_script", drift)
     rc = main(["--dest", str(tmp_path)])
     assert rc == 2
+
+
+def test_main_returns_4_on_subprocess_failure(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A non-zero exit from the vendored script surfaces as CLI exit 4."""
+    import subprocess as sp
+
+    def failing_runner(argv: list[str], **kwargs: object) -> sp.CompletedProcess:
+        raise sp.CalledProcessError(returncode=22, cmd=argv)
+
+    monkeypatch.setenv(TOKEN_ENV_VAR, "tok")
+    monkeypatch.setattr("synthetic_data.docile.download.subprocess.run", failing_runner)
+    rc = main(["--dest", str(tmp_path)])
+    assert rc == 4
+    assert "exit 22" in capsys.readouterr().err
