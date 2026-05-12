@@ -54,6 +54,25 @@ pre-commit:
 alias-seed:
     uv run python build_alias_seed.py
 
+# Generate Synthea FHIR patient bundles for the Phase 3 healthcare corpus.
+# Output: synthetic_data/output/synthea/fhir/*.json (gitignored).
+# Args: <count> [seed]. Default count=10, seed=42.
+#
+#   just synthetic-data-patients               # 10 patients, seed 42
+#   just synthetic-data-patients 500           # 500 patients, seed 42
+#   just synthetic-data-patients 500 1337      # 500 patients, seed 1337
+#
+# Linux-only (uses $(id -u)/$(id -g) so Synthea writes output owned by the host user).
+[unix]
+synthetic-data-patients count="10" seed="42":
+    docker build -t intake-synthea ./synthetic_data/synthea
+    mkdir -p ./synthetic_data/output/synthea
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        -v "$PWD/synthetic_data/output/synthea:/opt/synthea/output" \
+        intake-synthea \
+        -p {{count}} -s {{seed}} Massachusetts
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
