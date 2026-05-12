@@ -125,3 +125,25 @@ def test_cli_main_returns_nonzero_on_empty_input(tmp_path: Path) -> None:
     out = tmp_path / "out"
     rc = batch_main(["--input", str(empty), "--output", str(out)])
     assert rc == 1
+
+
+@pytest.mark.parametrize("bad_limit", ["0", "-1", "-5"])
+def test_cli_main_rejects_non_positive_limit(bad_limit: str, tmp_path: Path) -> None:
+    """Non-positive --limit values must be rejected with exit code 2
+    rather than slipping through to negative-slice semantics (-N renders
+    all-but-last-N) or the empty-bundles path (0 looks like nothing
+    matched the input dir)."""
+    rc = batch_main(
+        [
+            "--input",
+            str(FIXTURE_DIR),
+            "--output",
+            str(tmp_path),
+            "--limit",
+            bad_limit,
+        ]
+    )
+    assert rc == 2
+    # No output files should have been created.
+    assert not list(tmp_path.glob("*.png"))
+    assert not list(tmp_path.glob("*.json"))

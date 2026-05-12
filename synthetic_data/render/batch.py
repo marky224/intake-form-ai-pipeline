@@ -51,6 +51,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Reject non-positive --limit explicitly. A negative value slips
+    # through argparse and would hit Python's negative-slice semantics
+    # (rendering all-but-the-last-N patients) instead of erroring; zero
+    # would produce the misleading "no patient bundles found" path.
+    if args.limit is not None and args.limit <= 0:
+        print(f"--limit must be a positive integer, got {args.limit}", file=sys.stderr)
+        return 2
+
     bundle_paths = find_patient_bundles(args.input)
     if args.limit is not None:
         bundle_paths = bundle_paths[: args.limit]

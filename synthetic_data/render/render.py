@@ -20,8 +20,10 @@ sidecar PNG hashes will shift.
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 import json
+import re
 from collections.abc import Iterable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -60,19 +62,58 @@ BBOX_FIELDS: tuple[tuple[str, str, str], ...] = (
 )
 
 
+# Filenames are derived from patient_id. Synthea writes UUID-style ids
+# (hex digits + dashes only) which are inherently filesystem-safe, but
+# the renderer accepts arbitrary SyntheaPatient inputs — sanitize as
+# defense-in-depth against path traversal and overwriting files outside
+# output_dir.
+_SAFE_STEM_RE = re.compile(r"[^A-Za-z0-9._-]")
+
+
+@functools.cache
 def _font_data_uri(filename: str) -> str:
-    """Base64-encode a vendored font as a ``data:`` URI for inline CSS embedding."""
+    """Base64-encode a vendored font as a ``data:`` URI for inline CSS embedding.
+
+    Cached: the 3 vendored fonts are read + encoded exactly once per
+    process, saving ~600 KB of disk reads + base64 encoding per render
+    across a 500-doc batch.
+    """
     raw = (FONTS_DIR / filename).read_bytes()
     return f"data:font/ttf;base64,{base64.b64encode(raw).decode('ascii')}"
 
 
-def _build_html(patient: SyntheaPatient, signature: SignatureRender) -> str:
-    env = jinja2.Environment(
+@functools.cache
+def _jinja_env() -> jinja2.Environment:
+    """Module-level Jinja environment.
+
+    Cached so the FileSystemLoader is constructed once per process
+    rather than per render — autoescape config and template loader
+    don't vary across renders.
+    """
+    return jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(RENDER_DIR)),
         autoescape=True,
         keep_trailing_newline=False,
     )
-    template = env.get_template(TEMPLATE_NAME)
+
+
+def _safe_stem(patient_id: str) -> str:
+    """Sanitize a patient_id for use as an output filename stem.
+
+    Replaces any char outside ``[A-Za-z0-9._-]`` with ``_``. Falls back
+    to a sha256-prefix when the result would be empty or dot-only (the
+    only stems the OS treats as special). The original ``patient_id``
+    is preserved verbatim inside the sidecar JSON's ``patient_id``
+    field, so the audit trail isn't lost.
+    """
+    cleaned = _SAFE_STEM_RE.sub("_", patient_id)
+    if not cleaned or cleaned in {".", ".."}:
+        cleaned = hashlib.sha256(patient_id.encode("utf-8")).hexdigest()[:16]
+    return cleaned
+
+
+def _build_html(patient: SyntheaPatient, signature: SignatureRender) -> str:
+    template = _jinja_env().get_template(TEMPLATE_NAME)
     return template.render(
         patient=patient,
         # Both pre-escaped by signature.py / signature module constant;
@@ -145,13 +186,14 @@ def _render_in_context(
 
         field_bboxes = _extract_field_bboxes(page)
 
-        png_path = output_dir / f"{patient.patient_id}.png"
+        stem = _safe_stem(patient.patient_id)
+        png_path = output_dir / f"{stem}.png"
         page.screenshot(path=str(png_path), full_page=True)
     finally:
         page.close()
 
     sidecar = _build_sidecar(patient, signature, png_path, field_bboxes)
-    sidecar_path = output_dir / f"{patient.patient_id}.json"
+    sidecar_path = output_dir / f"{stem}.json"
     sidecar_path.write_text(json.dumps(sidecar, indent=2, sort_keys=True), encoding="utf-8")
     return png_path, sidecar_path
 
