@@ -230,11 +230,16 @@ def download_labeled_trainval(
         # token-bearing URL (the script echoes it before curl, and curl's own
         # error output includes the URL). Redact in place before re-raising
         # so any Python-side traceback or programmatic caller that inspects
-        # the exception sees the masked form.
+        # the exception sees the masked form. Also emit the redacted streams
+        # to the user's terminal so the diagnostic isn't lost on the error
+        # path (without this, the captured curl error message would only
+        # survive on the exception object, never reaching stdout/stderr).
         if err.stdout:
             err.stdout = err.stdout.replace(token, "<TOKEN-REDACTED>")
+            sys.stdout.write(err.stdout)
         if err.stderr:
             err.stderr = err.stderr.replace(token, "<TOKEN-REDACTED>")
+            sys.stderr.write(err.stderr)
         raise
     captured_out = getattr(result, "stdout", None)
     if captured_out:

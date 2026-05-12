@@ -248,12 +248,19 @@ def test_download_redacts_token_from_subprocess_stdout(
     assert "<TOKEN-REDACTED>" in out
 
 
-def test_download_redacts_token_from_called_process_error(tmp_path: Path) -> None:
+def test_download_redacts_token_from_called_process_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     """A failing subprocess raises CalledProcessError; its stdout/stderr must be redacted.
 
-    Without this, a downstream caller doing ``except CalledProcessError as exc:
-    log.error(exc.stderr)`` would log the token. The wrapper catches + redacts
-    + re-raises so the exception that propagates is token-free.
+    Three guarantees verified here:
+
+    1. ``exc.stdout`` / ``exc.stderr`` are redacted in place (no token leak
+       via ``except CalledProcessError as exc: log.error(exc.stderr)``).
+    2. The redacted streams are emitted to the user's terminal so the
+       diagnostic isn't lost (CR round 6 — without this the curl error
+       only survived on the exception object).
+    3. The redacted token marker is present in both surfaces.
     """
     import subprocess as sp
 
@@ -277,10 +284,18 @@ def test_download_redacts_token_from_called_process_error(tmp_path: Path) -> Non
         )
 
     exc = excinfo.value
+    # (1) and (3): exception attributes redacted.
     assert token not in (exc.stdout or ""), f"token leaked via exc.stdout: {exc.stdout!r}"
     assert token not in (exc.stderr or ""), f"token leaked via exc.stderr: {exc.stderr!r}"
     assert "<TOKEN-REDACTED>" in (exc.stdout or "")
     assert "<TOKEN-REDACTED>" in (exc.stderr or "")
+
+    # (2): redacted diagnostic surfaced to the user's terminal.
+    captured = capsys.readouterr()
+    assert token not in captured.out
+    assert token not in captured.err
+    assert "<TOKEN-REDACTED>" in captured.out
+    assert "<TOKEN-REDACTED>" in captured.err
 
 
 def test_download_redacts_token_from_subprocess_stderr(
