@@ -51,8 +51,15 @@ jobs:
 
       # Tests run with cached fixtures only; live cloud calls are blocked
       # in CI. EVAL_LIVE must NEVER be set in CI workflows.
+      #
+      # `-m "not slow"` excludes the Playwright renderer integration
+      # tests (Phase 3 PR (b)). Those need a Chromium binary + system
+      # libs that CI deliberately doesn't install — slow tests run
+      # locally before PR open. Unit tests for the renderer's pure-
+      # Python signature pipeline (test_signature.py) are NOT marked
+      # slow and continue to run in CI.
       - name: Run pytest
-        run: uv run pytest -v --tb=short
+        run: uv run pytest -v --tb=short -m "not slow"
         env:
           EVAL_LIVE: "false"
 

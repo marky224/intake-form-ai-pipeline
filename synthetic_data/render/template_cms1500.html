@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CMS-1500 — Health Insurance Claim Form (Synthetic)</title>
+<style>
+  /* Vendored handwriting fonts embedded as base64 data: URIs so the
+     rendered HTML is self-contained — no filesystem coupling, no CDN
+     dependency. Arial is intentionally not embedded; it falls through
+     to the host Chromium's sans-serif stack. */
+  @font-face { font-family: "Caveat"; src: url("{{ caveat_data_uri }}") format("truetype"); }
+  @font-face { font-family: "Sacramento"; src: url("{{ sacramento_data_uri }}") format("truetype"); }
+  @font-face { font-family: "Homemade Apple"; src: url("{{ homemade_apple_data_uri }}") format("truetype"); }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    font-family: Arial, "Liberation Sans", sans-serif;
+    color: #111;
+  }
+  body {
+    width: {{ page_width }}px;
+    height: {{ page_height }}px;
+    box-sizing: border-box;
+    padding: 24px 28px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .form-header {
+    text-align: center;
+    font-weight: bold;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+  }
+  .form-subtitle {
+    text-align: center;
+    font-size: 8px;
+    color: #444;
+    margin-bottom: 10px;
+  }
+  .row { display: flex; gap: 2px; }
+  .row > .box { flex: 1; }
+  .box {
+    border: 1px solid #888;
+    padding: 3px 5px 2px;
+    margin-bottom: 2px;
+    min-height: 26px;
+    box-sizing: border-box;
+  }
+  .box .label {
+    font-size: 7px;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+    line-height: 1.1;
+  }
+  .box .value {
+    font-size: 11px;
+    padding-top: 3px;
+    min-height: 14px;
+    line-height: 1.2;
+  }
+  .signature-block {
+    margin-top: 8px;
+    border: 1px solid #888;
+    padding: 6px 8px;
+  }
+  .signature-line {
+    min-height: 32px;
+    border-bottom: 1px dotted #888;
+    padding-top: 4px;
+  }
+  .signature-line .signature { line-height: 1.0; vertical-align: bottom; }
+  .fineprint {
+    font-size: 7.5px;
+    color: #333;
+    margin-top: 4px;
+    line-height: 1.3;
+  }
+  .small-row { display: flex; gap: 2px; margin-top: 2px; }
+  .small-row > .box { flex: 1; }
+  .blank-fill { height: 26px; }
+</style>
+</head>
+<body>
+
+{{ svg_filter }}
+
+<div class="form-header">HEALTH INSURANCE CLAIM FORM</div>
+<div class="form-subtitle">APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 &nbsp;&middot;&nbsp; CMS-1500</div>
+
+<div class="row">
+  <div class="box" style="flex: 0.6;">
+    <div class="label">1. Insurance Plan</div>
+    <div class="value">Other</div>
+  </div>
+  <div class="box" style="flex: 1.2;">
+    <div class="label">1a. Insured's I.D. Number</div>
+    <div class="value">SYN-{{ patient.patient_id[:8] | upper }}</div>
+  </div>
+  <div class="box" style="flex: 2;">
+    <div class="label">2. Patient's Name (Last, First, M.I.)</div>
+    <div class="value" data-field="patient_name">{{ patient.family_name }}, {{ patient.given_name }}</div>
+  </div>
+  <div class="box" style="flex: 1.2;">
+    <div class="label">3. Patient's Birth Date / Sex</div>
+    <div class="value" data-field="patient_birth_date">
+      {{ patient.birth_date.strftime('%m/%d/%Y') }} &nbsp; {{ 'M' if patient.gender == 'male' else 'F' if patient.gender == 'female' else '-' }}
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="box" style="flex: 2;">
+    <div class="label">4. Insured's Name (Last, First, M.I.)</div>
+    <div class="value">SAME</div>
+  </div>
+  <div class="box" style="flex: 2;">
+    <div class="label">5. Patient's Address (Street)</div>
+    <div class="value" data-field="patient_address_line">{{ patient.address_line }}</div>
+  </div>
+  <div class="box">
+    <div class="label">6. Relationship to Insured</div>
+    <div class="value">Self</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="box">
+    <div class="label">5b. City</div>
+    <div class="value" data-field="patient_city">{{ patient.city }}</div>
+  </div>
+  <div class="box" style="flex: 0.5;">
+    <div class="label">5c. State</div>
+    <div class="value" data-field="patient_state">{{ patient.state }}</div>
+  </div>
+  <div class="box">
+    <div class="label">5d. ZIP Code</div>
+    <div class="value" data-field="patient_postal_code">{{ patient.postal_code }}</div>
+  </div>
+  <div class="box" style="flex: 1.4;">
+    <div class="label">5e. Telephone (include Area Code)</div>
+    <div class="value" data-field="patient_phone">{{ patient.phone or '' }}</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="box">
+    <div class="label">10a. Employment</div>
+    <div class="value">No</div>
+  </div>
+  <div class="box">
+    <div class="label">10b. Auto Accident</div>
+    <div class="value">No</div>
+  </div>
+  <div class="box">
+    <div class="label">10c. Other Accident</div>
+    <div class="value">No</div>
+  </div>
+  <div class="box" style="flex: 2;">
+    <div class="label">11. Insured's Policy / Group / FECA No.</div>
+    <div class="value"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="box" style="flex: 2;">
+    <div class="label">14. Date of Current Illness, Injury, or Pregnancy (LMP)</div>
+    <div class="value" data-field="date_of_current_illness">
+      {% if patient.most_recent_encounter_date %}{{ patient.most_recent_encounter_date.strftime('%m/%d/%Y') }}{% endif %}
+    </div>
+  </div>
+  <div class="box" style="flex: 2;">
+    <div class="label">15. Other Date</div>
+    <div class="value"></div>
+  </div>
+</div>
+
+<div class="box">
+  <div class="label">21. Diagnosis or Nature of Illness or Injury (Relate A-L to service line below)</div>
+  <div class="value" data-field="diagnosis">{{ patient.most_recent_encounter_reason or '' }}</div>
+</div>
+
+<div class="row">
+  <div class="box" style="flex: 0.8;">
+    <div class="label">25. Federal Tax I.D. Number</div>
+    <div class="value">12-3456789</div>
+  </div>
+  <div class="box" style="flex: 1.4;">
+    <div class="label">26. Patient's Account No.</div>
+    <div class="value">{{ patient.patient_id[:12] }}</div>
+  </div>
+  <div class="box">
+    <div class="label">27. Accept Assignment</div>
+    <div class="value">YES</div>
+  </div>
+</div>
+
+<div class="signature-block">
+  <div class="label">12. Patient's or Authorized Person's Signature</div>
+  <div class="signature-line" data-field="signature">{{ signature_html }}</div>
+  <div class="fineprint">
+    I authorize the release of any medical or other information necessary to process this claim. I also request
+    payment of government benefits either to myself or to the party who accepts assignment below.
+  </div>
+  <div class="small-row">
+    <div class="box" style="flex: 3;">
+      <div class="label">Signed</div>
+      <div class="value"></div>
+    </div>
+    <div class="box">
+      <div class="label">Date</div>
+      <div class="value" data-field="date_signed">
+        {% if patient.most_recent_encounter_date %}{{ patient.most_recent_encounter_date.strftime('%m/%d/%Y') }}{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="signature-block">
+  <div class="label">31. Signature of Physician or Supplier Including Degrees or Credentials</div>
+  <div class="signature-line">
+    <span style="font-family: Arial, sans-serif; font-size: 14px;">Synthetic Provider, MD</span>
+  </div>
+  <div class="fineprint">Provider attests that the services rendered are medically necessary.</div>
+</div>
+
+</body>
+</html>
