@@ -9,10 +9,11 @@ slow-marked).
 from __future__ import annotations
 
 import hashlib
+from unittest.mock import MagicMock
 
 import pytest
 
-from synthetic_data.render.render import _render_stem, _safe_stem
+from synthetic_data.render.render import _extract_field_bboxes, _render_stem, _safe_stem
 
 
 def test_safe_stem_passes_through_uuid_unchanged() -> None:
@@ -89,12 +90,14 @@ def test_safe_stem_replaces_windows_reserved_names(reserved: str) -> None:
 def test_safe_stem_replaces_trailing_dot(trailing_dot: str) -> None:
     """NTFS silently strips trailing dots; falling back to a hash
     prevents two patient_ids differing only by trailing-dot count from
-    colliding on Windows."""
-    result = _safe_stem(trailing_dot)
-    assert not result.endswith("."), f"trailing dot survived sanitization: {result}"
-    # The fallback is a 16-hex-char sha256 prefix — non-empty, no dot.
-    assert len(result) == 16
-    assert all(c in "0123456789abcdef" for c in result)
+    colliding on Windows.
+
+    Asserts the exact sha256[:16] prefix to lock the contract — a
+    looser shape-only check would let a regression change which hash
+    the function returns without failing.
+    """
+    expected = hashlib.sha256(trailing_dot.encode("utf-8")).hexdigest()[:16]
+    assert _safe_stem(trailing_dot) == expected
 
 
 def test_render_stem_appends_disambiguator() -> None:
@@ -125,3 +128,31 @@ def test_render_stem_disambiguates_colliding_sanitized_stems() -> None:
     """
     assert _safe_stem("a/b") == _safe_stem("a_b") == "a_b"
     assert _render_stem("a/b") != _render_stem("a_b")
+
+
+def test_extract_field_bboxes_raises_on_duplicate_selector_match() -> None:
+    """A duplicate ``data-field`` attribute in the template is a bug —
+    surface it via RuntimeError instead of silently bbox-ing the first
+    occurrence and losing the rest.
+
+    Mocked Page so the test stays fast and doesn't need Chromium.
+    """
+    page = MagicMock()
+    locator = MagicMock()
+    locator.count.return_value = 2
+    page.locator.return_value = locator
+
+    with pytest.raises(RuntimeError, match="matched 2 elements"):
+        _extract_field_bboxes(page)
+
+
+def test_extract_field_bboxes_skips_missing_selectors_silently() -> None:
+    """count==0 means the template legitimately omits that field —
+    silently skip, not raise."""
+    page = MagicMock()
+    locator = MagicMock()
+    locator.count.return_value = 0
+    page.locator.return_value = locator
+
+    result = _extract_field_bboxes(page)
+    assert result == []

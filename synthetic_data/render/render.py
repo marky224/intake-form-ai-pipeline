@@ -243,13 +243,25 @@ def _render_in_context(
 def _extract_field_bboxes(page: Any) -> list[dict]:
     fields: list[dict] = []
     for field_name, selector, cms_box in BBOX_FIELDS:
-        locator = page.locator(selector).first
-        if locator.count() == 0:
+        locator = page.locator(selector)
+        match_count = locator.count()
+        if match_count == 0:
+            # Field absent from this render (e.g., template omitted it).
             continue
-        box = locator.bounding_box()
+        if match_count > 1:
+            # Each data-field attribute must be unique within the
+            # template. A duplicate is a template-authoring bug we
+            # should surface immediately, not silently bbox only the
+            # first occurrence and lose the rest.
+            raise RuntimeError(
+                f"data-field selector {selector!r} matched {match_count} elements; "
+                f"expected exactly 1 (BBOX_FIELDS entry {field_name!r})"
+            )
+        first = locator.first
+        box = first.bounding_box()
         if box is None:
             continue
-        value = (locator.text_content() or "").strip()
+        value = (first.text_content() or "").strip()
         fields.append(
             {
                 "name": field_name,
