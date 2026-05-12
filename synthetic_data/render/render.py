@@ -69,6 +69,18 @@ BBOX_FIELDS: tuple[tuple[str, str, str], ...] = (
 # output_dir.
 _SAFE_STEM_RE = re.compile(r"[^A-Za-z0-9._-]")
 
+# Windows reserves these basenames even with an extension (CON.png is
+# reserved the same way CON is). Linux ignores them but the renderer
+# should produce filenames that work on either host so artifacts can be
+# copied across.
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {
+        "con", "prn", "aux", "nul",
+        "com0", "com1", "com2", "com3", "com4", "com5", "com6", "com7", "com8", "com9",
+        "lpt0", "lpt1", "lpt2", "lpt3", "lpt4", "lpt5", "lpt6", "lpt7", "lpt8", "lpt9",
+    }
+)  # fmt: skip
+
 
 @functools.cache
 def _font_data_uri(filename: str) -> str:
@@ -101,13 +113,28 @@ def _safe_stem(patient_id: str) -> str:
     """Sanitize a patient_id for use as an output filename stem.
 
     Replaces any char outside ``[A-Za-z0-9._-]`` with ``_``. Falls back
-    to a sha256-prefix when the result would be empty or dot-only (the
-    only stems the OS treats as special). The original ``patient_id``
-    is preserved verbatim inside the sidecar JSON's ``patient_id``
-    field, so the audit trail isn't lost.
+    to a sha256-prefix when the cleaned result would be:
+
+    * empty or dot-only (``.``, ``..``) — invalid as a basename
+    * a Windows-reserved name (``CON``, ``NUL``, ``COM1`` etc.) —
+      reserved even with an extension, so ``CON.png`` is also illegal
+    * trailing dot — NTFS silently strips trailing dots, collapsing
+      ``foo.`` and ``foo`` to the same filename on Windows hosts
+
+    The whitelist regex already strips trailing spaces, the other
+    Windows-illegal char that NTFS treats specially.
+
+    The original ``patient_id`` is preserved verbatim inside the
+    sidecar JSON's ``patient_id`` field, so the audit trail survives
+    regardless of how aggressively the stem is rewritten.
     """
     cleaned = _SAFE_STEM_RE.sub("_", patient_id)
-    if not cleaned or cleaned in {".", ".."}:
+    if (
+        not cleaned
+        or cleaned in {".", ".."}
+        or cleaned.lower() in _WINDOWS_RESERVED_NAMES
+        or cleaned.endswith(".")
+    ):
         cleaned = hashlib.sha256(patient_id.encode("utf-8")).hexdigest()[:16]
     return cleaned
 

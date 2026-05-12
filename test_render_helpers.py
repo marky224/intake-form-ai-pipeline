@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 
+import pytest
+
 from synthetic_data.render.render import _render_stem, _safe_stem
 
 
@@ -68,6 +70,31 @@ def test_safe_stem_handles_all_unsafe_chars() -> None:
     # All chars get replaced 1-for-1 with `_`, so the result is non-empty
     # and not dot-only, which means the hash fallback does NOT fire.
     assert _safe_stem("///") == "___"
+
+
+@pytest.mark.parametrize(
+    "reserved",
+    ["CON", "PRN", "AUX", "NUL", "COM1", "com1", "COM9", "LPT1", "lpt9"],
+)
+def test_safe_stem_replaces_windows_reserved_names(reserved: str) -> None:
+    """Windows reserves these basenames even with an extension —
+    ``CON.png`` is reserved the same way ``CON`` is. Fall back to a
+    hash so the renderer's PNG/JSON pairs are openable on Windows.
+    """
+    expected = hashlib.sha256(reserved.encode("utf-8")).hexdigest()[:16]
+    assert _safe_stem(reserved) == expected
+
+
+@pytest.mark.parametrize("trailing_dot", ["foo.", "patient.", "....", "a.b."])
+def test_safe_stem_replaces_trailing_dot(trailing_dot: str) -> None:
+    """NTFS silently strips trailing dots; falling back to a hash
+    prevents two patient_ids differing only by trailing-dot count from
+    colliding on Windows."""
+    result = _safe_stem(trailing_dot)
+    assert not result.endswith("."), f"trailing dot survived sanitization: {result}"
+    # The fallback is a 16-hex-char sha256 prefix — non-empty, no dot.
+    assert len(result) == 16
+    assert all(c in "0123456789abcdef" for c in result)
 
 
 def test_render_stem_appends_disambiguator() -> None:
