@@ -151,7 +151,70 @@ If you need to override the automatic split for debugging, `PARAMETER num_gpu N`
 
 ## Synthea workflow
 
-> Lands in Phase 3. Synthea Docker setup, HTML+Playwright rendering pipeline, signature rendering parameters (Google Fonts handwriting fonts + SVG ink-bleed filter, ~70/30 typed/handwritten split). See `RATIONALE.md` Section 1 for the locked signature rendering parameters that the Phase 3 implementer should treat as locked input.
+The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the uploader pushes the pairs to S3 under content-addressable keys. Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
+
+### Pre-requisites
+
+- **Docker** — Synthea runs in a pinned container (`synthetic_data/synthea/Dockerfile` checksum-verifies the upstream JAR at build time).
+- **Playwright + Chromium** — the renderer drives a headless Chromium via Playwright:
+  ```bash
+  uv sync                                    # installs playwright (dev dep)
+  uv run playwright install chromium         # downloads the Chromium binary
+  ```
+  On Ubuntu 24.04, Chromium also needs a handful of system libs that Playwright's `install-deps` would install via sudo. In headless / no-TTY environments install them explicitly:
+  ```bash
+  sudo apt install -y libcairo2 libcups2t64 libpango-1.0-0 \
+                      libxcomposite1 libxdamage1 libxfixes3 \
+                      libatk1.0-0 libatk-bridge2.0-0 libnss3
+  ```
+- **AWS credentials** for the upload step, resolvable via the standard boto3 chain (`~/.aws/credentials`, env vars, or instance profile). The CLI never reads keys from arguments.
+
+### One-shot full corpus (Phase 3 closeout)
+
+The full 500-patient corpus is one recipe:
+
+```bash
+just synthetic-data-render-500
+```
+
+This chains `just synthetic-data-patients 500 42` → `python -m synthetic_data.render.batch` → `python -m synthetic_data.render.upload`. End-to-end takes ~15-20 minutes (Synthea ~3-5 min, render ~10 min, upload ~1-2 min) and produces 1000 S3 objects (500 PNG + 500 JSON, ~25 MB total) under `s3://intake-form-ai-pipeline-documents/synthetic/healthcare/cms1500/`. Local disk usage peaks at ~1-2 GB during the run; the `synthetic_data/output/` tree is gitignored and can be deleted after upload.
+
+### Step-by-step (smaller runs, debugging)
+
+For development you usually want fewer patients than 500. Run each step individually:
+
+```bash
+# 1. Synthea: generate 10 FHIR bundles with seed 42 (matches the committed test fixture).
+just synthetic-data-patients 10
+# Output: synthetic_data/output/synthea/fhir/*.json
+
+# 2. Render: walk the FHIR dir and produce one (PNG, sidecar JSON) pair per patient.
+uv run python -m synthetic_data.render.batch \
+    --input synthetic_data/output/synthea/fhir \
+    --output synthetic_data/output/render
+# Output: synthetic_data/output/render/<patient-id>-<sha8>.{png,json}
+
+# 3. Upload: push the pairs to S3 under content-addressable keys.
+uv run python -m synthetic_data.render.upload \
+    --input synthetic_data/output/render \
+    --bucket intake-form-ai-pipeline-documents
+# S3 keys: synthetic/healthcare/cms1500/<image_sha256>.{png,json}
+```
+
+`synthetic-data-patients` accepts a count and seed (`just synthetic-data-patients 500 1337`). The render and upload CLIs always process whatever's in the input directory — there's no built-in limit flag on upload, and `--limit N` on `render.batch` renders the first N patients in sorted-by-filename order.
+
+### S3 key shape and idempotency
+
+The uploader derives each object's key from the PNG's `image_sha256` (already computed by the renderer and recorded in the sidecar — the uploader does not re-hash). PNG and sidecar share the hash and differ only in extension:
+
+```
+synthetic/healthcare/cms1500/<image_sha256>.png
+synthetic/healthcare/cms1500/<image_sha256>.json
+```
+
+Each object carries `x-amz-meta-patient-id` so a HEAD on either key surfaces the source Synthea patient without fetching the sidecar body. Re-runs land at the same keys (the renderer is deterministic for a given Chromium version), so partial-failure retries resume cleanly without external bookkeeping. The documents bucket is versioned, which records a new object version per PutObject regardless of content equality — that's a footnote, not a benefit; content-addressable keys are about keeping the key namespace clean across re-runs, not about storage dedup.
+
+Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping the pinned Playwright minor version shifts PNG bytes → new hashes → new objects (the old keys become orphans). Acceptable because the corpus is regenerable.
 
 ## Local-only mode for the quickstart
 
