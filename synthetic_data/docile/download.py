@@ -98,10 +98,15 @@ def resolve_token(env: dict[str, str] | None = None) -> str:
 
     ``env`` defaults to ``os.environ`` and is injectable for testing.
     Raises ``DocileTokenMissingError`` with a clear remediation message
-    if the env var is unset or empty.
+    if the env var is unset, empty, or whitespace-only. Mirrors
+    ``_load_sidecar``'s ``.strip()`` treatment of ``source_id`` —
+    whitespace-only values are functionally invalid (interpolating
+    them into the URL path would produce a 404 from the upstream S3
+    bucket, but with a less actionable error than catching the typo
+    at the wrapper layer).
     """
     source = env if env is not None else os.environ
-    token = source.get(TOKEN_ENV_VAR, "")
+    token = source.get(TOKEN_ENV_VAR, "").strip()
     if not token:
         raise DocileTokenMissingError(
             f"{TOKEN_ENV_VAR} is not set. Register at https://docile.rossum.ai "

@@ -85,6 +85,17 @@ def test_resolve_token_raises_when_empty_string() -> None:
         resolve_token(env={TOKEN_ENV_VAR: ""})
 
 
+def test_resolve_token_raises_when_whitespace_only() -> None:
+    """A whitespace-only env value is functionally invalid; treated as missing."""
+    with pytest.raises(DocileTokenMissingError):
+        resolve_token(env={TOKEN_ENV_VAR: "   \t  "})
+
+
+def test_resolve_token_strips_surrounding_whitespace() -> None:
+    """Leading/trailing whitespace from a misformatted .env line is trimmed."""
+    assert resolve_token(env={TOKEN_ENV_VAR: "  abc123  "}) == "abc123"
+
+
 def test_annotations_dir_is_populated_false_when_missing(tmp_path: Path) -> None:
     """Empty dir → not populated."""
     assert annotations_dir_is_populated(tmp_path) is False

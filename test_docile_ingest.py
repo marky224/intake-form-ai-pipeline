@@ -178,7 +178,10 @@ def test_ingest_document_raises_on_page_count_mismatch(dataset_root: Path, tmp_p
 
     Replace the matching PDF with a single-page blank — the annotation
     still says 3 pages, so the rasterizer produces 1 page and the
-    page-count check raises before any sidecar is written.
+    page-count check raises. Both the would-be sidecars AND the orphan
+    PNGs that the rasterizer wrote BEFORE the check must be cleaned
+    up — leaving PNGs behind would either trip ``find_render_pairs``
+    (orphan-detection) or upload sidecar-less images on the next run.
     """
     pdf_path = dataset_root / "pdfs" / f"{DOC_ID_MULTI}.pdf"
     pdf_path.unlink()
@@ -189,8 +192,9 @@ def test_ingest_document_raises_on_page_count_mismatch(dataset_root: Path, tmp_p
     with pytest.raises(ValueError, match="Page count mismatch"):
         ingest_document(doc, pdf_path, render_dir)
 
-    # No sidecars/PNGs leaked into render_dir before the raise.
+    # No sidecars AND no orphan PNGs leaked into render_dir.
     assert not list(render_dir.glob("*.json"))
+    assert not list(render_dir.glob("*.png"))
 
 
 def test_ingest_dataset_raises_when_pdf_missing(dataset_root: Path, tmp_path: Path) -> None:

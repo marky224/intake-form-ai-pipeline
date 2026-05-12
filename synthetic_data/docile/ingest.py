@@ -70,6 +70,12 @@ def ingest_document(
     render_dir.mkdir(parents=True, exist_ok=True)
     pages = rasterize_document(pdf_path, render_dir, doc.doc_id)
     if len(pages) != doc.page_count:
+        # Clean up the orphan PNGs the rasterizer just wrote — without
+        # this, the next run would either see stale partial output
+        # (find_render_pairs raises on orphans) or upload PNGs whose
+        # sidecars never materialized.
+        for orphan in pages:
+            orphan.png_path.unlink(missing_ok=True)
         raise ValueError(
             f"Page count mismatch for {doc.doc_id}: PDF rasterized "
             f"{len(pages)} page(s), annotation metadata declares "
