@@ -20,11 +20,12 @@ Key scheme::
 
 Both objects share the hash; only the extension differs. The
 content-addressable path keeps the upload step idempotent without
-HEAD-before-PUT, and the sidecar's ``patient_id`` field provides the
-audit trail back from hash to source bundle. ``patient_id`` is also
-stamped on each object as ``x-amz-meta-patient-id`` so HEAD-only Phase 4
-cascade traces can resolve the source patient without fetching the
-sidecar body.
+HEAD-before-PUT, and the sidecar's ``source_id`` field provides the
+audit trail back from hash to source record (a Synthea ``patient_id``
+for the healthcare vertical, a DocILE ``<doc_id>-p<page>`` slug for
+the business vertical). ``source_id`` is also stamped on each object
+as ``x-amz-meta-source-id`` so HEAD-only Phase 4 cascade traces can
+resolve the source record without fetching the sidecar body.
 
 Cross-Chromium-version PNG byte stability is NOT a project guarantee
 (see ``render.py`` docstring) — bumping the pinned Playwright minor
@@ -55,15 +56,17 @@ SIDECAR_SCHEMA_VERSION_SUPPORTED = 1
 class UploadResult:
     """Records the S3 keys produced for one (PNG, sidecar) pair.
 
-    ``image_sha256`` and ``patient_id`` are echoed back from the sidecar
-    so the caller can correlate uploads with source bundles without
-    re-reading the JSON.
+    ``image_sha256`` and ``source_id`` are echoed back from the sidecar
+    so the caller can correlate uploads with source records without
+    re-reading the JSON. ``source_id`` is vertical-agnostic — a Synthea
+    ``patient_id`` for CMS-1500 uploads, a DocILE ``<doc_id>-p<page>``
+    for business-document uploads.
     """
 
     png_key: str
     sidecar_key: str
     image_sha256: str
-    patient_id: str
+    source_id: str
 
 
 def _normalize_prefix(prefix: str) -> str:
@@ -93,12 +96,13 @@ def derive_s3_keys(image_sha256: str, prefix: str) -> tuple[str, str]:
 
 
 def _load_sidecar(sidecar_path: Path) -> dict:
-    """Read + validate a sidecar JSON file written by the renderer.
+    """Read + validate a sidecar JSON file written by a renderer/ingestor.
 
     Validates the fields the uploader actually consumes (schema_version,
-    image_sha256, patient_id) so a sidecar from a future schema or a
+    image_sha256, source_id) so a sidecar from a future schema or a
     half-written file fails loudly rather than uploading under a wrong
-    or empty key.
+    or empty key. ``source_id`` is the vertical-agnostic key
+    (Synthea ``patient_id``, DocILE ``<doc_id>-p<page>``, etc.).
     """
     data = json.loads(sidecar_path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
@@ -118,9 +122,9 @@ def _load_sidecar(sidecar_path: Path) -> dict:
     if not isinstance(sha, str) or len(sha) != 64 or not all(c in "0123456789abcdef" for c in sha):
         raise ValueError(f"Sidecar {sidecar_path} image_sha256 must be a 64-char hex string")
 
-    pid = data.get("patient_id")
-    if not isinstance(pid, str) or not pid:
-        raise ValueError(f"Sidecar {sidecar_path} patient_id must be a non-empty string")
+    source_id = data.get("source_id")
+    if not isinstance(source_id, str) or not source_id:
+        raise ValueError(f"Sidecar {sidecar_path} source_id must be a non-empty string")
 
     return data
 
@@ -135,9 +139,10 @@ def upload_pair(
     """Upload one (PNG, sidecar) pair to S3 under content-addressable keys.
 
     The PNG is uploaded as ``image/png`` and the sidecar as
-    ``application/json``; both objects carry ``x-amz-meta-patient-id``
-    set to the sidecar's ``patient_id`` so a HEAD on either object
-    surfaces the source patient without a Body fetch.
+    ``application/json``; both objects carry ``x-amz-meta-source-id``
+    set to the sidecar's ``source_id`` so a HEAD on either object
+    surfaces the source record (Synthea patient, DocILE doc-page, etc.)
+    without a Body fetch.
 
     ``s3_client`` is injectable for testing (moto's ``mock_aws``).
     When None, a fresh ``boto3.client("s3")`` is created — boto3 picks
@@ -151,10 +156,10 @@ def upload_pair(
 
     sidecar = _load_sidecar(Path(sidecar_path))
     image_sha256: str = sidecar["image_sha256"]
-    patient_id: str = sidecar["patient_id"]
+    source_id: str = sidecar["source_id"]
     png_key, sidecar_key = derive_s3_keys(image_sha256, prefix)
 
-    metadata = {"patient-id": patient_id}
+    metadata = {"source-id": source_id}
 
     s3_client.put_object(
         Bucket=bucket,
@@ -174,7 +179,7 @@ def upload_pair(
         png_key=png_key,
         sidecar_key=sidecar_key,
         image_sha256=image_sha256,
-        patient_id=patient_id,
+        source_id=source_id,
     )
 
 

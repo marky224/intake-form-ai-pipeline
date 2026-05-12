@@ -296,7 +296,7 @@ def _build_sidecar(
         "schema_version": SIDECAR_SCHEMA_VERSION,
         "image": png_path.name,
         "image_sha256": image_sha256,
-        "patient_id": patient.patient_id,
+        "source_id": patient.patient_id,
         "page": {
             "number": 1,
             "width_px": PAGE_WIDTH_PX,

@@ -1,0 +1,55 @@
+{
+  "field_extractions": [
+    {
+      "bbox": [0.82, 0.20, 0.88, 0.21],
+      "fieldtype": "document_id",
+      "page": 0,
+      "text": "INV-2026-0001"
+    },
+    {
+      "bbox": [0.69, 0.20, 0.77, 0.21],
+      "fieldtype": "date_issue",
+      "page": 0,
+      "text": "2026-04-15"
+    },
+    {
+      "bbox": [0.65, 0.24, 0.84, 0.25],
+      "fieldtype": "vendor_name",
+      "page": 0,
+      "text": "ACME Industrial Supply Co."
+    },
+    {
+      "bbox": [0.13, 0.19, 0.34, 0.23],
+      "fieldtype": "customer_billing_address",
+      "page": 0,
+      "text": "Globex Corporation\n123 Main Street\nSpringfield, IL 62701"
+    },
+    {
+      "bbox": [0.81, 0.83, 0.88, 0.85],
+      "fieldtype": "amount_total_gross",
+      "page": 0,
+      "text": "1,234.56"
+    }
+  ],
+  "line_item_extractions": [
+    {
+      "bbox": [0.13, 0.39, 0.14, 0.40],
+      "fieldtype": "line_item_quantity",
+      "line_item_id": 1,
+      "page": 0,
+      "text": "2"
+    }
+  ],
+  "line_item_headers": [],
+  "metadata": {
+    "cluster_id": 1,
+    "currency": "usd",
+    "document_type": "tax_invoice",
+    "language": "eng",
+    "original_filename": "single_page_invoice",
+    "page_count": 1,
+    "page_sizes_at_200dpi": [[1700, 2200]],
+    "page_to_table_grid": {},
+    "source": "synthetic_fixture"
+  }
+}

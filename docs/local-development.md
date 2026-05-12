@@ -216,9 +216,82 @@ synthetic/healthcare/cms1500/<image_sha256>.png
 synthetic/healthcare/cms1500/<image_sha256>.json
 ```
 
-Each object carries `x-amz-meta-patient-id` so a HEAD on either key surfaces the source Synthea patient without fetching the sidecar body. Re-runs land at the same keys (the renderer is deterministic for a given Chromium version), so partial-failure retries resume cleanly without external bookkeeping. The documents bucket is versioned, which records a new object version per PutObject regardless of content equality — that's a footnote, not a benefit; content-addressable keys are about keeping the key namespace clean across re-runs, not about storage dedup.
+Each object carries `x-amz-meta-source-id` so a HEAD on either key surfaces the source record (a Synthea `patient_id` for healthcare uploads, a DocILE `<doc_id>-p<page>` slug for the business-documents vertical) without fetching the sidecar body. Re-runs land at the same keys (the renderer is deterministic for a given Chromium version), so partial-failure retries resume cleanly without external bookkeeping. The documents bucket is versioned, which records a new object version per PutObject regardless of content equality — that's a footnote, not a benefit; content-addressable keys are about keeping the key namespace clean across re-runs, not about storage dedup.
 
 Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping the pinned Playwright minor version shifts PNG bytes → new hashes → new objects (the old keys become orphans). Acceptable because the corpus is regenerable.
+
+## DocILE workflow
+
+The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `labeled-trainval` archive (6680 annotated train+val docs combined), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The 55-field KILE taxonomy is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` consumes those annotations in Phase 4.
+
+### Pre-requisites
+
+- **`DOCILE_ACCESS_TOKEN` in `.env`** — register at [docile.rossum.ai](https://docile.rossum.ai) to obtain the token (an S3 share-link path segment). The token lives in `.env` (gitignored, NOT mirrored in `.env.example` per token-surface privacy) and is auto-loaded into the recipe environment via `set dotenv-load := true` in the justfile.
+- **pypdfium2 + Pillow** — pure-wheel Python deps, installed by `uv sync`. No system Poppler / Cairo install required (pypdfium2 bundles the PDFium native binary).
+- **AWS credentials** for the upload step, resolvable via the standard boto3 chain — same as the Synthea workflow.
+
+### Scope (locked)
+
+- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
+- **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the 55-field KILE taxonomy against `BusinessDocumentForm`.
+- **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
+
+### One-shot full corpus (Phase 3.5 closeout)
+
+```bash
+just synthetic-data-docile-build
+```
+
+End-to-end ~30-60 minutes wallclock (the bulk is the 1.6 GB ZIP download from `docile-dataset-rossum.s3.eu-west-1.amazonaws.com`). Produces ~33,000 page PNGs + ~33,000 sidecar JSONs (~66,000 S3 objects, ~1.6 GB total) under `s3://intake-form-ai-pipeline-documents/synthetic/business/docile/`. Local disk peaks at ~2 GB during the run; `synthetic_data/output/docile/` is gitignored.
+
+### Smoke run (5-10 documents)
+
+For the first end-to-end against the real bucket, cap document count:
+
+```bash
+just synthetic-data-docile-build 5     # 5 documents from the train split
+```
+
+`limit` counts documents, not pages — multi-page docs contribute multiple PNGs each. A 5-doc smoke against typical DocILE multi-page invoices runs in ~1-2 minutes after the initial download.
+
+### Step-by-step (debugging)
+
+```bash
+# 1. Download labeled-trainval (~1.6 GB extracted into synthetic_data/output/docile/).
+#    Idempotent: skips if annotations/ is already populated.
+uv run python -m synthetic_data.docile.download \
+    --dest synthetic_data/output/docile
+
+# 2. Ingest: parse + rasterize + build sidecar per page. No S3 surface.
+#    Output: synthetic_data/output/docile/render/<doc_id>-p<N>.{png,json}
+uv run python -m synthetic_data.docile.ingest \
+    --dataset-root synthetic_data/output/docile \
+    --render-dir synthetic_data/output/docile/render \
+    --limit 5
+
+# 3. Upload: push pairs to S3 under content-addressable keys.
+uv run python -m synthetic_data.render.upload \
+    --input synthetic_data/output/docile/render \
+    --bucket intake-form-ai-pipeline-documents \
+    --prefix synthetic/business/docile
+```
+
+### S3 key shape
+
+Identical to the healthcare path; only the prefix differs:
+
+```text
+synthetic/business/docile/<image_sha256>.png
+synthetic/business/docile/<image_sha256>.json
+```
+
+Each object's `x-amz-meta-source-id` is `<doc_id>-p<page_number>` (1-indexed page), letting a HEAD recover both the DocILE document id and the specific page without fetching the sidecar body.
+
+### Notes on the vendored download script
+
+`synthetic_data/docile/download_dataset.sh` is a verbatim copy of `rossumai/docile/download_dataset.sh` pinned to upstream commit `12f9502d1ee80143c24eb98d89abc324db8003b6`. The wrapper sha256-verifies the file on every invocation so an accidental local edit or supply-chain drift fails loudly before any network call. Re-vendor + bump `VENDORED_SCRIPT_SHA256` together when intentionally upgrading.
+
+The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/<token>/<dataset>.zip`) — it's a presigned-share-link path segment, not an HTTP header. The wrapper passes it via positional argv to the script, so it briefly appears in `ps` output during the curl. Acceptable for this dev environment given the token is registration-scoped (not write-credentialed).
 
 ## Local-only mode for the quickstart
 
