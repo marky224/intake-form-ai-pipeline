@@ -70,7 +70,7 @@ The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aur
 
 ## Four-tier routing structure (Tier 3a / 3b distinction)
 
-> Lands in Phase 4 with the provider implementations. The cascade is described as "three tiers" in the README, but Tier 3 splits internally into 3a (vision-capable open-weights LLMs — Qwen 2.5 VL local + Together AI 72B in production) and 3b (strongest closed LLMs — Claude Sonnet 4.6 via Bedrock). The 3a/3b distinction matters because 3a is local-capable on the project hardware while 3b never is, and because the BAA-routing rules treat them differently. This section will diagram the per-tier escalation thresholds (0.85 / 0.80 / 0.75), the retry-then-escalate failure handling, and the per-field provenance trail in `ExtractedField.escalation_history`.
+> Lands in Phase 4 with the provider implementations. The cascade is described as "three tiers" in the README, but Tier 3 splits internally into 3a (vision-capable open-weights LLM — Qwen 2.5 VL 32B, local on the project's combined RTX 4080 + RTX 4060 Ti both in development and in the deployed demo via Cloudflare Tunnel bridge) and 3b (strongest closed LLM — Claude Sonnet 4.6 via Bedrock). The 3a/3b distinction matters because 3a is locally hosted (HIPAA-safe when the host environment meets HIPAA Security Rule controls) while 3b is cloud-only managed inference (AWS BAA-eligible). This section will diagram the per-tier escalation thresholds (0.85 / 0.80 / 0.75), the retry-then-escalate failure handling, and the per-field provenance trail in `ExtractedField.escalation_history`.
 
 ## Step Functions state machine layout
 

@@ -58,7 +58,7 @@ Defer to production deployment with paying customers. Migration path: dual-write
 
 Ollama is the local development inference engine — easy to operate, good for single-user workloads, terrible for high-throughput multi-tenant production. vLLM (or alternatives like TGI, llama.cpp server with continuous batching, SGLang) is the standard scale-up answer for local-hosted inference at production scale.
 
-Defer because the deployed demo runs Tier 1 on Novita and Tier 3a on Together AI — both managed inference providers. There's no self-hosted inference path in the deployed architecture for vLLM to replace. Revisit only if production deployment goes the self-hosted route, which would require rebuilding around vLLM-on-Kubernetes or vLLM-on-EKS — a substantial migration outside the portfolio scope.
+Defer because Ollama is operationally sufficient at portfolio scale. The deployed demo does run self-hosted Tier 1 + Tier 3a — local on the project's combined RTX 4080 + RTX 4060 Ti, reached from AWS Step Functions via a Cloudflare Tunnel bridge to the home GPU — but at portfolio traffic the single-user concurrency model Ollama's serving fits cleanly. vLLM's continuous-batching wins matter when concurrent request load saturates GPU memory; that's not the regime a portfolio demo operates in. A vLLM swap would also require either rebuilding the FastAPI wrapper service on the home GPU around vLLM's serving stack or migrating Tier 3a to vLLM-on-Kubernetes / vLLM-on-EKS — a substantial migration outside the portfolio scope. Revisit if production deployment crosses sustained-concurrent-request thresholds that Ollama can't keep up with (rule of thumb: >5 concurrent active requests per GPU; well above portfolio-scale traffic).
 
 ## Cost circuit breaker upgrade
 
@@ -88,7 +88,7 @@ Cloud deployment (AWS) is locked. Revisit only if monthly costs become unmanagea
 
 Self-hosted alternatives considered and rejected:
 
-- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel): zero monthly cost but requires home internet uptime and home machine availability. A visitor at 2 AM local time gets a dead demo.
+- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel) serving the **entire demo**: zero monthly cost but requires home internet uptime and home machine availability. A visitor at 2 AM local time gets a dead demo. (Distinct from the Phase 7 bridge layer, which also uses Cloudflare Tunnel but only for the Tier 1 / Tier 3a inference path — the public-facing edge stays on CloudFront so visits during a home-GPU outage land on the wake page and the cascade fails over to `EXTRACTION_MODE=degraded` rather than to a dead site.)
 - VPS (DigitalOcean, Hetzner, etc.): $20–40/month for adequate-sized droplet, eliminates Aurora's auto-pause cost-saving model, more operational burden than AWS managed services.
 
 Calculus would have to genuinely flip — cost spike to $100+/month sustained, or AWS account compromise — before this is worth re-evaluating.

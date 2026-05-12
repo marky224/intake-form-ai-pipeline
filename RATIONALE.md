@@ -125,11 +125,13 @@ class DataClass(str, Enum):
 
 These are independent. A `DataClass.PII` field with `sensitivity="low"` (e.g., a person's first name on a public form) is routed differently than a `DataClass.PII` field with `sensitivity="high"` (e.g., SSN). Collapsing them would lose information.
 
-The HIPAA-mode routing rule is what `data_class` drives:
+The routing intent `data_class` drives (semantic — see `docs/hipaa-architecture.md` for the deployment-time mechanics):
 - `DataClass.PUBLIC`: any provider
-- `DataClass.PII`: HIPAA-mode-dependent (handled by routing layer; BAA-only when HIPAA mode is on, otherwise unrestricted)
+- `DataClass.PII`: HIPAA-mode-dependent (BAA-only when HIPAA mode is on, otherwise unrestricted)
 - `DataClass.PHI`: BAA-eligible providers only (always)
 - `DataClass.PCI`: BAA-eligible providers only (always)
+
+Under the current architecture (Hybrid, locked 2026-05-12), every provider in the routing table is BAA-eligible by design — local Tier 1 + Tier 3a (HIPAA-safe via the operator's environment) plus AWS Bedrock + Textract — so these rules become a defense-in-depth invariant the routing layer asserts at startup rather than an active runtime restriction. The rules remain authoritative for the schema's data-classification intent: if a future deployment ever introduces a non-BAA provider (e.g., a cost-optimized non-BAA inference path for business documents in a non-healthcare deployment), the rules above describe how the routing layer should treat PHI/PCI fields against it.
 
 ### Why bank credentials moved to `DataClass.PCI`
 

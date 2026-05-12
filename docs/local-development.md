@@ -135,7 +135,7 @@ If anything breaks during validation, capture the exact error message plus `olla
 
 ### Contingency
 
-If Q8_0 load testing reveals problems (vision broken, F1 too low on the Phase 4 sanity test, or unmanageable CPU spill), the contingency tree in the project's main instructions document defines the fallback path: Q6_K → Q4_K_M → InternVL3.5-8B local → cloud-only Tier 3a. Don't deviate from the documented contingency without surfacing the issue first.
+If Q8_0 load testing reveals problems (vision broken, F1 too low on the Phase 4 sanity test, or unmanageable CPU spill), the contingency tree in the project's main instructions document defines the fallback path: Q6_K → Q4_K_M → InternVL3.5-8B local → Tier 3a marked unavailable (only Tier 3a is broken; Tier 1 still runs locally, and Tier 3a-bound escalations are absorbed by Tier 3b instead). Don't deviate from the documented contingency without surfacing the issue first. Note: this is distinct from `EXTRACTION_MODE=degraded` in `.env.example`, which is a broader operational failover triggered when the entire home-GPU bridge is unreachable — under `degraded` both local tiers (Tier 1 AND Tier 3a) are skipped, and every document escalates straight through Tier 2 → Tier 3b.
 
 ## Multi-GPU layer split details
 
