@@ -73,6 +73,29 @@ synthetic-data-patients count="10" seed="42":
         intake-synthea \
         -p {{count}} -s {{seed}} Massachusetts
 
+# Chains the three steps end-to-end:
+#   1. Synthea Docker (via synthetic-data-patients 500 42) — ~3-5 min, ~1-2 GB on disk
+#   2. Playwright/Chromium render (one reused browser) — ~10 min, ~25 MB local output
+#   3. boto3 upload to intake-form-ai-pipeline-documents — ~1-2 min, 1000 objects
+#
+# Re-running is safe: content-addressable S3 keys (<sha256>.{png,json}) land at the
+# same paths across runs. See synthetic_data/render/upload.py module docstring for
+# the S3 versioning footnote.
+#
+# Pre-reqs: Docker, Playwright + Chromium (see docs/local-development.md "Synthea
+# workflow"), and AWS credentials resolvable via the boto3 default chain
+# (~/.aws/credentials / env vars / instance profile). No keys are passed on the CLI.
+#
+# Full Phase 3 healthcare corpus: Synthea 500 patients -> CMS-1500 render -> S3 upload.
+[unix]
+synthetic-data-render-500: (synthetic-data-patients "500" "42")
+    uv run python -m synthetic_data.render.batch \
+        --input synthetic_data/output/synthea/fhir \
+        --output synthetic_data/output/render
+    uv run python -m synthetic_data.render.upload \
+        --input synthetic_data/output/render \
+        --bucket intake-form-ai-pipeline-documents
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
