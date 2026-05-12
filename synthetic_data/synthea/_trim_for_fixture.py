@@ -29,6 +29,7 @@ MAX_ENCOUNTERS_PER_BUNDLE = 3
 
 
 def trim_bundle(bundle: dict) -> dict:
+    """Reduce a Synthea FHIR Bundle to Patient + 3 most-recent Encounters."""
     entries = bundle.get("entry", [])
     patient_entries = [e for e in entries if e["resource"]["resourceType"] == "Patient"]
     encounter_entries = [e for e in entries if e["resource"]["resourceType"] == "Encounter"]
@@ -41,6 +42,7 @@ def trim_bundle(bundle: dict) -> dict:
 
 
 def main() -> None:
+    """CLI entry point: trim every patient bundle in ``src`` into ``dst``."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("src", type=Path, help="Synthea fhir output dir")
     parser.add_argument("dst", type=Path, help="Destination dir for trimmed fixtures")

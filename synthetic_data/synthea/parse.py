@@ -11,6 +11,13 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class SyntheaPatient:
+    """Demographics + most-recent encounter pulled from a Synthea FHIR bundle.
+
+    The shape the Phase 3 CMS-1500 renderer consumes: enough to populate
+    the patient-identity, address, and service-line boxes on the form
+    template without re-reading the source bundle.
+    """
+
     patient_id: str
     given_name: str
     family_name: str

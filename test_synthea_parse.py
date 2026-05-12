@@ -29,6 +29,7 @@ FIXTURE_DIR = Path(__file__).parent / "tests" / "fixtures" / "synthea" / "fhir"
 
 @pytest.fixture(scope="session")
 def bundle_paths() -> list[Path]:
+    """Patient FHIR bundle paths discovered in the committed fixture."""
     paths = find_patient_bundles(FIXTURE_DIR)
     assert paths, f"No patient FHIR bundles found in {FIXTURE_DIR}"
     return paths
@@ -36,17 +37,21 @@ def bundle_paths() -> list[Path]:
 
 @pytest.fixture(scope="session")
 def patients(bundle_paths: list[Path]) -> list[SyntheaPatient]:
+    """Parsed ``SyntheaPatient`` per fixture bundle."""
     return [extract_patient(load_bundle(p)) for p in bundle_paths]
 
 
 def test_fixture_has_six_bundles(bundle_paths: list[Path]) -> None:
-    # `-p 5` told Synthea to generate 5 alive patients; one died in
-    # simulation and was replaced, yielding 6 total bundles. This count
-    # is locked to the committed fixture so a regen mismatch is caught.
+    """Lock fixture count to catch regen drift.
+
+    ``-p 5`` told Synthea to generate 5 alive patients; one died in
+    simulation and was replaced, yielding 6 total bundles.
+    """
     assert len(bundle_paths) == 6
 
 
 def test_find_patient_bundles_excludes_info_files(tmp_path: Path) -> None:
+    """``find_patient_bundles`` skips ``hospitalInformation``/``practitionerInformation`` files."""
     (tmp_path / "patient_abc.json").write_text("{}", encoding="utf-8")
     (tmp_path / "hospitalInformation1.json").write_text("{}", encoding="utf-8")
     (tmp_path / "practitionerInformation1.json").write_text("{}", encoding="utf-8")
@@ -55,6 +60,7 @@ def test_find_patient_bundles_excludes_info_files(tmp_path: Path) -> None:
 
 
 def test_each_bundle_loads_as_fhir_bundle(bundle_paths: list[Path]) -> None:
+    """Every fixture file parses as a FHIR R4 Bundle with an ``entry`` array."""
     for path in bundle_paths:
         bundle = load_bundle(path)
         assert bundle["resourceType"] == "Bundle"
@@ -62,6 +68,7 @@ def test_each_bundle_loads_as_fhir_bundle(bundle_paths: list[Path]) -> None:
 
 
 def test_each_patient_has_demographics(patients: list[SyntheaPatient]) -> None:
+    """Every parsed patient carries the identity fields the renderer needs."""
     for pt in patients:
         assert pt.patient_id, "patient_id must be non-empty"
         assert pt.given_name, f"given_name empty for {pt.patient_id}"
@@ -71,16 +78,18 @@ def test_each_patient_has_demographics(patients: list[SyntheaPatient]) -> None:
 
 
 def test_each_patient_has_massachusetts_address(patients: list[SyntheaPatient]) -> None:
-    # Synthea writes US state as the 2-letter code per the US Core
-    # Patient profile. The recipe pins state to Massachusetts.
+    """State is the 2-letter US Core code (``MA``), per the recipe pin."""
     for pt in patients:
         assert pt.state == "MA", f"unexpected state {pt.state!r} for {pt.patient_id}"
         assert pt.city, f"city empty for {pt.patient_id}"
 
 
 def test_each_patient_has_most_recent_encounter(patients: list[SyntheaPatient]) -> None:
-    # Synthea always generates at least one Encounter per patient within
-    # the export window, so the parser must surface one.
+    """Every patient surfaces at least one Encounter date.
+
+    Synthea always generates at least one Encounter per patient within
+    the export window, so the parser must find one.
+    """
     for pt in patients:
         assert (
             pt.most_recent_encounter_date is not None
@@ -89,15 +98,16 @@ def test_each_patient_has_most_recent_encounter(patients: list[SyntheaPatient]) 
 
 
 def test_encounter_reason_may_be_none(patients: list[SyntheaPatient]) -> None:
-    # Some Synthea encounters omit reasonCode (e.g., wellness visits).
-    # The parser must return Optional[str], not raise.
+    """Parser returns ``Optional[str]`` for ``reasonCode``-less encounters.
+
+    Some Synthea encounters omit reasonCode (e.g., wellness visits).
+    """
     reasons = [pt.most_recent_encounter_reason for pt in patients]
     assert any(r is None for r in reasons) or all(isinstance(r, str) for r in reasons)
 
 
 def test_most_recent_encounter_is_the_latest(bundle_paths: list[Path]) -> None:
-    # Pull every Encounter from each bundle, find the latest by period.start,
-    # confirm the parser's most_recent matches.
+    """``most_recent_encounter_date`` equals the max ``period.start`` per bundle."""
     for path in bundle_paths:
         bundle = load_bundle(path)
         encounters = [
