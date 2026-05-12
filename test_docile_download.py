@@ -222,7 +222,7 @@ def test_download_redacts_token_from_subprocess_stdout(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """The vendored script echoes the token-bearing URL; the wrapper redacts it."""
-    token = "secret-tok-abc123"
+    token = "secret-tok-abc123"  # gitleaks:allow — fake placeholder for redaction test
 
     def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
         # Materialize a complete extraction (the wrapper's idempotency check
@@ -264,7 +264,7 @@ def test_download_redacts_token_from_called_process_error(
     """
     import subprocess as sp
 
-    token = "secret-tok-err999"
+    token = "secret-tok-err999"  # gitleaks:allow — fake placeholder for redaction test
     leaky_stdout = f"Downloading https://example.com/{token}/labeled-trainval.zip\n"
     leaky_stderr = f"curl: (22) URL: https://example.com/{token}/labeled-trainval.zip\n"
 
@@ -302,7 +302,7 @@ def test_download_redacts_token_from_subprocess_stderr(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """curl error paths include the token-bearing URL on stderr — must redact too."""
-    token = "secret-tok-xyz456"
+    token = "secret-tok-xyz456"  # gitleaks:allow — fake placeholder for redaction test
 
     def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
         _make_populated(tmp_path)
