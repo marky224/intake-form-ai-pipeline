@@ -113,16 +113,25 @@ def extract_patient(bundle: dict) -> SyntheaPatient:
 
     most_recent_date: date | None = None
     most_recent_reason: str | None = None
-    dated_encounters = [enc for enc in encounter_resources if enc.get("period", {}).get("start")]
-    if dated_encounters:
+    # Parse each encounter's start once, skip malformed timestamps. One
+    # bad value shouldn't crash extraction for the whole bundle.
+    parsed_encounters: list[tuple[dict, datetime]] = []
+    for enc in encounter_resources:
+        raw = enc.get("period", {}).get("start")
+        if not raw:
+            continue
+        try:
+            if raw.endswith("Z"):
+                raw = raw[:-1] + "+00:00"
+            parsed_encounters.append((enc, datetime.fromisoformat(raw)))
+        except (TypeError, ValueError):
+            continue
+    if parsed_encounters:
         # Sort by parsed datetime so mixed UTC offsets (rare in Synthea
         # but possible) order correctly. Lexical ISO sort would fail there.
-        dated_encounters.sort(
-            key=lambda enc: datetime.fromisoformat(enc["period"]["start"]),
-            reverse=True,
-        )
-        latest = dated_encounters[0]
-        most_recent_date = datetime.fromisoformat(latest["period"]["start"]).date()
+        parsed_encounters.sort(key=lambda pair: pair[1], reverse=True)
+        latest, latest_dt = parsed_encounters[0]
+        most_recent_date = latest_dt.date()
         reason_codes = latest.get("reasonCode") or []
         if reason_codes:
             rc = reason_codes[0]

@@ -23,21 +23,29 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 MAX_ENCOUNTERS_PER_BUNDLE = 3
 
+# Fallback for missing/invalid encounter timestamps. UTC-aware so mixed
+# naive/aware datetimes can't raise TypeError mid-sort when a malformed
+# entry sits alongside real Synthea encounters.
+_MISSING_START = datetime.min.replace(tzinfo=UTC)
+
 
 def _encounter_start(entry: dict) -> datetime:
-    """Sort key: parsed datetime, falling back to ``datetime.min`` if missing/invalid."""
+    """Sort key: parsed UTC-aware datetime, falling back to epoch-min on missing/invalid."""
     raw = entry.get("resource", {}).get("period", {}).get("start")
     if not raw:
-        return datetime.min
+        return _MISSING_START
     try:
+        # Python 3.11+ fromisoformat handles "Z" too, but normalize defensively.
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
         return datetime.fromisoformat(raw)
     except (TypeError, ValueError):
-        return datetime.min
+        return _MISSING_START
 
 
 def _resource_type(entry: dict) -> str | None:
