@@ -189,7 +189,7 @@ For development you usually want fewer patients than 500. Run each step individu
 
 ```bash
 # 1. Synthea: generate 10 FHIR bundles with seed 42 (matches the committed test fixture).
-just synthetic-data-patients 10
+just synthetic-data-patients 10 42
 # Output: synthetic_data/output/synthea/fhir/*.json
 
 # 2. Render: walk the FHIR dir and produce one (PNG, sidecar JSON) pair per patient.
