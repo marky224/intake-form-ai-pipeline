@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 
@@ -123,9 +123,12 @@ def extract_patient(bundle: dict) -> SyntheaPatient:
         try:
             if raw.endswith("Z"):
                 raw = raw[:-1] + "+00:00"
-            parsed_encounters.append((enc, datetime.fromisoformat(raw)))
+            dt = datetime.fromisoformat(raw)
         except (TypeError, ValueError):
             continue
+        # Force UTC-aware so mixed naive/aware datetimes can't TypeError mid-sort.
+        dt = dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
+        parsed_encounters.append((enc, dt))
     if parsed_encounters:
         # Sort by parsed datetime so mixed UTC offsets (rare in Synthea
         # but possible) order correctly. Lexical ISO sort would fail there.

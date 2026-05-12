@@ -43,9 +43,14 @@ def _encounter_start(entry: dict) -> datetime:
         # Python 3.11+ fromisoformat handles "Z" too, but normalize defensively.
         if raw.endswith("Z"):
             raw = raw[:-1] + "+00:00"
-        return datetime.fromisoformat(raw)
+        dt = datetime.fromisoformat(raw)
     except (TypeError, ValueError):
         return _MISSING_START
+    # Force UTC-aware so a naive Synthea timestamp can't mix with _MISSING_START
+    # in the sort and raise TypeError.
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
 
 
 def _resource_type(entry: dict) -> str | None:
