@@ -28,7 +28,7 @@ Phase 7 swaps the placeholder for a wake-on-request flow: Aurora Serverless v2 w
 
 A document arrives at the S3 upload bucket. A two-stage classifier — vocabulary keyword match locally, Bedrock Nova Lite fallback for ambiguous documents — determines vertical (healthcare or business document) and form type. The classification picks the right Pydantic schema and seeds the cascade.
 
-Step Functions orchestrates the cascade: a Tier 1 extraction with PaddleOCR-VL (local on the RTX 4060 Ti during development, Novita-hosted in production), per-field confidence scoring against thresholds, then conditional escalation to Tier 2 (AWS Textract Regular Queries), Tier 3a (Qwen 2.5 VL — 32B local on the RTX 4080, 72B cloud via Together AI), and Tier 3b (Bedrock Claude Sonnet 4.6) for hard cases. Per-field thresholds at 0.85 / 0.80 / 0.75 govern escalation; ~90% of fields never leave Tier 1.
+Step Functions orchestrates the cascade: a Tier 1 extraction with PaddleOCR-VL (local on the RTX 4060 Ti, exposed to the deployed demo via a Cloudflare Tunnel bridge to the home GPU), per-field confidence scoring against thresholds, then conditional escalation to Tier 2 (AWS Textract Regular Queries), Tier 3a (Qwen 2.5 VL 32B, local on combined RTX 4080 + RTX 4060 Ti via the same bridge), and Tier 3b (Bedrock Claude Sonnet 4.6) for hard cases. Per-field thresholds at 0.85 / 0.80 / 0.75 govern escalation; ~90% of fields never leave Tier 1.
 
 Extracted fields are stored in Aurora Serverless v2 alongside the alias table and pgvector embeddings. The React review UI fetches low-confidence fields for human review; reviewer corrections write back to Aurora, update the alias table, and append to the ColQwen 2.5 retrieval corpus. The eval harness reads from a partitioned manifest (train/dev/test), computes F1, cost-per-document, and latency p50/p99, and publishes the F1-over-time chart that's the project's headline metric.
 
@@ -46,7 +46,7 @@ A concrete example. A patient intake form arrives — a scanned CMS-1500 with mo
 
 A second example. A multi-page commercial invoice arrives with three line items in a poorly-aligned table. Tier 1 extracts header fields confidently but the table escalates to Tier 3a (Qwen 2.5 VL — vision-capable, handles spatial layout). Qwen returns the line items at 0.82 confidence. Above the Tier 3a threshold (0.75). Done. The form's min confidence is 0.82 — borderline. It goes to the review queue with low-confidence fields highlighted.
 
-This is what cost-routing by capability buys you: ~90% of fields stay at Tier 1 and cost roughly $0.001 each; the few hard fields pay the higher Tier 3 cost. Single-model approaches at Bedrock Sonnet pricing would cost ~$300 per 1,000 documents at typical field densities; the cascade lands at ~$24.
+This is what cost-routing by capability buys you: ~90% of fields stay at Tier 1 (local, near-zero per-call cost beyond hardware amortization); the few hard fields pay the cloud Tier 2 + Tier 3b cost. Single-model approaches at Bedrock Sonnet pricing would cost ~$300 per 1,000 documents at typical field densities; the cascade lands at ~$9.50.
 
 ## Self-improvement mechanism
 
@@ -62,13 +62,13 @@ The eval harness measures this. F1 over batches, with batches numbered as correc
 
 The pipeline supports two production verticals: healthcare (Synthea-rendered CMS-1500-inspired forms) and business documents (DocILE's annotated dataset).
 
-Healthcare and business documents have different routing constraints. Healthcare documents may contain PHI under HIPAA; the routing layer must keep PHI/PCI fields on BAA-eligible providers (AWS Bedrock, AWS Textract, AWS-hosted Aurora). Business documents have no such restriction — they can route to lower-cost non-BAA providers (Novita-hosted PaddleOCR, Together AI Qwen).
+Healthcare and business documents share the same cascade; healthcare documents may contain PHI under HIPAA, which constrains *where the cascade is deployed*, not which providers it uses. The entire provider surface is BAA-eligible by design: local Tier 1 + Tier 3a inference (HIPAA-safe when the host environment is itself HIPAA-compliant), plus AWS BAA-eligible cloud services (Textract Tier 2, Bedrock Sonnet Tier 3b, Bedrock Nova Lite Router Stage 2). No non-BAA cloud provider is in the routing table.
 
-A single config flag (`HIPAA_MODE`) governs the boundary. When off, the cascade routes by cost: Novita for Tier 1, Textract for layout-heavy Tier 2 escalations, Together AI for Tier 3a, Bedrock for Tier 3b. When on, every field with `data_class` of `PHI` or `PCI` routes to BAA-eligible providers only — Textract replaces Novita, Bedrock Sonnet replaces Together AI Qwen. Same codebase, different routing tables.
+A single config flag (`HIPAA_MODE`) governs deployment posture, not provider selection. When `on`, the routing layer asserts at startup that every configured provider is BAA-eligible (a defense-in-depth no-op under the current architecture; it catches future configuration mistakes), enforces verbose audit logging, and surfaces a deployment-environment checklist the operator must satisfy (physical access controls, encryption at rest/in-transit, workforce HIPAA training, breach response runbook). When `off`, audit logging defaults to standard verbosity. The cascade composition is identical in both modes.
 
-Cost differential matters. Standard cascade lands at ~$24 per 1,000 documents at typical escalation rates. HIPAA-mode cascade lands at ~$150 per 1,000 — roughly 6× more expensive, because the BAA-eligible providers are pricier than their open-API competitors. Both numbers are estimated from cascade priors; Phase 6 eval will measure actual rates on this corpus and update the figures. `docs/eval-methodology.md` walks through the methodology.
+Cost is consequently identical in both modes: **~$9.50 per 1,000 documents** at typical escalation rates. This is estimated from cascade priors; Phase 6 eval will measure actual rates on this corpus and update the figures. `docs/eval-methodology.md` walks through the methodology, and `docs/hipaa-architecture.md` covers the BAA boundary in full.
 
-The classification step is itself the BAA boundary's first line. The vocabulary keyword classifier runs locally and never sees PHI on a non-BAA provider. Only the ~20% of inputs that fall through to the LLM stage go to Bedrock Nova Lite, which is BAA-eligible.
+The classification step is itself the BAA boundary's first line. The vocabulary keyword classifier runs locally and never sends document content over the network. Only the ~20% of inputs that fall through to the LLM stage go to Bedrock Nova Lite, which is BAA-eligible.
 
 ## Key engineering decisions
 
@@ -76,9 +76,9 @@ Fifteen choices made deliberately.
 
 ### Why three tiers
 
-The pipeline uses three tiers of extraction with progressively more capable (and more expensive) models. Documents start at PaddleOCR-VL — fast, ~$10 per 1,000 pages on Novita-hosted inference. Confidence-borderline fields escalate to Textract Regular Queries, then to Qwen 2.5 VL, and finally to Claude Sonnet 4.6 for the rare hard case. This cost-routes by capability: ~90% of fields never leave Tier 1.
+The pipeline uses three tiers of extraction with progressively more capable (and more expensive) models. Documents start at PaddleOCR-VL — fast, runs locally on the RTX 4060 Ti, near-zero per-call cost beyond hardware amortization. Confidence-borderline fields escalate to Textract Regular Queries, then to Qwen 2.5 VL, and finally to Claude Sonnet 4.6 for the rare hard case. This cost-routes by capability: ~90% of fields never leave Tier 1.
 
-Single-model approaches were rejected on cost. At typical field densities, sending every field to Bedrock Sonnet costs ~$300 per 1,000 documents. The cascade lands at ~$24 — a 13× cost ratio. Tier 3 splits internally into 3a (vision-capable LLMs, Qwen 2.5 VL) and 3b (strongest LLMs, Claude Sonnet 4.6) — covered in `docs/architecture-deep-dive.md` for readers who want the full routing detail.
+Single-model approaches were rejected on cost. At typical field densities, sending every field to Bedrock Sonnet costs ~$300 per 1,000 documents. The cascade lands at ~$9.50 — a ~32× cost ratio. Tier 3 splits internally into 3a (vision-capable LLMs, Qwen 2.5 VL local) and 3b (strongest LLMs, Claude Sonnet 4.6 via Bedrock) — covered in `docs/architecture-deep-dive.md` for readers who want the full routing detail.
 
 ### Why Aurora Serverless v2 with auto-pause
 
@@ -116,15 +116,15 @@ Q8_0 is imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` Hugging Face re
 
 Phase 4 begins with a 20-doc dual-quant sanity test pitting Q8_0 against Q6_K (custom Modelfile from the same Hugging Face repo, ~28.7 GB, no CPU spill expected). If F1 is within ±0.02, Q6_K wins by saving the spill. If F1 differs measurably, Q8_0 stays locked. The full contingency tree (including Q4_K_M and InternVL3.5-8B fallback paths) is documented in `docs/local-development.md`.
 
-Production routes Tier 3a to Together AI's hosted Qwen 2.5 VL 72B, which has the headroom for higher quality at the same architecture without the local quantization tradeoff.
+Production runs Tier 3a on the same local Qwen 2.5 VL 32B model exposed to AWS via a Cloudflare Tunnel bridge to the home GPU (Phase 7). A managed-cloud Tier 3a host (Together AI's 72B, Novita's hosted inference, etc.) was considered and rejected: managed cloud Tier 3a at the project's escalation rate adds ~$15/1K to the cascade cost without a material F1 lift over Qwen 32B local, and routing PHI through a non-BAA managed inference provider would force a HIPAA-mode routing swap the architecture now avoids by design.
 
-### Why HIPAA mode is a config flag, not a separate codebase
+### Why HIPAA mode is a deployment posture, not a separate codebase
 
-`HIPAA_MODE=on` switches the routing layer's allowed-providers table. PHI/PCI fields route to BAA-eligible providers only (Bedrock, Textract); non-PHI fields can route anywhere. The cascade orchestration, schema validation, eval harness, and review UI are identical in both modes.
+`HIPAA_MODE=on` is a deployment-posture assertion rather than a provider-routing switch. The cascade's entire provider surface is BAA-eligible by design — local Tier 1 + Tier 3a (HIPAA-safe when the host environment is HIPAA-compliant) plus AWS BAA-eligible Tier 2 (Textract), Tier 3b (Bedrock Sonnet), and Router Stage 2 (Bedrock Nova Lite) — so there's no non-BAA provider for the flag to swap out. What `HIPAA_MODE=on` does: enforce a startup-time assertion that every configured provider is BAA-eligible (defense-in-depth against future misconfiguration), raise audit-logging verbosity, and surface the operator deployment-environment checklist (physical access controls, encryption at rest/in-transit, workforce HIPAA training, breach response runbook).
 
-A separate codebase for healthcare would have meant maintaining two parallel implementations indefinitely. The boundary between "what's PHI" and "what's not" is data-driven (the `DataClass` enum on each field) and routing-driven (the `is_baa_required` helper). Moving that boundary doesn't require changing extraction logic or schemas — only the routing table.
+A separate codebase for healthcare would have meant maintaining two parallel implementations indefinitely. The boundary between "what's PHI" and "what's not" is data-driven (the `DataClass` enum on each field) and routing-aware (the `is_baa_required` helper). Moving that boundary doesn't require changing extraction logic or schemas — only the operator's deployment environment.
 
-A useful side effect: the eval harness can run both modes against the same fixture set, directly measuring the cost/quality tradeoff that BAA-only routing buys. Standard ~$24 per 1,000 docs vs HIPAA-mode ~$150 per 1,000 — same fixtures, same F1 measurement, different router.
+The HIPAA-safe deployment posture targets real customers running on-prem inside their HIPAA-compliant infrastructure (hospital data center, HITRUST-certified hosting). The portfolio's deployed demo at `ai-intake.markandrewmarquez.com` operates against Synthea-generated synthetic data only and is documented as a non-HIPAA deployment; HIPAA mode is exercised in tests and documented as a capability, not run live against PHI. Cost is identical in both modes: ~$9.50 per 1,000 documents.
 
 ### Why a two-stage router
 
@@ -279,9 +279,9 @@ The cascade has two cost modes.
 
 **Local development.** Tier 1 and Tier 3a run on the project's own GPUs (RTX 4080 + RTX 4060 Ti). The eval harness defaults to cached fixtures, so day-to-day development cost is essentially $0. Local-first is the primary mode for dev iteration.
 
-**Deployed demo.** The demo at ai-intake.markandrewmarquez.com routes Tier 1 to Novita and Tier 3a to Together AI for cost-efficient cloud hosting. Tier 2 (Textract Regular Queries) and Tier 3b (Bedrock Sonnet) are cloud-only by architecture. Per-1,000-document inference cost: **~$24 in standard mode, ~$150 in HIPAA mode** at estimated escalation rates of ~30% to Tier 2, ~10% to Tier 3a, ~3% to Tier 3b. These rates are industry-prior estimates for cascade extraction on form-like documents; Phase 6 eval harness will measure actual rates on this corpus and update the cost figures accordingly. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly run cost at portfolio traffic: ~$10-15.
+**Deployed demo.** The demo at ai-intake.markandrewmarquez.com reaches Tier 1 (PaddleOCR-VL) and Tier 3a (Qwen 2.5 VL 32B) on the project's own GPUs (RTX 4080 + RTX 4060 Ti) via a Cloudflare Tunnel bridge — AWS Step Functions calls a FastAPI wrapper service on the home GPU through the tunnel, with shared-secret auth and a `degraded`-mode failover when the bridge is unreachable (skip local tiers, escalate every document to Tier 2 + Tier 3b). Tier 2 (Textract Regular Queries), Tier 3b (Bedrock Sonnet), and Router Stage 2 (Bedrock Nova Lite) are cloud by architecture, all AWS BAA-eligible. Per-1,000-document inference cost: **~$9.50** at estimated escalation rates of ~30% to Tier 2, ~10% to Tier 3a, ~3% to Tier 3b. HIPAA-mode deployment runs the same cascade — no provider swap, no second cost number — though the home-GPU host of the portfolio's deployed demo is not HIPAA-compliant infrastructure, so the public demo operates against Synthea synthetic data only. These rates are industry-prior estimates for cascade extraction on form-like documents; Phase 6 eval harness will measure actual rates on this corpus and update the cost figures accordingly. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly run cost at portfolio traffic: ~$5-10 (cloud-tier portion only; the local tiers run on hardware already owned).
 
-The 13× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold routing breach notifications to an SNS topic), the AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), and Cost Anomaly Detection (account-level Default-Services-Subscription delivering anomaly alerts to email) are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
+The ~32× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold routing breach notifications to an SNS topic), the AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), and Cost Anomaly Detection (account-level Default-Services-Subscription delivering anomaly alerts to email) are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
 
 ## What's not in scope
 

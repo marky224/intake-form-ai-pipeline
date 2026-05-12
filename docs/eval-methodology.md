@@ -32,7 +32,7 @@ Latency is wall-clock time from cascade entry to last-tier response, recorded pe
 
 The eval harness defaults to cached fixtures. `evals/fixtures/` contains versioned per-tier responses for every document in the test partition. `evals/fixtures_manifest.json` records the version, the date the fixture was generated, and the model versions used for each provider call.
 
-This default exists for cost reasons. A single full eval batch through the live cascade costs roughly $15–25 at current pricing — fine for explicit Phase 6 fixture-generation runs, ruinous if it happens accidentally on every CI run. Cached mode reads fixtures from disk at full speed and produces deterministic F1 numbers; live mode produces slightly non-deterministic F1 because LLM responses have noise.
+This default exists for cost reasons. A single full eval batch through the live cascade costs roughly $5–10 at current pricing (500–1000 docs at the ~$9.50/1K cascade rate; local-tier inference is essentially free, so the live spend is the cloud-tier portion only) — fine for explicit Phase 6 fixture-generation runs, ruinous if it accumulates accidentally across every CI run. Cached mode reads fixtures from disk at full speed and produces deterministic F1 numbers; live mode produces slightly non-deterministic F1 because LLM responses have noise.
 
 CI never runs in live mode. Live runs require the `EVAL_LIVE=true` environment variable, set explicitly during local fixture-generation sessions. Phase 6 generates an initial fixture set against ~50 documents, sanity-checks F1, then expands to the full test partition (~500–1000 documents). This small-testing-first discipline is what keeps the build budget within the $65–110 envelope.
 
