@@ -26,12 +26,19 @@ dependencies = [
 # .pre-commit-config.yaml. CI runs `uv sync --frozen` then ruff/black, so the
 # dev-deps and pre-commit hooks must agree on tool version. Bump both files
 # together when modernizing tooling.
+#
+# jinja2 + playwright are the synthetic-data renderer's deps (Phase 3 PR (b)).
+# jinja2 templates the CMS-1500 HTML; playwright drives the headless Chromium
+# that rasterizes each form to PNG. Playwright tests are marked `slow` and
+# skipped in CI (CI does not install the Chromium binary).
 [dependency-groups]
 dev = [
     "pytest>=8.0",
     "ruff==0.7.4",
     "black==24.10.0",
     "pre-commit>=4.0",
+    "jinja2>=3.1",
+    "playwright>=1.40",
 ]
 
 # Treat the repo as an application, not a library: uv won't try to build/install
