@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 
-from synthetic_data.render.render import _safe_stem
+from synthetic_data.render.render import _render_stem, _safe_stem
 
 
 def test_safe_stem_passes_through_uuid_unchanged() -> None:
@@ -68,3 +68,33 @@ def test_safe_stem_handles_all_unsafe_chars() -> None:
     # All chars get replaced 1-for-1 with `_`, so the result is non-empty
     # and not dot-only, which means the hash fallback does NOT fire.
     assert _safe_stem("///") == "___"
+
+
+def test_render_stem_appends_disambiguator() -> None:
+    """``_render_stem`` adds a stable 8-hex-char sha256 suffix."""
+    uuid = "aee7bbe1-0c45-c028-1e62-1f4cdb30c273"
+    stem = _render_stem(uuid)
+    assert stem.startswith(uuid + "-")
+    # Suffix is 8 lowercase hex digits.
+    suffix = stem.rsplit("-", 1)[-1]
+    assert len(suffix) == 8
+    assert all(c in "0123456789abcdef" for c in suffix)
+
+
+def test_render_stem_is_deterministic() -> None:
+    """Same input → same output across calls (so re-renders are byte-stable)."""
+    a = _render_stem("patient-xyz")
+    b = _render_stem("patient-xyz")
+    assert a == b
+
+
+def test_render_stem_disambiguates_colliding_sanitized_stems() -> None:
+    """Two distinct patient_ids that share a sanitized stem produce
+    different render stems via the hash suffix.
+
+    Without the disambiguator, ``a/b`` and ``a_b`` both sanitize to
+    ``a_b`` and would silently overwrite each other's outputs in a
+    batch run.
+    """
+    assert _safe_stem("a/b") == _safe_stem("a_b") == "a_b"
+    assert _render_stem("a/b") != _render_stem("a_b")

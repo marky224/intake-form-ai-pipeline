@@ -112,6 +112,21 @@ def _safe_stem(patient_id: str) -> str:
     return cleaned
 
 
+def _render_stem(patient_id: str) -> str:
+    """Collision-safe output stem for a given patient_id.
+
+    Combines the sanitized stem with a stable 8-char sha256 prefix
+    derived from the *unsanitized* patient_id. Two patient_ids that
+    normalize to the same stem (e.g., ``a/b`` and ``a_b``) still
+    produce distinct filenames because the hash suffix differs.
+    Deterministic: the same patient_id always yields the same stem,
+    so re-rendering a subset is byte-stable.
+    """
+    sanitized = _safe_stem(patient_id)
+    disambiguator = hashlib.sha256(patient_id.encode("utf-8")).hexdigest()[:8]
+    return f"{sanitized}-{disambiguator}"
+
+
 def _build_html(patient: SyntheaPatient, signature: SignatureRender) -> str:
     template = _jinja_env().get_template(TEMPLATE_NAME)
     return template.render(
@@ -186,7 +201,7 @@ def _render_in_context(
 
         field_bboxes = _extract_field_bboxes(page)
 
-        stem = _safe_stem(patient.patient_id)
+        stem = _render_stem(patient.patient_id)
         png_path = output_dir / f"{stem}.png"
         page.screenshot(path=str(png_path), full_page=True)
     finally:

@@ -19,7 +19,7 @@ from synthetic_data.render.config import (
     PAGE_WIDTH_PX,
     TYPED_FONT,
 )
-from synthetic_data.render.render import render_batch
+from synthetic_data.render.render import _render_stem, render_batch
 from synthetic_data.synthea.parse import (
     extract_patient,
     find_patient_bundles,
@@ -55,11 +55,12 @@ def test_batch_produces_one_png_and_one_sidecar_per_patient(
     assert len(pngs) == len(all_six_patients) == 6
     assert len(jsons) == len(all_six_patients) == 6
 
-    # Filenames are patient_id-keyed and match 1:1.
+    # PNG and sidecar stems match 1:1 via _render_stem(patient_id) —
+    # sanitized stem + 8-char sha256 disambiguator.
     png_stems = {p.stem for p in pngs}
     json_stems = {p.stem for p in jsons}
-    patient_ids = {p.patient_id for p in all_six_patients}
-    assert png_stems == json_stems == patient_ids
+    expected_stems = {_render_stem(p.patient_id) for p in all_six_patients}
+    assert png_stems == json_stems == expected_stems
 
 
 def test_batch_sidecars_round_trip_as_json(batch_output: Path) -> None:
