@@ -248,6 +248,35 @@ def test_download_redacts_token_from_subprocess_stdout(
     assert "<TOKEN-REDACTED>" in out
 
 
+def test_download_redacts_token_from_subprocess_stderr(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """curl error paths include the token-bearing URL on stderr — must redact too."""
+    token = "secret-tok-xyz456"
+
+    def fake_runner(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+        _make_populated(tmp_path)
+        # Mirror curl's error-path stderr shape: one progress-bar line +
+        # one error line containing the full token-bearing URL.
+        script_stderr = (
+            "  % Total    % Received % Xferd  Average Speed\n"
+            f"curl: (22) The requested URL returned error: 404 "
+            f"https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/"
+            f"{token}/labeled-trainval.zip\n"
+        )
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr=script_stderr)
+
+    download_labeled_trainval(
+        tmp_path,
+        env={TOKEN_ENV_VAR: token},
+        runner=fake_runner,
+    )
+
+    captured = capsys.readouterr()
+    assert token not in captured.err, f"token leaked into stderr: {captured.err!r}"
+    assert "<TOKEN-REDACTED>" in captured.err
+
+
 def test_download_skip_if_present_avoids_runner(tmp_path: Path) -> None:
     """Pre-populated dataset root → wrapper short-circuits without calling the script."""
     _make_populated(tmp_path)

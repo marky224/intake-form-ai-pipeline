@@ -199,11 +199,16 @@ def download_labeled_trainval(
     # bash <script> <token> <dataset> <dir> --unzip
     # `bash` rather than direct exec sidesteps any chmod weirdness on
     # systems where the file checked out without the +x bit.
-    # Capture stdout so we can redact the token before re-emitting —
-    # the vendored script echoes "Downloading <url>" with the token
-    # interpolated into the URL path, and also includes the token in
-    # the on-size-mismatch error message. stderr (curl progress bar)
-    # flows through unmodified so the user still sees download progress.
+    #
+    # Capture BOTH stdout and stderr so we can redact the token before
+    # re-emitting. The vendored script echoes "Downloading <url>" on
+    # stdout (URL contains the token as a path segment), and curl can
+    # emit "curl: (22) ... <url>" on stderr when the server returns
+    # an error (e.g., 404 for a wrong token) — without stderr redaction
+    # those error paths leak credentials. Trade-off: capturing stderr
+    # loses curl's live progress bar during the download, but the
+    # finished progress lands at end-of-run. Token safety > live UX
+    # for a recipe that runs once or twice manually.
     result = runner(
         [
             "bash",
@@ -215,11 +220,15 @@ def download_labeled_trainval(
         ],
         check=True,
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
     )
-    captured = getattr(result, "stdout", None)
-    if captured:
-        sys.stdout.write(captured.replace(token, "<TOKEN-REDACTED>"))
+    captured_out = getattr(result, "stdout", None)
+    if captured_out:
+        sys.stdout.write(captured_out.replace(token, "<TOKEN-REDACTED>"))
+    captured_err = getattr(result, "stderr", None)
+    if captured_err:
+        sys.stderr.write(captured_err.replace(token, "<TOKEN-REDACTED>"))
     return dest_dir
 
 
