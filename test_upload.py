@@ -167,6 +167,21 @@ def test_load_sidecar_rejects_short_image_sha256(tmp_path: Path) -> None:
         _load_sidecar(sidecar_path)
 
 
+def test_load_sidecar_rejects_non_hex_image_sha256(tmp_path: Path) -> None:
+    """A 64-char non-hex image_sha256 is rejected at load time, not downstream.
+
+    Without the hex check inside _load_sidecar, the bad value would pass the
+    length+type validation here and only fail later inside derive_s3_keys —
+    where the error message wouldn't name the sidecar file that produced it,
+    making corrupt-fixture debugging harder.
+    """
+    sidecar_path = tmp_path / "x.json"
+    bad = _make_sidecar_dict("x.png", "z" * 64)
+    sidecar_path.write_text(json.dumps(bad), encoding="utf-8")
+    with pytest.raises(ValueError, match=r"Sidecar .* image_sha256 must be a 64-char hex string"):
+        _load_sidecar(sidecar_path)
+
+
 def test_load_sidecar_rejects_empty_patient_id(tmp_path: Path) -> None:
     sidecar_path = tmp_path / "x.json"
     bad = _make_sidecar_dict("x.png", "a" * 64, patient_id="")

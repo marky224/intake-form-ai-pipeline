@@ -112,7 +112,10 @@ def _load_sidecar(sidecar_path: Path) -> dict:
         )
 
     sha = data.get("image_sha256")
-    if not isinstance(sha, str) or len(sha) != 64:
+    # Mirror derive_s3_keys' hex-charset check at load time so an invalid
+    # sidecar fails with a path-naming error rather than slipping through
+    # to a less actionable error inside derive_s3_keys downstream.
+    if not isinstance(sha, str) or len(sha) != 64 or not all(c in "0123456789abcdef" for c in sha):
         raise ValueError(f"Sidecar {sidecar_path} image_sha256 must be a 64-char hex string")
 
     pid = data.get("patient_id")

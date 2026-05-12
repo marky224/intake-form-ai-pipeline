@@ -157,16 +157,20 @@ The healthcare half of the synthetic corpus is generated end-to-end via three ch
 
 - **Docker** — Synthea runs in a pinned container (`synthetic_data/synthea/Dockerfile` checksum-verifies the upstream JAR at build time).
 - **Playwright + Chromium** — the renderer drives a headless Chromium via Playwright:
+
   ```bash
   uv sync                                    # installs playwright (dev dep)
   uv run playwright install chromium         # downloads the Chromium binary
   ```
+
   On Ubuntu 24.04, Chromium also needs a handful of system libs that Playwright's `install-deps` would install via sudo. In headless / no-TTY environments install them explicitly:
+
   ```bash
   sudo apt install -y libcairo2 libcups2t64 libpango-1.0-0 \
                       libxcomposite1 libxdamage1 libxfixes3 \
                       libatk1.0-0 libatk-bridge2.0-0 libnss3
   ```
+
 - **AWS credentials** for the upload step, resolvable via the standard boto3 chain (`~/.aws/credentials`, env vars, or instance profile). The CLI never reads keys from arguments.
 
 ### One-shot full corpus (Phase 3 closeout)
@@ -207,7 +211,7 @@ uv run python -m synthetic_data.render.upload \
 
 The uploader derives each object's key from the PNG's `image_sha256` (already computed by the renderer and recorded in the sidecar — the uploader does not re-hash). PNG and sidecar share the hash and differ only in extension:
 
-```
+```text
 synthetic/healthcare/cms1500/<image_sha256>.png
 synthetic/healthcare/cms1500/<image_sha256>.json
 ```
