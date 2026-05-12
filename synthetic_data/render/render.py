@@ -260,7 +260,14 @@ def _extract_field_bboxes(page: Any) -> list[dict]:
         first = locator.first
         box = first.bounding_box()
         if box is None:
-            continue
+            # display:none / zero-size / detached element with a
+            # data-field attribute is a template bug — surface it
+            # rather than emit an incomplete sidecar that silently
+            # drops the field's ground truth.
+            raise RuntimeError(
+                f"data-field selector {selector!r} matched an element with no "
+                f"layout box (BBOX_FIELDS entry {field_name!r})"
+            )
         value = (first.text_content() or "").strip()
         fields.append(
             {

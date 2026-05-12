@@ -156,3 +156,19 @@ def test_extract_field_bboxes_skips_missing_selectors_silently() -> None:
 
     result = _extract_field_bboxes(page)
     assert result == []
+
+
+def test_extract_field_bboxes_raises_on_null_bounding_box() -> None:
+    """A matched element with no layout box (display:none / zero size /
+    detached) is a template bug — surface it instead of silently
+    dropping the field's ground truth from the sidecar."""
+    page = MagicMock()
+    locator = MagicMock()
+    locator.count.return_value = 1
+    first = MagicMock()
+    first.bounding_box.return_value = None
+    locator.first = first
+    page.locator.return_value = locator
+
+    with pytest.raises(RuntimeError, match="no\\s+layout box"):
+        _extract_field_bboxes(page)
