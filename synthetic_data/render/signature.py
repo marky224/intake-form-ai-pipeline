@@ -102,7 +102,9 @@ def patient_signature(patient_id: str, name: str) -> SignatureRender:
 
 
 def _typed(name: str) -> SignatureRender:
-    style = f'font-family: "{TYPED_FONT}", sans-serif; font-size: 14px;'
+    # Single-quote the font name inside the double-quoted style attribute
+    # so Chromium doesn't truncate the attribute at a nested double quote.
+    style = f"font-family: '{TYPED_FONT}', sans-serif; font-size: 14px;"
     html = f'<span class="signature signature-typed" style="{style}">{_escape(name)}</span>'
     return SignatureRender(
         mode="typed",
@@ -114,8 +116,11 @@ def _typed(name: str) -> SignatureRender:
 
 
 def _handwritten(name: str, font: str, rotation_deg: float) -> SignatureRender:
+    # Single-quote the font name inside the double-quoted style attribute
+    # so Chromium doesn't truncate the attribute at a nested double quote.
+    # The single quotes also handle multi-word families like "Homemade Apple".
     style = (
-        f'font-family: "{font}", cursive; font-size: 22px; '
+        f"font-family: '{font}', cursive; font-size: 22px; "
         f"filter: url(#{SIGNATURE_FILTER_ID}); "
         "display: inline-block; "
         f"transform: rotate({rotation_deg:.3f}deg);"

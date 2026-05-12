@@ -142,6 +142,28 @@ def test_html_escapes_dangerous_chars_in_name() -> None:
     assert "&quot;" in s.html_snippet
 
 
+def test_inline_style_does_not_nest_double_quotes() -> None:
+    """Inline ``style="..."`` attributes must not contain a nested ``"``.
+
+    Browsers truncate the attribute at the first inner double-quote, so
+    a font-family written as ``font-family: "Caveat"`` inside a
+    ``style="..."`` attribute silently loses the family declaration.
+    Regression guard: every generated style attribute uses single
+    quotes around font names.
+    """
+    # Sample both modes from 200 patient ids; assert no nested double
+    # quotes inside any style="..." attribute.
+    style_attr = re.compile(r'style="([^"]*)"')
+    for i in range(200):
+        s = patient_signature(f"qquote-probe-{i}", NAME)
+        matches = style_attr.findall(s.html_snippet)
+        assert matches, f"expected at least one style attr in {s.html_snippet!r}"
+        for body in matches:
+            assert (
+                '"' not in body
+            ), f"nested double-quote in style attribute (mode={s.mode}): {body!r}"
+
+
 def test_signature_render_is_frozen() -> None:
     """``SignatureRender`` is immutable so downstream consumers can't mutate it."""
     s = patient_signature("immutable-probe", NAME)
