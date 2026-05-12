@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 
@@ -60,7 +60,12 @@ def extract_patient(bundle: dict) -> SyntheaPatient:
     simulated medical history.
     """
     entries = bundle["entry"]
-    patient_res = next(e["resource"] for e in entries if e["resource"]["resourceType"] == "Patient")
+    patient_res = next(
+        (e["resource"] for e in entries if e["resource"]["resourceType"] == "Patient"),
+        None,
+    )
+    if patient_res is None:
+        raise ValueError("No Patient resource found in bundle")
     encounter_resources = [
         e["resource"] for e in entries if e["resource"]["resourceType"] == "Encounter"
     ]
@@ -71,7 +76,9 @@ def extract_patient(bundle: dict) -> SyntheaPatient:
     birth = date.fromisoformat(patient_res["birthDate"])
     gender = patient_res.get("gender", "unknown")
 
-    address_res = patient_res.get("address", [{}])[0]
+    # `address` can be present-but-empty in synthetic edge cases; the
+    # `or [{}]` fallback covers both missing and empty-list shapes.
+    address_res = (patient_res.get("address") or [{}])[0]
     address_lines = address_res.get("line") or [""]
     address_line = address_lines[0]
     city = address_res.get("city", "")
@@ -88,9 +95,14 @@ def extract_patient(bundle: dict) -> SyntheaPatient:
     most_recent_reason: str | None = None
     dated_encounters = [enc for enc in encounter_resources if enc.get("period", {}).get("start")]
     if dated_encounters:
-        dated_encounters.sort(key=lambda enc: enc["period"]["start"], reverse=True)
+        # Sort by parsed datetime so mixed UTC offsets (rare in Synthea
+        # but possible) order correctly. Lexical ISO sort would fail there.
+        dated_encounters.sort(
+            key=lambda enc: datetime.fromisoformat(enc["period"]["start"]),
+            reverse=True,
+        )
         latest = dated_encounters[0]
-        most_recent_date = date.fromisoformat(latest["period"]["start"][:10])
+        most_recent_date = datetime.fromisoformat(latest["period"]["start"]).date()
         reason_codes = latest.get("reasonCode") or []
         if reason_codes:
             rc = reason_codes[0]

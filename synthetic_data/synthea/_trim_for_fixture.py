@@ -28,11 +28,18 @@ from pathlib import Path
 MAX_ENCOUNTERS_PER_BUNDLE = 3
 
 
+def _resource_type(entry: dict) -> str | None:
+    resource = entry.get("resource")
+    if not isinstance(resource, dict):
+        return None
+    return resource.get("resourceType")
+
+
 def trim_bundle(bundle: dict) -> dict:
     """Reduce a Synthea FHIR Bundle to Patient + 3 most-recent Encounters."""
     entries = bundle.get("entry", [])
-    patient_entries = [e for e in entries if e["resource"]["resourceType"] == "Patient"]
-    encounter_entries = [e for e in entries if e["resource"]["resourceType"] == "Encounter"]
+    patient_entries = [e for e in entries if _resource_type(e) == "Patient"]
+    encounter_entries = [e for e in entries if _resource_type(e) == "Encounter"]
     encounter_entries.sort(
         key=lambda e: e["resource"].get("period", {}).get("start", ""),
         reverse=True,

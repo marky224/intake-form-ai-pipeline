@@ -101,9 +101,10 @@ def test_encounter_reason_may_be_none(patients: list[SyntheaPatient]) -> None:
     """Parser returns ``Optional[str]`` for ``reasonCode``-less encounters.
 
     Some Synthea encounters omit reasonCode (e.g., wellness visits).
+    Every reason must be either None or a str — no other types leak.
     """
     reasons = [pt.most_recent_encounter_reason for pt in patients]
-    assert any(r is None for r in reasons) or all(isinstance(r, str) for r in reasons)
+    assert all(r is None or isinstance(r, str) for r in reasons)
 
 
 def test_most_recent_encounter_is_the_latest(bundle_paths: list[Path]) -> None:
