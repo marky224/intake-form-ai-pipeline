@@ -223,6 +223,25 @@ def test_main_returns_2_when_dataset_root_missing(
     assert "is not a directory" in err
 
 
+def test_main_returns_2_when_limit_is_negative(
+    dataset_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A negative --limit is a CLI input typo; surface as exit 2, not a traceback."""
+    rc = main(
+        [
+            "--dataset-root",
+            str(dataset_root),
+            "--render-dir",
+            str(tmp_path / "render"),
+            "--limit",
+            "-5",
+        ]
+    )
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "--limit must be >= 0" in err
+
+
 def test_main_happy_path_logs_doc_count(
     dataset_root: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -197,6 +197,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"--dataset-root {args.dataset_root} is not a directory", file=sys.stderr)
         return 2
 
+    if args.limit < 0:
+        # Surface the typo with a clean exit instead of letting the
+        # ValueError from ingest_dataset propagate as a traceback.
+        print(
+            f"--limit must be >= 0 (0 means no cap), got {args.limit}",
+            file=sys.stderr,
+        )
+        return 2
+
     processed = ingest_dataset(args.dataset_root, args.render_dir, limit=args.limit)
     print(f"Ingested {processed} document(s) -> {args.render_dir}")
     return 0

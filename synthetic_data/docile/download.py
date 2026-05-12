@@ -114,13 +114,16 @@ def annotations_dir_is_populated(dest_dir: Path) -> bool:
     """True when ``<dest_dir>`` looks like a fully-extracted DocILE root.
 
     Used as the idempotency check: a re-run after a successful download
-    sees the populated directory and skips the curl+unzip step. Three
+    sees the populated directory and skips the curl+unzip step. Four
     signals must all be present:
 
     * ``annotations/`` exists and contains at least one JSON file.
+    * ``pdfs/`` exists and contains at least one PDF — without this,
+      a partial extraction that wrote annotations but stopped before
+      the PDFs would look "populated" and ingest would fail later.
     * ``train.json`` exists at the root (one of the split indexes
-      ``upload_dataset.sh --unzip`` writes; absence indicates the unzip
-      didn't reach the end of the archive).
+      ``download_dataset.sh --unzip`` writes; absence indicates the
+      unzip didn't reach the end of the archive).
     * ``val.json`` exists at the root (the other split index).
 
     If any signal is missing — e.g., the user Ctrl-Ced during
@@ -129,9 +132,10 @@ def annotations_dir_is_populated(dest_dir: Path) -> bool:
     complete.
     """
     annotations = dest_dir / "annotations"
-    if not annotations.is_dir():
+    pdfs = dest_dir / "pdfs"
+    if not annotations.is_dir() or not any(annotations.glob("*.json")):
         return False
-    if not any(annotations.glob("*.json")):
+    if not pdfs.is_dir() or not any(pdfs.glob("*.pdf")):
         return False
     if not (dest_dir / "train.json").is_file():
         return False
@@ -166,12 +170,17 @@ def download_labeled_trainval(
             f"in cost-model.md."
         )
 
-    verify_vendored_script()
-    token = resolve_token(env=env)
-
+    # Idempotency check runs FIRST — before verify_vendored_script and
+    # resolve_token — so a re-run against an already-populated dataset
+    # is a true no-op. Requiring a valid token + intact vendored script
+    # for a call that won't make any network requests would be
+    # over-strict (and would break re-runs after token rotation).
     dest_dir = Path(dest_dir)
     if skip_if_present and annotations_dir_is_populated(dest_dir):
         return dest_dir
+
+    verify_vendored_script()
+    token = resolve_token(env=env)
 
     # Resolve `runner` at call time rather than capturing ``subprocess.run``
     # at function-definition time — late binding lets tests monkeypatch
