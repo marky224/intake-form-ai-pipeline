@@ -209,20 +209,33 @@ def download_labeled_trainval(
     # loses curl's live progress bar during the download, but the
     # finished progress lands at end-of-run. Token safety > live UX
     # for a recipe that runs once or twice manually.
-    result = runner(
-        [
-            "bash",
-            str(VENDORED_SCRIPT_PATH),
-            token,
-            dataset,
-            str(dest_dir),
-            "--unzip",
-        ],
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    try:
+        result = runner(
+            [
+                "bash",
+                str(VENDORED_SCRIPT_PATH),
+                token,
+                dataset,
+                str(dest_dir),
+                "--unzip",
+            ],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except subprocess.CalledProcessError as err:
+        # ``check=True`` raises ``CalledProcessError`` with raw stdout/stderr
+        # attached when the script exits non-zero. Those attributes carry the
+        # token-bearing URL (the script echoes it before curl, and curl's own
+        # error output includes the URL). Redact in place before re-raising
+        # so any Python-side traceback or programmatic caller that inspects
+        # the exception sees the masked form.
+        if err.stdout:
+            err.stdout = err.stdout.replace(token, "<TOKEN-REDACTED>")
+        if err.stderr:
+            err.stderr = err.stderr.replace(token, "<TOKEN-REDACTED>")
+        raise
     captured_out = getattr(result, "stdout", None)
     if captured_out:
         sys.stdout.write(captured_out.replace(token, "<TOKEN-REDACTED>"))

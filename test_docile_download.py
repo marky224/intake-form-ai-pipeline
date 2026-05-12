@@ -248,6 +248,41 @@ def test_download_redacts_token_from_subprocess_stdout(
     assert "<TOKEN-REDACTED>" in out
 
 
+def test_download_redacts_token_from_called_process_error(tmp_path: Path) -> None:
+    """A failing subprocess raises CalledProcessError; its stdout/stderr must be redacted.
+
+    Without this, a downstream caller doing ``except CalledProcessError as exc:
+    log.error(exc.stderr)`` would log the token. The wrapper catches + redacts
+    + re-raises so the exception that propagates is token-free.
+    """
+    import subprocess as sp
+
+    token = "secret-tok-err999"
+    leaky_stdout = f"Downloading https://example.com/{token}/labeled-trainval.zip\n"
+    leaky_stderr = f"curl: (22) URL: https://example.com/{token}/labeled-trainval.zip\n"
+
+    def failing_runner(argv: list[str], **kwargs: object) -> sp.CompletedProcess:
+        raise sp.CalledProcessError(
+            returncode=22,
+            cmd=argv,
+            output=leaky_stdout,
+            stderr=leaky_stderr,
+        )
+
+    with pytest.raises(sp.CalledProcessError) as excinfo:
+        download_labeled_trainval(
+            tmp_path,
+            env={TOKEN_ENV_VAR: token},
+            runner=failing_runner,
+        )
+
+    exc = excinfo.value
+    assert token not in (exc.stdout or ""), f"token leaked via exc.stdout: {exc.stdout!r}"
+    assert token not in (exc.stderr or ""), f"token leaked via exc.stderr: {exc.stderr!r}"
+    assert "<TOKEN-REDACTED>" in (exc.stdout or "")
+    assert "<TOKEN-REDACTED>" in (exc.stderr or "")
+
+
 def test_download_redacts_token_from_subprocess_stderr(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
