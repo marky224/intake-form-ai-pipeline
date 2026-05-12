@@ -12,7 +12,7 @@ utility.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -119,6 +119,6 @@ def test_most_recent_encounter_is_the_latest(bundle_paths: list[Path]) -> None:
         ]
         if not encounters:
             continue
-        truth = max(date.fromisoformat(e["period"]["start"][:10]) for e in encounters)
+        truth = max(datetime.fromisoformat(e["period"]["start"]) for e in encounters).date()
         parsed = extract_patient(bundle).most_recent_encounter_date
         assert parsed == truth, f"{path.name}: parsed {parsed} != truth {truth}"

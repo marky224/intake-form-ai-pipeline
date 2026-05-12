@@ -23,9 +23,21 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 
 MAX_ENCOUNTERS_PER_BUNDLE = 3
+
+
+def _encounter_start(entry: dict) -> datetime:
+    """Sort key: parsed datetime, falling back to ``datetime.min`` if missing/invalid."""
+    raw = entry.get("resource", {}).get("period", {}).get("start")
+    if not raw:
+        return datetime.min
+    try:
+        return datetime.fromisoformat(raw)
+    except (TypeError, ValueError):
+        return datetime.min
 
 
 def _resource_type(entry: dict) -> str | None:
@@ -40,10 +52,7 @@ def trim_bundle(bundle: dict) -> dict:
     entries = bundle.get("entry", [])
     patient_entries = [e for e in entries if _resource_type(e) == "Patient"]
     encounter_entries = [e for e in entries if _resource_type(e) == "Encounter"]
-    encounter_entries.sort(
-        key=lambda e: e["resource"].get("period", {}).get("start", ""),
-        reverse=True,
-    )
+    encounter_entries.sort(key=_encounter_start, reverse=True)
     kept = patient_entries + encounter_entries[:MAX_ENCOUNTERS_PER_BUNDLE]
     return {**bundle, "entry": kept}
 

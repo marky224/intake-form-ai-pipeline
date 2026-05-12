@@ -52,23 +52,43 @@ def find_patient_bundles(fhir_dir: Path | str) -> list[Path]:
     )
 
 
+def _typed_resources(bundle: dict, resource_type: str) -> list[dict]:
+    """Return every resource in ``bundle.entry`` with the given resourceType.
+
+    Validates the FHIR Bundle envelope up front (``bundle`` is a dict and
+    ``bundle["entry"]`` is a list) and skips malformed entries instead of
+    raising opaque KeyErrors mid-iteration.
+    """
+    if not isinstance(bundle, dict):
+        raise ValueError("Bundle must be a dict")
+    entries = bundle.get("entry")
+    if not isinstance(entries, list):
+        raise ValueError("Bundle must contain an 'entry' list")
+    matches: list[dict] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        resource = entry.get("resource")
+        if not isinstance(resource, dict):
+            continue
+        if resource.get("resourceType") == resource_type:
+            matches.append(resource)
+    return matches
+
+
 def extract_patient(bundle: dict) -> SyntheaPatient:
     """Pull the demographics + most-recent Encounter from a Synthea bundle.
 
     Synthea always writes exactly one Patient resource per bundle and
     typically dozens of Encounter resources spanning the patient's
-    simulated medical history.
+    simulated medical history. Raises ``ValueError`` if the bundle is
+    malformed or lacks a Patient resource.
     """
-    entries = bundle["entry"]
-    patient_res = next(
-        (e["resource"] for e in entries if e["resource"]["resourceType"] == "Patient"),
-        None,
-    )
-    if patient_res is None:
+    patients = _typed_resources(bundle, "Patient")
+    if not patients:
         raise ValueError("No Patient resource found in bundle")
-    encounter_resources = [
-        e["resource"] for e in entries if e["resource"]["resourceType"] == "Encounter"
-    ]
+    patient_res = patients[0]
+    encounter_resources = _typed_resources(bundle, "Encounter")
 
     name = patient_res["name"][0]
     given = name["given"][0] if name.get("given") else ""
