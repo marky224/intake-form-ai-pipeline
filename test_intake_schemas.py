@@ -20,6 +20,7 @@ from pydantic import ValidationError
 
 from intake_schemas import (
     BoundingBox,
+    BusinessDocumentForm,
     DataClass,
     ExtractedField,
     FormMetadata,
@@ -207,6 +208,7 @@ def test_canonical_names_match_attribute_names():
         InsuranceIntakeForm,
         HealthcareIntakeForm,
         HRIntakeForm,
+        BusinessDocumentForm,
     ):
         for attr_name, meta in get_field_metadata(cls).items():
             assert (
@@ -480,6 +482,239 @@ def test_hr_does_not_have_healthcare_fields():
     assert "patient_id" not in hr_fields
     assert "allergies" not in hr_fields
     assert "ssn" in hr_fields
+
+
+# ---------------------------------------------------------------------------
+# BusinessDocumentForm (DocILE KILE taxonomy)
+# ---------------------------------------------------------------------------
+
+# Canonical taxonomy from rossumai/docile@12f9502d1e
+# (docile/dataset/__init__.py KILE_FIELDTYPES). Tests pin against this set
+# so an upstream rename or a local typo on the BusinessDocumentForm attribute
+# fails CI rather than drifting silently.
+DOCILE_KILE_FIELDTYPES = frozenset(
+    {
+        "account_num",
+        "amount_due",
+        "amount_paid",
+        "amount_total_gross",
+        "amount_total_net",
+        "amount_total_tax",
+        "bank_num",
+        "bic",
+        "currency_code_amount_due",
+        "customer_billing_address",
+        "customer_billing_name",
+        "customer_delivery_address",
+        "customer_delivery_name",
+        "customer_id",
+        "customer_order_id",
+        "customer_other_address",
+        "customer_other_name",
+        "customer_registration_id",
+        "customer_tax_id",
+        "date_due",
+        "date_issue",
+        "document_id",
+        "iban",
+        "order_id",
+        "payment_reference",
+        "payment_terms",
+        "tax_detail_gross",
+        "tax_detail_net",
+        "tax_detail_rate",
+        "tax_detail_tax",
+        "vendor_address",
+        "vendor_email",
+        "vendor_name",
+        "vendor_order_id",
+        "vendor_registration_id",
+        "vendor_tax_id",
+    }
+)
+
+
+def test_business_document_form_covers_every_kile_fieldtype():
+    fields = set(get_field_metadata(BusinessDocumentForm).keys())
+    missing = DOCILE_KILE_FIELDTYPES - fields
+    assert not missing, f"BusinessDocumentForm missing KILE fields: {missing}"
+
+
+def test_business_document_kile_count_is_36():
+    """36 KILE fields, no LIR. LIR is locked out of scope for Phase 4."""
+    all_fields = set(get_field_metadata(BusinessDocumentForm).keys())
+    kile_fields = all_fields & DOCILE_KILE_FIELDTYPES
+    assert len(kile_fields) == 36
+
+
+def test_business_document_has_no_lir_fields():
+    """LIR_FIELDTYPES (line_item_*) must NOT appear on BusinessDocumentForm."""
+    fields = set(get_field_metadata(BusinessDocumentForm).keys())
+    lir_shaped = {f for f in fields if f.startswith("line_item")}
+    assert lir_shaped == set(), f"Unexpected LIR-shaped fields: {lir_shaped}"
+
+
+def test_business_document_kile_fields_have_source_standard():
+    """Every KILE field carries source_standard='DocILE KILE'."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    for fieldtype in DOCILE_KILE_FIELDTYPES:
+        assert (
+            meta[fieldtype].source_standard == "DocILE KILE"
+        ), f"{fieldtype}: source_standard={meta[fieldtype].source_standard!r}"
+
+
+def test_business_document_bank_fields_are_pci_high():
+    """iban/bank_num/account_num mirror the HRIntakeForm bank-account treatment."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    for name in ("iban", "bank_num", "account_num"):
+        assert meta[name].data_class == DataClass.PCI, f"{name}: data_class={meta[name].data_class}"
+        assert meta[name].sensitivity == "high"
+
+
+def test_business_document_bic_is_public_low():
+    """BIC identifies a bank, not an account; routing-public information."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    assert meta["bic"].data_class == DataClass.PUBLIC
+    assert meta["bic"].sensitivity == "low"
+
+
+def test_business_document_customer_fields_are_pii_medium():
+    """customer_* names/addresses/IDs/tax IDs/registration IDs carry customer identity."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    pii_customer_fields = [
+        "customer_billing_address",
+        "customer_billing_name",
+        "customer_delivery_address",
+        "customer_delivery_name",
+        "customer_id",
+        "customer_other_address",
+        "customer_other_name",
+        "customer_registration_id",
+        "customer_tax_id",
+    ]
+    for name in pii_customer_fields:
+        assert meta[name].data_class == DataClass.PII, f"{name}: data_class={meta[name].data_class}"
+        assert meta[name].sensitivity == "medium"
+
+
+def test_business_document_customer_order_id_is_public_low():
+    """customer_order_id is a purchase order number, not an identifier."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    assert meta["customer_order_id"].data_class == DataClass.PUBLIC
+    assert meta["customer_order_id"].sensitivity == "low"
+
+
+def test_business_document_vendor_fields_are_public_low():
+    """vendor_* fields are invoice-public corporate information."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    vendor_fields = [
+        "vendor_address",
+        "vendor_email",
+        "vendor_name",
+        "vendor_order_id",
+        "vendor_registration_id",
+        "vendor_tax_id",
+    ]
+    for name in vendor_fields:
+        assert (
+            meta[name].data_class == DataClass.PUBLIC
+        ), f"{name}: data_class={meta[name].data_class}"
+        assert meta[name].sensitivity == "low"
+
+
+def test_business_document_amount_date_payment_tax_currency_are_public_low():
+    """All amount_/date_/document_/payment_/tax_detail_/currency_ fields are PUBLIC/low."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    prefixes = ("amount_", "date_", "document_", "payment_", "tax_detail_", "currency_")
+    public_fields = [
+        name for name in DOCILE_KILE_FIELDTYPES if any(name.startswith(p) for p in prefixes)
+    ]
+    assert public_fields, "Prefix list did not match any KILE fields — taxonomy drift"
+    for name in public_fields:
+        assert (
+            meta[name].data_class == DataClass.PUBLIC
+        ), f"{name}: data_class={meta[name].data_class}"
+        assert meta[name].sensitivity == "low"
+
+
+def test_business_document_baa_required_is_banking_only():
+    """BAA-required = PCI plus PHI. KILE has no PHI; PCI = the 3 banking fields."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    baa_required = {name for name in DOCILE_KILE_FIELDTYPES if is_baa_required(meta[name])}
+    assert baa_required == {"iban", "bank_num", "account_num"}
+
+
+def test_business_document_inherited_person_fields_stay_pii():
+    """IntakeFormBase fields are inherited unchanged — no PHI override for business docs."""
+    meta = get_field_metadata(BusinessDocumentForm)
+    assert meta["first_name"].data_class == DataClass.PII
+    assert meta["first_name"].sensitivity == "medium"
+    assert meta["date_of_birth"].data_class == DataClass.PII
+
+
+def test_business_document_does_not_have_other_vertical_fields():
+    """BusinessDocumentForm must not leak healthcare/insurance/HR-specific fields."""
+    fields = set(get_field_metadata(BusinessDocumentForm).keys())
+    assert "patient_id" not in fields
+    assert "fein" not in fields
+    assert "ssn" not in fields
+    assert "loss_history" not in fields
+    assert "allergies" not in fields
+    assert "vendor_name" in fields
+
+
+def test_business_document_form_json_roundtrip():
+    """Step Functions contract: BusinessDocumentForm round-trips through JSON."""
+    form = BusinessDocumentForm(
+        metadata=FormMetadata(
+            form_type="DocILE_invoice",
+            source_document_id="s3://intake-bucket/synthetic/business/docile/abc123.pdf",
+            extraction_timestamp=datetime(2026, 5, 13),
+            pipeline_version="0.1.0",
+        ),
+        vendor_name=ExtractedField[str](
+            value="ACME Industrial Supply Co.", confidence=0.96, tier_used=1
+        ),
+        document_id=ExtractedField[str](value="INV-2026-0001", confidence=0.92, tier_used=1),
+        date_issue=ExtractedField[str](value="2026-04-15", confidence=0.88, tier_used=1),
+        customer_billing_address=ExtractedField[str](
+            value="Globex Corporation\n123 Main Street\nSpringfield, IL 62701",
+            confidence=0.71,
+            tier_used="3a",
+            escalation_history=[
+                TierAttempt(tier=1, confidence=0.42, reason_escalated="low_confidence"),
+            ],
+        ),
+        amount_total_gross=ExtractedField[str](value="1,234.56", confidence=0.95, tier_used=1),
+        iban=ExtractedField[str](value="DE89370400440532013000", confidence=0.99, tier_used=1),
+    )
+    json_str = form.model_dump_json()
+    parsed = json.loads(json_str)
+    assert parsed["vendor_name"]["value"] == "ACME Industrial Supply Co."
+    assert parsed["iban"]["value"] == "DE89370400440532013000"
+    assert len(parsed["customer_billing_address"]["escalation_history"]) == 1
+
+    restored = BusinessDocumentForm.model_validate_json(json_str)
+    assert restored.vendor_name.value == "ACME Industrial Supply Co."
+    assert restored.iban.value == "DE89370400440532013000"
+    assert restored.customer_billing_address.tier_used == "3a"
+
+
+def test_business_document_empty_form_confidence_is_vacuous():
+    """Empty form follows the empty-form contract; field count = 13 base + 36 KILE = 49."""
+    form = BusinessDocumentForm(
+        metadata=FormMetadata(
+            form_type="DocILE_invoice",
+            source_document_id="s3://x/y.pdf",
+            extraction_timestamp=datetime(2026, 5, 13),
+            pipeline_version="0.1.0",
+        )
+    )
+    result = compute_form_confidence(form)
+    assert result["min"] == 1.0
+    assert result["mean"] == 1.0
+    assert result["field_count"] == 0
+    assert result["unattempted_count"] == 49
 
 
 # ---------------------------------------------------------------------------

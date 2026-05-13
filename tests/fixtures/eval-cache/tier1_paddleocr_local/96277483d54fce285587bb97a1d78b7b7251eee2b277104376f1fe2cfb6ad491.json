@@ -1,0 +1,131 @@
+{
+  "_seed_note": "STUB \u2014 regenerate via EVAL_LIVE=true on the GPU build machine",
+  "fields": [
+    {
+      "bbox": [
+        0.41,
+        0.07,
+        0.56,
+        0.09
+      ],
+      "confidence": 0.97,
+      "name": "first_name",
+      "value": "Shalanda398"
+    },
+    {
+      "bbox": [
+        0.3,
+        0.07,
+        0.42,
+        0.09
+      ],
+      "confidence": 0.97,
+      "name": "last_name",
+      "value": "Terry864"
+    },
+    {
+      "bbox": [
+        0.8,
+        0.07,
+        0.92,
+        0.09
+      ],
+      "confidence": 0.95,
+      "name": "date_of_birth",
+      "value": "1996-01-26"
+    },
+    {
+      "bbox": [
+        0.93,
+        0.07,
+        0.95,
+        0.09
+      ],
+      "confidence": 0.94,
+      "name": "sex",
+      "value": "F"
+    },
+    {
+      "bbox": [
+        0.43,
+        0.11,
+        0.78,
+        0.13
+      ],
+      "confidence": 0.93,
+      "name": "address_street",
+      "value": "925 Brown Annex"
+    },
+    {
+      "bbox": [
+        0.04,
+        0.14,
+        0.27,
+        0.16
+      ],
+      "confidence": 0.92,
+      "name": "address_city",
+      "value": "Lowell"
+    },
+    {
+      "bbox": [
+        0.29,
+        0.14,
+        0.4,
+        0.16
+      ],
+      "confidence": 0.96,
+      "name": "address_state",
+      "value": "MA"
+    },
+    {
+      "bbox": [
+        0.42,
+        0.14,
+        0.51,
+        0.16
+      ],
+      "confidence": 0.94,
+      "name": "address_zip",
+      "value": "01854"
+    },
+    {
+      "bbox": [
+        0.62,
+        0.14,
+        0.8,
+        0.16
+      ],
+      "confidence": 0.88,
+      "name": "phone",
+      "value": "555-224-1502"
+    },
+    {
+      "bbox": [
+        0.16,
+        0.32,
+        0.85,
+        0.35
+      ],
+      "confidence": 0.71,
+      "name": "reason_for_visit",
+      "value": "Patient referral for dental care (procedure)"
+    },
+    {
+      "confidence": 0.95,
+      "name": "patient_id",
+      "value": null
+    },
+    {
+      "confidence": 0.91,
+      "name": "insurance_member_id",
+      "value": null
+    },
+    {
+      "confidence": 0.84,
+      "name": "allergies",
+      "value": null
+    }
+  ],
+  "model_version": "PaddleOCR-VL-1.5"
+}

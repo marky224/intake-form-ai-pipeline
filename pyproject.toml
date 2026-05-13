@@ -22,6 +22,16 @@ dependencies = [
     "pydantic>=2.6",
 ]
 
+# Tier 1 (Phase 4 PR (a+b)) needs `paddlepaddle-gpu` + `paddleocr` for live
+# inference. NOT declared as a project optional-extra because PaddlePaddle
+# 3.x (the version PaddleOCR-VL-1.5 requires) ships from PaddlePaddle's own
+# index URL — not PyPI — and uv's dependency resolver can't reconcile that
+# automatically without per-package index overrides. CI exercises Tier 1 via
+# cached eval-fixtures only (the live import path is lazy-imported inside
+# the provider). Manual install on the GPU build machine — see
+# `docs/local-development.md` "Tier 1 PaddleOCR-VL setup" for the curl-from-
+# Paddle-index commands.
+
 # ruff and black are pinned to the same exact versions as
 # .pre-commit-config.yaml. CI runs `uv sync --frozen` then ruff/black, so the
 # dev-deps and pre-commit hooks must agree on tool version. Bump both files

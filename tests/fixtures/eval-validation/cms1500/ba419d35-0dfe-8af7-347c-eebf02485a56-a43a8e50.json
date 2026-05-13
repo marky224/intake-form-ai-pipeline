@@ -1,0 +1,139 @@
+{
+  "fields": [
+    {
+      "bbox": {
+        "x1": 328.41,
+        "x2": 624.41,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "2",
+      "name": "patient_name",
+      "value": "Mante251, Corie618"
+    },
+    {
+      "bbox": {
+        "x1": 638.41,
+        "x2": 816.0,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "3",
+      "name": "patient_birth_date",
+      "value": "04/28/1925 \u00a0 F"
+    },
+    {
+      "bbox": {
+        "x1": 349.59,
+        "x2": 651.2,
+        "y1": 105.62,
+        "y2": 122.62
+      },
+      "cms1500_box": "5",
+      "name": "patient_address_line",
+      "value": "1028 Hoeger Crossroad"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 223.73,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5b",
+      "name": "patient_city",
+      "value": "Franklin"
+    },
+    {
+      "bbox": {
+        "x1": 237.73,
+        "x2": 332.61,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5c",
+      "name": "patient_state",
+      "value": "MA"
+    },
+    {
+      "bbox": {
+        "x1": 346.61,
+        "x2": 536.36,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5d",
+      "name": "patient_postal_code",
+      "value": "02038"
+    },
+    {
+      "bbox": {
+        "x1": 550.36,
+        "x2": 816.0,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5e",
+      "name": "patient_phone",
+      "value": "555-574-2513"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 418.0,
+        "y1": 206.69,
+        "y2": 223.69
+      },
+      "cms1500_box": "14",
+      "name": "date_of_current_illness",
+      "value": "08/11/2009"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 816.0,
+        "y1": 240.38,
+        "y2": 257.38
+      },
+      "cms1500_box": "21",
+      "name": "diagnosis",
+      "value": "End-stage renal disease (disorder)"
+    },
+    {
+      "bbox": {
+        "x1": 37.0,
+        "x2": 813.0,
+        "y1": 323.56,
+        "y2": 360.56
+      },
+      "cms1500_box": "12",
+      "name": "signature",
+      "value": "Corie618 Mante251"
+    },
+    {
+      "bbox": {
+        "x1": 619.5,
+        "x2": 807.0,
+        "y1": 397.75,
+        "y2": 414.75
+      },
+      "cms1500_box": "12-date",
+      "name": "date_signed",
+      "value": "08/11/2009"
+    }
+  ],
+  "image": "ba419d35-0dfe-8af7-347c-eebf02485a56-a43a8e50.png",
+  "image_sha256": "47b0676a4f97b304d21c0e7750d29034b67228a1453846b76f443cc241070f0c",
+  "page": {
+    "height_px": 1100,
+    "number": 1,
+    "width_px": 850
+  },
+  "schema_version": 1,
+  "signature": {
+    "font": "Arial",
+    "mode": "typed",
+    "rotation_deg": 0.0
+  },
+  "source_id": "ba419d35-0dfe-8af7-347c-eebf02485a56"
+}

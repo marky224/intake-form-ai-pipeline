@@ -1231,6 +1231,435 @@ class HRIntakeForm(IntakeFormBase):
 
 
 # ---------------------------------------------------------------------------
+# Business documents vertical (DocILE KILE)
+# ---------------------------------------------------------------------------
+
+
+class BusinessDocumentForm(IntakeFormBase):
+    """
+    Business document fields anchored to the DocILE KILE 36-field taxonomy
+    (rossumai/docile@12f9502d1e, docile/dataset/__init__.py KILE_FIELDTYPES).
+
+    Canonical attribute names match upstream KILE_FIELDTYPES verbatim;
+    _validate_canonical_names() enforces this at import time. Every field is
+    ExtractedField[str] — DocILE annotations carry untyped text and
+    normalization (amount → float, date → date) is downstream.
+
+    Scope: KILE only. The 19 LIR_FIELDTYPES (line item recognition) are out
+    of scope; a future PR may add a nested LineItem sub-model. Inherited
+    IntakeFormBase person fields stay default-unattempted on DocILE
+    extractions — invoices have a vendor/customer transaction, not a
+    primary person subject.
+
+    DataClass tagging:
+      - Banking (iban, bank_num, account_num) → PCI / high. Mirrors the
+        HRIntakeForm bank-account treatment.
+      - bic → PUBLIC / low. Identifies a bank, not an account.
+      - customer_* names / addresses / IDs / tax IDs / registration IDs →
+        PII / medium. customer_order_id is PUBLIC / low (order numbers are
+        not identifying).
+      - vendor_*, amount_*, date_*, document_*, payment_*, tax_detail_*,
+        currency_* → PUBLIC / low. Vendor identifiers are invoice-public.
+    """
+
+    account_num: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="account_num",
+            description="Bank or customer account number printed on the document.",
+            data_class=DataClass.PCI,
+            sensitivity="high",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    amount_due: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="amount_due",
+            description="Total amount due on the invoice. Extracted as displayed (string); normalize downstream.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    amount_paid: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="amount_paid",
+            description="Amount already paid against the invoice.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    amount_total_gross: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="amount_total_gross",
+            description="Total amount including taxes.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    amount_total_net: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="amount_total_net",
+            description="Total amount excluding taxes.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    amount_total_tax: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="amount_total_tax",
+            description="Total tax amount across all line items.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    bank_num: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="bank_num",
+            description="Bank routing number (US ABA, UK sort code, AU BSB, etc.).",
+            data_class=DataClass.PCI,
+            sensitivity="high",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    bic: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="bic",
+            description="Bank Identifier Code (SWIFT/BIC, 8 or 11 chars). Identifies a bank, not an account.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    currency_code_amount_due: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="currency_code_amount_due",
+            description="ISO 4217 currency code for amount_due (e.g., USD, EUR).",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_billing_address: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_billing_address",
+            description="Customer's billing address (bill-to).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_billing_name: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_billing_name",
+            description="Customer's billing name (person or legal entity).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_delivery_address: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_delivery_address",
+            description="Customer's delivery address (ship-to).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_delivery_name: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_delivery_name",
+            description="Customer's delivery name (ship-to).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_id",
+            description="Vendor's internal identifier for this customer.",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_order_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_order_id",
+            description="Customer's purchase order number referenced on this document.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_other_address: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_other_address",
+            description="Other customer address (e.g., legal/registered office distinct from billing or delivery).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_other_name: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_other_name",
+            description="Other customer name (e.g., parent entity, trade name).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_registration_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_registration_id",
+            description="Customer's business registration number (state-issued or equivalent).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    customer_tax_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="customer_tax_id",
+            description="Customer's tax identification number (VAT ID, EIN, etc.).",
+            data_class=DataClass.PII,
+            sensitivity="medium",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    date_due: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="date_due",
+            description="Payment due date as displayed (string); normalize downstream.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    date_issue: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="date_issue",
+            description="Document issue date as displayed.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    document_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="document_id",
+            description="Invoice or document number assigned by the vendor.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    iban: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="iban",
+            description="International Bank Account Number.",
+            data_class=DataClass.PCI,
+            sensitivity="high",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    order_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="order_id",
+            description="Vendor's internal order/sales reference.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    payment_reference: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="payment_reference",
+            description="Payment reference string the customer should cite when remitting payment.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    payment_terms: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="payment_terms",
+            description="Payment terms (Net 30, Due on receipt, 2/10 Net 30, etc.).",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    tax_detail_gross: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="tax_detail_gross",
+            description="Per-rate gross amount in the tax breakdown table.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    tax_detail_net: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="tax_detail_net",
+            description="Per-rate net amount in the tax breakdown table.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    tax_detail_rate: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="tax_detail_rate",
+            description="Per-rate tax percentage in the tax breakdown table.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    tax_detail_tax: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="tax_detail_tax",
+            description="Per-rate tax amount in the tax breakdown table.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_address: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_address",
+            description="Vendor's address as printed on the document.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_email: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_email",
+            description="Vendor's contact email. Treated as invoice-public corporate contact, not PII.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_name: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_name",
+            description="Vendor's legal or trade name.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_order_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_order_id",
+            description="Vendor's order/sales reference number.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_registration_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_registration_id",
+            description="Vendor's business registration number (printed on invoices as business-public).",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+    vendor_tax_id: Annotated[
+        ExtractedField[str],
+        FieldMeta(
+            canonical_name="vendor_tax_id",
+            description="Vendor's tax identification number (VAT ID, EIN, etc.) — invoice-public.",
+            data_class=DataClass.PUBLIC,
+            sensitivity="low",
+            source_standard="DocILE KILE",
+        ),
+    ] = Field(default_factory=_ef)
+
+
+# ---------------------------------------------------------------------------
 # Introspection helpers
 # ---------------------------------------------------------------------------
 
@@ -1261,6 +1690,7 @@ def _validate_canonical_names() -> None:
         InsuranceIntakeForm,
         HealthcareIntakeForm,
         HRIntakeForm,
+        BusinessDocumentForm,
     ):
         for attr_name, meta in get_field_metadata(cls).items():
             if meta.canonical_name != attr_name:
@@ -1379,6 +1809,7 @@ __all__ = [
     "InsuranceIntakeForm",
     "HealthcareIntakeForm",
     "HRIntakeForm",
+    "BusinessDocumentForm",
     "get_field_metadata",
     "field_metadata_as_dict",
     "is_baa_required",
