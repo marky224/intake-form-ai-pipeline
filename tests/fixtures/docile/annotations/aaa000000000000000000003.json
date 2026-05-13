@@ -1,0 +1,23 @@
+{
+  "field_extractions": [
+    {
+      "bbox": [0.10, 0.10, 0.30, 0.12],
+      "fieldtype": "vendor_name",
+      "page": 0,
+      "text": "Stark Industries"
+    }
+  ],
+  "line_item_extractions": [],
+  "line_item_headers": [],
+  "metadata": {
+    "cluster_id": 7,
+    "currency": "other",
+    "document_type": "tax_invoice",
+    "language": "eng",
+    "original_filename": "minimal_doc",
+    "page_count": 1,
+    "page_sizes_at_200dpi": [[1700, 2200]],
+    "page_to_table_grid": {},
+    "source": "synthetic_fixture"
+  }
+}

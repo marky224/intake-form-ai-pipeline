@@ -1,0 +1,47 @@
+{
+  "field_extractions": [
+    {
+      "bbox": [0.10, 0.05, 0.40, 0.07],
+      "fieldtype": "document_id",
+      "page": 0,
+      "text": "PO-99887"
+    },
+    {
+      "bbox": [0.10, 0.10, 0.30, 0.12],
+      "fieldtype": "date_issue",
+      "page": 0,
+      "text": null
+    },
+    {
+      "bbox": [0.50, 0.10, 0.80, 0.12],
+      "fieldtype": "vendor_name",
+      "page": 1,
+      "text": "Wayne Enterprises"
+    },
+    {
+      "bbox": [0.05, 0.90, 0.20, 0.93],
+      "fieldtype": "payment_terms",
+      "page": 2,
+      "text": "Net 30"
+    },
+    {
+      "bbox": [0.70, 0.90, 0.90, 0.93],
+      "fieldtype": "amount_due",
+      "page": 2,
+      "text": "12,500.00"
+    }
+  ],
+  "line_item_extractions": [],
+  "line_item_headers": [],
+  "metadata": {
+    "cluster_id": 42,
+    "currency": "eur",
+    "document_type": "purchase_order",
+    "language": "eng",
+    "original_filename": "multi_page_po",
+    "page_count": 3,
+    "page_sizes_at_200dpi": [[1700, 2200], [1700, 2200], [1700, 2200]],
+    "page_to_table_grid": {},
+    "source": "synthetic_fixture"
+  }
+}

@@ -34,7 +34,7 @@ from synthetic_data.render.upload import (
 # and sets Content-Type explicitly. Using arbitrary bytes makes the test
 # fixture cheap and removes the renderer (Chromium) dependency.
 SAMPLE_PNG_BYTES = b"\x89PNG\r\n\x1a\nfake-png-payload-for-tests"
-SAMPLE_PATIENT_ID = "aee7bbe1-0c45-c028-1e62-1f4cdb30c273"
+SAMPLE_SOURCE_ID = "aee7bbe1-0c45-c028-1e62-1f4cdb30c273"
 SAMPLE_PREFIX = "synthetic/healthcare/cms1500"
 SAMPLE_BUCKET = "intake-form-ai-pipeline-documents-test"
 
@@ -46,14 +46,14 @@ def _png_sha256(data: bytes) -> str:
 def _make_sidecar_dict(
     image_filename: str,
     image_sha256: str,
-    patient_id: str = SAMPLE_PATIENT_ID,
+    source_id: str = SAMPLE_SOURCE_ID,
 ) -> dict:
     """Minimal sidecar JSON shape matching what render.py writes."""
     return {
         "schema_version": SIDECAR_SCHEMA_VERSION_SUPPORTED,
         "image": image_filename,
         "image_sha256": image_sha256,
-        "patient_id": patient_id,
+        "source_id": source_id,
         "page": {"number": 1, "width_px": 850, "height_px": 1100},
         "signature": {"mode": "typed", "font": "Arial", "rotation_deg": 0.0},
         "fields": [],
@@ -65,7 +65,7 @@ def _write_render_pair(
     *,
     stem: str = "patient-d31b73e1",
     png_bytes: bytes = SAMPLE_PNG_BYTES,
-    patient_id: str = SAMPLE_PATIENT_ID,
+    source_id: str = SAMPLE_SOURCE_ID,
     sidecar_sha_override: str | None = None,
 ) -> tuple[Path, Path, str]:
     """Write one (PNG, sidecar) pair to ``out_dir`` and return (png, sidecar, sha)."""
@@ -73,7 +73,7 @@ def _write_render_pair(
     sidecar_path = out_dir / f"{stem}.json"
     png_path.write_bytes(png_bytes)
     image_sha = sidecar_sha_override or _png_sha256(png_bytes)
-    sidecar = _make_sidecar_dict(png_path.name, image_sha, patient_id=patient_id)
+    sidecar = _make_sidecar_dict(png_path.name, image_sha, source_id=source_id)
     sidecar_path.write_text(json.dumps(sidecar, indent=2, sort_keys=True), encoding="utf-8")
     return png_path, sidecar_path, image_sha
 
@@ -141,13 +141,13 @@ def test_derive_s3_keys_rejects_non_hex_chars() -> None:
 
 
 def test_load_sidecar_round_trip(tmp_path: Path) -> None:
-    """Valid sidecar parses; image_sha256 + patient_id are returned verbatim."""
+    """Valid sidecar parses; image_sha256 + source_id are returned verbatim."""
     sidecar_path = tmp_path / "x.json"
     sha = "e" * 64
     sidecar_path.write_text(json.dumps(_make_sidecar_dict("x.png", sha)), encoding="utf-8")
     data = _load_sidecar(sidecar_path)
     assert data["image_sha256"] == sha
-    assert data["patient_id"] == SAMPLE_PATIENT_ID
+    assert data["source_id"] == SAMPLE_SOURCE_ID
 
 
 def test_load_sidecar_rejects_wrong_schema_version(tmp_path: Path) -> None:
@@ -182,11 +182,20 @@ def test_load_sidecar_rejects_non_hex_image_sha256(tmp_path: Path) -> None:
         _load_sidecar(sidecar_path)
 
 
-def test_load_sidecar_rejects_empty_patient_id(tmp_path: Path) -> None:
+def test_load_sidecar_rejects_empty_source_id(tmp_path: Path) -> None:
     sidecar_path = tmp_path / "x.json"
-    bad = _make_sidecar_dict("x.png", "a" * 64, patient_id="")
+    bad = _make_sidecar_dict("x.png", "a" * 64, source_id="")
     sidecar_path.write_text(json.dumps(bad), encoding="utf-8")
-    with pytest.raises(ValueError, match="patient_id"):
+    with pytest.raises(ValueError, match="source_id"):
+        _load_sidecar(sidecar_path)
+
+
+def test_load_sidecar_rejects_whitespace_only_source_id(tmp_path: Path) -> None:
+    """A whitespace-only string is non-empty but functionally invalid as a metadata value."""
+    sidecar_path = tmp_path / "x.json"
+    bad = _make_sidecar_dict("x.png", "a" * 64, source_id="   ")
+    sidecar_path.write_text(json.dumps(bad), encoding="utf-8")
+    with pytest.raises(ValueError, match="source_id"):
         _load_sidecar(sidecar_path)
 
 
@@ -244,7 +253,7 @@ def test_upload_pair_writes_png_and_sidecar(tmp_path: Path, s3_bucket) -> None:
 
     assert isinstance(result, UploadResult)
     assert result.image_sha256 == sha
-    assert result.patient_id == SAMPLE_PATIENT_ID
+    assert result.source_id == SAMPLE_SOURCE_ID
     assert result.png_key == f"{SAMPLE_PREFIX}/{sha}.png"
     assert result.sidecar_key == f"{SAMPLE_PREFIX}/{sha}.json"
 
@@ -267,16 +276,16 @@ def test_upload_pair_sets_content_types(tmp_path: Path, s3_bucket) -> None:
     assert sidecar_head["ContentType"] == "application/json"
 
 
-def test_upload_pair_sets_patient_id_metadata(tmp_path: Path, s3_bucket) -> None:
-    """HEAD on either object exposes the source patient_id without a Body fetch."""
+def test_upload_pair_sets_source_id_metadata(tmp_path: Path, s3_bucket) -> None:
+    """HEAD on either object exposes the source_id without a Body fetch."""
     client, bucket = s3_bucket
     png_path, sidecar_path, _ = _write_render_pair(tmp_path)
     result = upload_pair(png_path, sidecar_path, bucket, SAMPLE_PREFIX, s3_client=client)
 
     png_head = client.head_object(Bucket=bucket, Key=result.png_key)
     sidecar_head = client.head_object(Bucket=bucket, Key=result.sidecar_key)
-    assert png_head["Metadata"]["patient-id"] == SAMPLE_PATIENT_ID
-    assert sidecar_head["Metadata"]["patient-id"] == SAMPLE_PATIENT_ID
+    assert png_head["Metadata"]["source-id"] == SAMPLE_SOURCE_ID
+    assert sidecar_head["Metadata"]["source-id"] == SAMPLE_SOURCE_ID
 
 
 def test_upload_pair_key_derives_from_sidecar_hash_not_recomputed(
@@ -341,7 +350,7 @@ def test_upload_pair_default_s3_client_uses_boto3_chain(
         # Verify the implicit client actually wrote to the mock bucket.
         verify = boto3.client("s3", region_name="us-east-1")
         head = verify.head_object(Bucket=SAMPLE_BUCKET, Key=result.png_key)
-        assert head["Metadata"]["patient-id"] == SAMPLE_PATIENT_ID
+        assert head["Metadata"]["source-id"] == SAMPLE_SOURCE_ID
 
 
 def test_upload_render_dir_uploads_every_pair(tmp_path: Path, s3_bucket) -> None:
@@ -536,9 +545,9 @@ def test_render_then_upload_six_fixtures_end_to_end(tmp_path: Path, s3_bucket) -
         assert f"{SAMPLE_PREFIX}/{r.image_sha256}.json" in keys
         head = client.head_object(Bucket=bucket, Key=r.png_key)
         assert head["ContentType"] == "image/png"
-        assert head["Metadata"]["patient-id"] == r.patient_id
+        assert head["Metadata"]["source-id"] == r.source_id
 
-    # Patient IDs round-trip from Synthea bundles through to S3 metadata.
-    expected_patient_ids = {p.patient_id for p in patients}
-    uploaded_patient_ids = {r.patient_id for r in upload_results}
-    assert uploaded_patient_ids == expected_patient_ids
+    # Patient IDs round-trip from Synthea bundles through to the S3 source-id metadata.
+    expected_source_ids = {p.patient_id for p in patients}
+    uploaded_source_ids = {r.source_id for r in upload_results}
+    assert uploaded_source_ids == expected_source_ids

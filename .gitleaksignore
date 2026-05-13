@@ -1,0 +1,21 @@
+# gitleaks fingerprints intentionally allowlisted.
+#
+# Format: <commit-sha>:<file>:<rule-id>:<line>
+#
+# Phase 3.5 (PR #45) round-2 / round-4 commits introduced fake placeholder
+# tokens in test fixtures that exercise the DocILE wrapper's token-redaction
+# logic. Strings like "secret-tok-abc123" trip gitleaks's `generic-api-key`
+# rule (entropy ~3.6-3.7 + suspicious prefix), but they are deliberately
+# fake — never used to authenticate. The values exist only so the redaction
+# tests can assert that the literal string is replaced with <TOKEN-REDACTED>
+# in stdout/stderr and on CalledProcessError.stdout/.stderr.
+#
+# A later commit on the same branch adds `# gitleaks:allow` markers inline
+# (suppresses future flags), but gitleaks's diff-range scan still sees the
+# bare tokens in the historical commits below — hence these fingerprint
+# allowlist entries. After PR #45 squash-merges, the branch history is
+# collapsed and these entries become harmless dead context, but keep them
+# in place so any future fingerprint regen against the merged commit
+# remains stable.
+62163af7504030ae3b32613e00fe8cf3caac6bbe:test_docile_download.py:generic-api-key:194
+1bebf8b2c509f81a5818290392f0fdd1edabed2f:test_docile_download.py:generic-api-key:255

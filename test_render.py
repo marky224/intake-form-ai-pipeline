@@ -49,7 +49,7 @@ def test_sidecar_json_shape(first_patient, tmp_path: Path) -> None:
     sidecar = json.loads(sidecar_path.read_text(encoding="utf-8"))
 
     assert sidecar["schema_version"] == SIDECAR_SCHEMA_VERSION
-    assert sidecar["patient_id"] == first_patient.patient_id
+    assert sidecar["source_id"] == first_patient.patient_id
     assert sidecar["image"].endswith(".png")
     assert isinstance(sidecar["image_sha256"], str) and len(sidecar["image_sha256"]) == 64
 

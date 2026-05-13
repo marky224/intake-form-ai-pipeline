@@ -8,6 +8,10 @@
 
 set shell := ["bash", "-cu"]
 set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
+# Auto-load `.env` into recipe environments. Phase 3.5's docile-build needs
+# DOCILE_ACCESS_TOKEN (gitignored, not mirrored in `.env.example`); other
+# recipes don't read .env vars so this is a no-op for them.
+set dotenv-load := true
 
 # Default: list recipes
 default:
@@ -95,6 +99,37 @@ synthetic-data-render-500: (synthetic-data-patients "500" "42")
     uv run python -m synthetic_data.render.upload \
         --input synthetic_data/output/render \
         --bucket intake-form-ai-pipeline-documents
+
+# Phase 3.5 DocILE business-document corpus: download labeled-trainval -> rasterize +
+# sidecar -> S3 upload under synthetic/business/docile/.
+#
+# Default `limit=0` processes the full ~6.6K-document corpus
+# (~33K page PNGs, ~1.6 GB on S3, ~30-60 min wallclock). For smoke runs pass
+# a non-zero cap, e.g. `just synthetic-data-docile-build 5` for 5 documents.
+# `limit` counts documents, not pages — multi-page docs contribute >1 PNG each.
+#
+# Pre-reqs:
+#   * `DOCILE_ACCESS_TOKEN` in `.env` (obtained via docile.rossum.ai, gitignored,
+#     auto-loaded into the recipe environment via `set dotenv-load := true` above).
+#   * Pillow + pypdfium2 (installed by `uv sync`; no system Poppler/Cairo needed).
+#   * AWS credentials resolvable via the boto3 default chain
+#     (~/.aws/credentials / env vars / instance profile). No keys on the CLI.
+#
+# Re-runs are safe: download skips if annotations/ is already populated,
+# rasterize overwrites in place, and uploads land at content-addressable keys
+# (<sha256>.{png,json}) so retries after a partial failure resume cleanly.
+[unix]
+synthetic-data-docile-build limit="0":
+    uv run python -m synthetic_data.docile.download \
+        --dest synthetic_data/output/docile
+    uv run python -m synthetic_data.docile.ingest \
+        --dataset-root synthetic_data/output/docile \
+        --render-dir synthetic_data/output/docile/render \
+        --limit {{limit}}
+    uv run python -m synthetic_data.render.upload \
+        --input synthetic_data/output/docile/render \
+        --bucket intake-form-ai-pipeline-documents \
+        --prefix synthetic/business/docile
 
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
