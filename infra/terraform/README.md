@@ -1,5 +1,7 @@
 # Terraform main stack
 
+> ⚠️ **V2 cloud target — not deployed in V1.** As of 2026-05-14 the project pivoted to a local-first V1 build (3-tier all-local cascade, no AWS in the cascade). The main-stack `.tf` files in this directory were `terraform destroy`-d on 2026-05-14 and are inert in V1; they remain in-tree as the V2 cloud rebuild target. The bootstrap stack (`infra/terraform/bootstrap/`, separate state) is retained live so V2 can `terraform apply` here without re-bootstrapping IAM. CI continues to run `fmt`/`validate`/`checkov` against these files on every PR; `apply` is gated behind `vars.TF_APPLY_ENABLED == 'true'` which is `false` for V1.
+
 The second Terraform stack in the project, holding everything that isn't bootstrap-state-backend or bootstrap-IAM. The state lives in the same S3 bucket the bootstrap stack created, but under a different key (`main/terraform.tfstate`) so the two stacks don't share state files.
 
 ## Current scope (Phase 2 complete)

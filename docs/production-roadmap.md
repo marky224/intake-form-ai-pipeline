@@ -2,9 +2,9 @@
 
 This document collects items deliberately deferred from the build — decisions that were considered, reasoned about, and parked because the answer depends on factors the build can't yet measure (real traffic, real corrections, real cost telemetry). It is the canonical home for "considered, not done, will revisit when X" items.
 
-The build itself is a portfolio piece, not a production system. Items below describe what would change if this were deployed at production scale, or what alternatives are worth exploring once Phase 6+ produces empirical evidence to inform the choice.
+**V2 is the largest deferred item.** As of 2026-05-14 the project pivoted to a local-first V1 build (3-tier all-local cascade, no AWS, no deployed demo URL). V2 is the planned cloud rebuild that re-introduces BAA-eligible AWS tiers (Textract Queries + Bedrock Sonnet + Bedrock Nova Lite), stands up the deployed demo at `ai-intake.markandrewmarquez.com` via Lambda + Cloudflare Tunnel, and migrates V1's SQLite to Aurora Serverless v2. V2 entry is a separate decision from V1's build cadence — it lands when V1 is end-to-end coherent (Phases 4-V1 through 7-V1 done) and the portfolio narrative justifies adding the deployed-demo signal. The Hybrid cascade architecture (locked 2026-05-12) is the V2 target; in-tree Terraform at `infra/terraform/` describes the V2 infrastructure verbatim.
 
-This file is the long-form treatment. The locked architectural decisions in the project's main instructions document keep the brief "deferred" framing with don't-re-debate signals; this file is where the actual reasoning lives.
+This file is the long-form treatment of V2-deferred items and other "considered, not done" decisions. The locked architectural decisions in the project's main instructions document keep the brief "deferred" framing with don't-re-debate signals; this file is where the actual reasoning lives.
 
 ## Tier 3a v2 candidate: Qwen3-VL-32B
 
@@ -18,11 +18,13 @@ The locked architecture is Qwen 2.5 VL 32B per the main instructions document. Q
 
 Estimated cost of switching once revisit conditions are met: ~3–5 hours (download, Modelfile import, sanity test, prompt template adjustments for any API differences). Low-risk migration.
 
-## Tier 2 local model upgrade
+## V2 Tier 2 local model upgrade (was: replace Textract; now: replace Qwen 7B in V1 carrying over to V2)
 
-Replace AWS Textract Regular Queries with a fine-tuned local InternVL3.5-8B on Synthea + DocILE annotations. Estimated work: ~20 hours. Estimated savings: ~$4.50/1K deployed-demo cost (Textract Tier 2 escalation rate × $15/1K page price).
+Pre-V1-pivot framing: replace AWS Textract Regular Queries with a fine-tuned local InternVL3.5-8B on Synthea + DocILE annotations. Estimated work: ~20 hours. Estimated savings: ~$4.50/1K deployed-demo cost (Textract Tier 2 escalation rate × $15/1K page price).
 
-Defer until the project's emphasis shifts toward ML-engineering depth over AWS-service-consumption demonstration. The current cascade architecture deliberately uses Textract Regular Queries to demonstrate AWS service integration and HIPAA-mode BAA boundary discipline; replacing it with a local fine-tuned model shifts the project narrative toward "built a custom model" and away from "wired the right managed services."
+Post-V1-pivot framing: V1's Tier 2 is already a local model (Qwen 2.5 VL 7B). The upgrade question shifts to "fine-tune InternVL3.5-8B on V1's accumulated corrections + DocILE annotations to replace Qwen 7B at the Tier 2-local slot." Same ~20 hour estimate; V1 savings are wall-clock (smaller model = faster Tier 2 escalations) rather than dollars. V2 keeps the Tier 2-local + Tier 2-cloud split — InternVL3.5-8B fine-tuned would still sit at Tier 2-local with Textract Queries above it, so V2's BAA-boundary story is unchanged.
+
+Defer until the project's emphasis shifts toward ML-engineering depth over infrastructure orchestration. The current cascade architecture deliberately uses pre-trained Qwen 2.5 VL at Tier 2-local (V1) and Textract Regular Queries at Tier 2-cloud (V2) to demonstrate AWS service integration and BAA boundary discipline; replacing either with a fine-tuned model shifts the project narrative toward "built a custom model" and away from "wired the right managed services."
 
 Revisit only if requirements explicitly call for model-building over infrastructure orchestration.
 
@@ -58,7 +60,7 @@ Defer to production deployment with paying customers. Migration path: dual-write
 
 Ollama is the local development inference engine — easy to operate, good for single-user workloads, terrible for high-throughput multi-tenant production. vLLM (or alternatives like TGI, llama.cpp server with continuous batching, SGLang) is the standard scale-up answer for local-hosted inference at production scale.
 
-Defer because Ollama is operationally sufficient at portfolio scale. The deployed demo does run self-hosted Tier 1 + Tier 3a — local on the project's combined RTX 4080 + RTX 4060 Ti, reached from AWS Step Functions via a Cloudflare Tunnel bridge to the home GPU — but at portfolio traffic the single-user concurrency model Ollama's serving fits cleanly. vLLM's continuous-batching wins matter when concurrent request load saturates GPU memory; that's not the regime a portfolio demo operates in. A vLLM swap would also require either rebuilding the FastAPI wrapper service on the home GPU around vLLM's serving stack or migrating Tier 3a to vLLM-on-Kubernetes / vLLM-on-EKS — a substantial migration outside the portfolio scope. Revisit if production deployment crosses sustained-concurrent-request thresholds that Ollama can't keep up with (rule of thumb: >5 concurrent active requests per GPU; well above portfolio-scale traffic).
+Defer because Ollama is operationally sufficient at portfolio scale in both V1 and V2. V1 runs single-user against the build machine — Ollama is the right tool. V2's deployed demo runs self-hosted Tier 1 + Tier 2-local + Tier 3 — local on the project's combined RTX 4080 + RTX 4060 Ti, reached from AWS Step Functions via a Cloudflare Tunnel bridge to the home GPU — but at portfolio traffic the single-user concurrency model Ollama's serving fits cleanly. vLLM's continuous-batching wins matter when concurrent request load saturates GPU memory; that's not the regime a portfolio demo operates in. A vLLM swap would also require either rebuilding the FastAPI wrapper service on the home GPU around vLLM's serving stack or migrating Tier 3 to vLLM-on-Kubernetes / vLLM-on-EKS — a substantial migration outside the portfolio scope. Revisit if production deployment crosses sustained-concurrent-request thresholds that Ollama can't keep up with (rule of thumb: >5 concurrent active requests per GPU; well above portfolio-scale traffic).
 
 ## Cost circuit breaker upgrade
 
