@@ -1,21 +1,25 @@
 """Tests for ``cascade.providers.tier1_paddleocr_local``.
 
-Three layers:
+Five layers:
 
-1. **Pure parser** — ``_parse_response`` + ``_parse_bbox`` + ``_build_prompt``.
-   No pipeline, no I/O. Fast.
-2. **Cached replay** — ``extract()`` short-circuits to cache hits when
-   ``EVAL_LIVE`` is unset. The Phase-6 eval-cache regen workflow flips
-   ``EVAL_LIVE=true`` to refresh fixtures.
-3. **Live path** — gated by ``@pytest.mark.slow``. Exercises the
-   live-inference branch with a stubbed pipeline so the live code path
-   has a test without requiring the GPU stack in CI.
+1. **Provider shape** — Protocol conformance + metadata constants.
+2. **Alias-table machinery** — ``_alias_map_for_form`` + ``_strip_label_prefix``
+   + ``_match_block``. These power the post-OCR layout-to-fields step.
+3. **Bbox + page-size parsers** — ``_parse_bbox`` (pixel vs normalized) +
+   ``_parse_page_size``. Pure helpers.
+4. **Response parser** — ``_parse_response`` consumes PaddleOCR-VL's
+   ``parsing_res_list`` shape and produces a populated form.
+5. **End-to-end ``extract()``** — cached-replay path + live-path stub +
+   ``EVAL_LIVE`` bypass + sha256 cache-key correctness.
+6. **Validation set** — the 6 checked-in CMS-1500 cached fixtures must
+   parse cleanly with at least one populated field each (acceptance gate).
 """
 
 from __future__ import annotations
 
 import hashlib
 import os
+import pathlib
 
 import pytest
 
@@ -23,13 +27,17 @@ from cascade import eval_cache
 from cascade.providers import tier1_paddleocr_local
 from cascade.providers._base import CascadeProvider, ProviderResult
 from cascade.providers.tier1_paddleocr_local import (
+    ALIAS_MATCH_THRESHOLD,
     PADDLEOCR_VL_VERSION,
     PROVIDER_NAME,
     TIER,
     Tier1PaddleOcrLocal,
-    _build_prompt,
+    _alias_map_for_form,
+    _match_block,
     _parse_bbox,
+    _parse_page_size,
     _parse_response,
+    _strip_label_prefix,
 )
 from intake_schemas import (
     BusinessDocumentForm,
@@ -63,6 +71,11 @@ def eval_live_on(monkeypatch):
     monkeypatch.setenv("EVAL_LIVE", "true")
 
 
+def _hc_raw(blocks: list[dict]) -> dict:
+    """Build a raw_response with parsing_res_list + a representative page_size."""
+    return {"page_size_px": [1700, 2200], "parsing_res_list": blocks}
+
+
 # ---------------------------------------------------------------------------
 # Provider metadata + Protocol conformance
 # ---------------------------------------------------------------------------
@@ -73,6 +86,7 @@ def test_provider_metadata_constants():
     assert PROVIDER_NAME == "tier1_paddleocr_local"
     assert TIER == 1
     assert PADDLEOCR_VL_VERSION == "PaddleOCR-VL-1.5"
+    assert 0.0 < ALIAS_MATCH_THRESHOLD < 1.0
 
 
 def test_provider_satisfies_cascade_provider_protocol():
@@ -87,63 +101,185 @@ def test_provider_attributes_match_protocol():
 
 
 # ---------------------------------------------------------------------------
-# _build_prompt
+# _alias_map_for_form
 # ---------------------------------------------------------------------------
 
 
-def test_build_prompt_includes_every_canonical_field():
-    """Prompt enumerates each form_cls field so the model knows what to extract."""
-    prompt = _build_prompt(BusinessDocumentForm)
-    field_names = set(get_field_metadata(BusinessDocumentForm).keys())
-    for name in field_names:
-        assert f"- {name}:" in prompt, f"prompt missing field {name!r}"
+def test_alias_map_healthcare_includes_base_and_healthcare_fields():
+    """HealthcareIntakeForm pulls aliases from base + healthcare seed records."""
+    alias_map = _alias_map_for_form(HealthcareIntakeForm)
+    assert "first_name" in alias_map
+    # Base alias is present (canonical phrasing from generic intake forms)
+    assert "First Name" in alias_map["first_name"]
+    # Healthcare-specific alias is also present
+    assert "Patient's First Name" in alias_map["first_name"]
 
 
-def test_build_prompt_includes_field_descriptions():
-    """Each field's description is included so the model has semantic context."""
-    prompt = _build_prompt(BusinessDocumentForm)
-    meta = get_field_metadata(BusinessDocumentForm)
-    for description in (meta["vendor_name"].description, meta["iban"].description):
-        assert description in prompt
+def test_alias_map_dedupes_across_verticals():
+    """Same alias text in multiple seed records appears once in the merged list."""
+    alias_map = _alias_map_for_form(HealthcareIntakeForm)
+    # "ZIP" appears in BOTH base and healthcare records for address_zip
+    zips = alias_map["address_zip"]
+    assert zips.count("ZIP") == 1
 
 
-def test_build_prompt_works_for_healthcare_form():
-    """Same prompt template renders cleanly for the other vertical."""
-    prompt = _build_prompt(HealthcareIntakeForm)
-    assert "first_name:" in prompt
-    assert "insurance_member_id:" in prompt
+def test_alias_map_business_uses_synthetic_aliases_for_docile_fields():
+    """BusinessDocumentForm has no seed records → synthesize from canonical_name."""
+    alias_map = _alias_map_for_form(BusinessDocumentForm)
+    # vendor_name isn't in alias_table_seed.json — synthesized as title-case
+    assert "vendor_name" in alias_map
+    assert "Vendor Name" in alias_map["vendor_name"]
+
+
+def test_alias_map_only_includes_form_canonical_fields():
+    """Seed records for fields not on the form (e.g. HR's citizenship_status) aren't included."""
+    alias_map = _alias_map_for_form(HealthcareIntakeForm)
+    assert "citizenship_status" not in alias_map
 
 
 # ---------------------------------------------------------------------------
-# _parse_bbox
+# _strip_label_prefix
 # ---------------------------------------------------------------------------
 
 
-def test_parse_bbox_happy_path():
-    bb = _parse_bbox({"bbox": [0.1, 0.2, 0.3, 0.4]})
+def test_strip_label_prefix_with_colon_separator():
+    assert _strip_label_prefix("First Name: Jane Doe", "First Name") == "Jane Doe"
+
+
+def test_strip_label_prefix_with_dash_separator():
+    assert _strip_label_prefix("DOB - 1980-05-01", "DOB") == "1980-05-01"
+
+
+def test_strip_label_prefix_case_insensitive():
+    assert _strip_label_prefix("FIRST NAME: Jane", "first name") == "Jane"
+
+
+def test_strip_label_prefix_returns_none_when_alias_absent():
+    assert _strip_label_prefix("nothing useful here", "First Name") is None
+
+
+def test_strip_label_prefix_returns_none_when_remainder_empty():
+    """Block contains label only with no value — return None so caller can skip."""
+    assert _strip_label_prefix("First Name:", "First Name") is None
+    assert _strip_label_prefix("First Name", "First Name") is None
+
+
+def test_strip_label_prefix_handles_whitespace_after_label():
+    assert _strip_label_prefix("ZIP   02038", "ZIP") == "02038"
+
+
+# ---------------------------------------------------------------------------
+# _match_block
+# ---------------------------------------------------------------------------
+
+
+def test_match_block_returns_best_alias_match():
+    alias_map = {"first_name": ["First Name", "Given Name"]}
+    match = _match_block("First Name: Jane", alias_map)
+    assert match is not None
+    canonical, value, score = match
+    assert canonical == "first_name"
+    assert value == "Jane"
+    assert score > 0.5
+
+
+def test_match_block_prefers_longer_alias():
+    """Two aliases match; the longer (higher-specificity) one wins."""
+    alias_map = {"address_street": ["Street Address", "Address"]}
+    match = _match_block("Street Address: 123 Main St", alias_map)
+    assert match is not None
+    canonical, value, score = match
+    assert canonical == "address_street"
+    assert value == "123 Main St"
+
+
+def test_match_block_below_threshold_returns_none():
+    """A short alias incidentally appearing in a long block is rejected."""
+    alias_map = {"address_state": ["ST"]}
+    # "ST" appears in "Patient was an Astronaut" but len(ST)/len(text) is tiny.
+    match = _match_block("Patient was an Astronaut", alias_map)
+    assert match is None
+
+
+def test_match_block_empty_text_returns_none():
+    assert _match_block("", {"x": ["X"]}) is None
+    assert _match_block("   ", {"x": ["X"]}) is None
+
+
+def test_match_block_label_only_block_yields_no_value():
+    """Block contains only the label — match exists but value is None."""
+    alias_map = {"first_name": ["First Name"]}
+    match = _match_block("First Name", alias_map)
+    # Score is exactly 1.0; passes threshold; but value is None.
+    assert match is not None
+    canonical, value, score = match
+    assert canonical == "first_name"
+    assert value is None
+    assert score == 1.0
+
+
+def test_match_block_no_aliases_match_returns_none():
+    alias_map = {"first_name": ["First Name"]}
+    assert _match_block("absolutely unrelated text", alias_map) is None
+
+
+# ---------------------------------------------------------------------------
+# _parse_bbox + _parse_page_size
+# ---------------------------------------------------------------------------
+
+
+def test_parse_bbox_normalized_coords_pass_through():
+    bb = _parse_bbox([0.1, 0.2, 0.3, 0.4])
     assert bb is not None
-    assert bb.page_number == 1
     assert bb.x1 == 0.1
     assert bb.x2 == 0.3
+    assert bb.page_number == 1
 
 
-def test_parse_bbox_absent_returns_none():
-    assert _parse_bbox({"value": "x"}) is None
+def test_parse_bbox_pixel_coords_normalized_via_page_size():
+    """Pixel bbox + page_size_px → normalized [0, 1] bbox."""
+    bb = _parse_bbox([170, 440, 510, 660], page_size_px=(1700, 2200))
+    assert bb is not None
+    assert abs(bb.x1 - 0.1) < 1e-9
+    assert abs(bb.x2 - 0.3) < 1e-9
+    assert abs(bb.y1 - 0.2) < 1e-9
+
+
+def test_parse_bbox_pixel_coords_without_page_size_returns_none():
+    """Pixel bbox with no page_size_px → can't normalize → None."""
+    assert _parse_bbox([100, 200, 300, 400]) is None
 
 
 def test_parse_bbox_wrong_length_returns_none():
-    assert _parse_bbox({"bbox": [0.1, 0.2, 0.3]}) is None
-    assert _parse_bbox({"bbox": [0.1, 0.2, 0.3, 0.4, 0.5]}) is None
+    assert _parse_bbox([0.1, 0.2, 0.3]) is None
+    assert _parse_bbox([0.1, 0.2, 0.3, 0.4, 0.5]) is None
 
 
 def test_parse_bbox_non_numeric_returns_none():
-    assert _parse_bbox({"bbox": ["a", "b", "c", "d"]}) is None
+    assert _parse_bbox(["a", "b", "c", "d"]) is None
 
 
-def test_parse_bbox_accepts_int_coords():
-    bb = _parse_bbox({"bbox": [1, 2, 3, 4]})
+def test_parse_bbox_clamps_slightly_out_of_bounds_pixel_coords():
+    """Pixel bbox extending past page edge → clamped, not rejected."""
+    bb = _parse_bbox([0, 0, 1701, 2200], page_size_px=(1700, 2200))
     assert bb is not None
-    assert bb.x1 == 1.0
+    assert bb.x2 == 1.0  # clamped from 1.000588
+
+
+def test_parse_page_size_happy_path():
+    assert _parse_page_size([1700, 2200]) == (1700, 2200)
+    assert _parse_page_size((800, 1100)) == (800, 1100)
+
+
+def test_parse_page_size_rejects_zero_and_negative():
+    assert _parse_page_size([0, 100]) is None
+    assert _parse_page_size([-1, 100]) is None
+
+
+def test_parse_page_size_rejects_malformed():
+    assert _parse_page_size(None) is None
+    assert _parse_page_size([100]) is None
+    assert _parse_page_size(["a", "b"]) is None
 
 
 # ---------------------------------------------------------------------------
@@ -151,140 +287,217 @@ def test_parse_bbox_accepts_int_coords():
 # ---------------------------------------------------------------------------
 
 
-def test_parse_response_populates_named_fields():
-    raw = {
-        "fields": [
-            {"name": "vendor_name", "value": "ACME", "confidence": 0.95},
-            {"name": "iban", "value": "DE89370400440532013000", "confidence": 0.99},
+def test_parse_response_populates_field_from_labeled_block():
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.20, 0.07, 0.56, 0.09],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            }
         ]
-    }
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.value == "ACME"
-    assert form.iban.value == "DE89370400440532013000"
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.value == "Jane"
+    assert form.first_name.tier_used == 1
 
 
-def test_parse_response_stamps_tier_used_on_populated_fields():
-    """Every field the model touches gets tier_used=1."""
-    raw = {"fields": [{"name": "vendor_name", "value": "ACME", "confidence": 0.95}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.tier_used == 1
-
-
-def test_parse_response_stamps_tier_used_on_confidently_blank_fields():
-    """value=null + tier_used=1 = attempted, returned blank (vs unattempted)."""
-    raw = {"fields": [{"name": "vendor_email", "value": None, "confidence": 0.92}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_email.value is None
-    assert form.vendor_email.tier_used == 1
-    assert form.vendor_email.confidence == 0.92
-
-
-def test_parse_response_leaves_unmentioned_fields_unattempted():
-    """Fields not in the response stay at default — tier_used=None."""
-    raw = {"fields": [{"name": "vendor_name", "value": "ACME", "confidence": 0.95}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.iban.tier_used is None
-    assert form.iban.value is None
-
-
-def test_parse_response_silently_drops_unknown_field_names():
-    """A hallucinated 'foo_bar' shouldn't break the rest of the extraction."""
-    raw = {
-        "fields": [
-            {"name": "vendor_name", "value": "ACME", "confidence": 0.95},
-            {"name": "totally_made_up_field", "value": "junk", "confidence": 0.99},
+def test_parse_response_stamps_tier_used_only_on_populated_fields():
+    """Fields with no matching block stay unattempted (tier_used=None)."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            }
         ]
-    }
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.value == "ACME"
-    assert not hasattr(form, "totally_made_up_field")
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.tier_used == 1
+    assert form.last_name.tier_used is None
 
 
-def test_parse_response_clamps_high_confidence():
-    """Pydantic's [0, 1] validator would reject 1.5; clamp first."""
-    raw = {"fields": [{"name": "vendor_name", "value": "x", "confidence": 1.5}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.confidence == 1.0
-
-
-def test_parse_response_clamps_negative_confidence():
-    raw = {"fields": [{"name": "vendor_name", "value": "x", "confidence": -0.3}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.confidence == 0.0
-
-
-def test_parse_response_handles_non_numeric_confidence():
-    raw = {"fields": [{"name": "vendor_name", "value": "x", "confidence": "high"}]}
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.confidence == 0.0
+def test_parse_response_keeps_highest_scoring_match_when_multiple_blocks_match_same_field():
+    """Two blocks both contain 'First Name' — the higher-scoring one wins."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Alice",
+            },
+            # Same alias appears in a longer block (lower score). 'Alice' should
+            # win because alias-len/text-len is higher.
+            {
+                "block_bbox": [0.0, 0.5, 0.9, 0.55],
+                "block_label": "text",
+                "block_content": "Please confirm patient's First Name: Bob below",
+            },
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.value == "Alice"
 
 
 def test_parse_response_attaches_bounding_box():
-    raw = {
-        "fields": [
+    raw = _hc_raw(
+        [
             {
-                "name": "amount_total_gross",
-                "value": "1,234.56",
-                "confidence": 0.95,
-                "bbox": [0.81, 0.83, 0.88, 0.85],
+                "block_bbox": [0.20, 0.07, 0.56, 0.09],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
             }
         ]
-    }
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.amount_total_gross.bounding_box is not None
-    assert form.amount_total_gross.bounding_box.page_number == 1
-    assert form.amount_total_gross.bounding_box.x1 == 0.81
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.bounding_box is not None
+    assert form.first_name.bounding_box.page_number == 1
+    assert form.first_name.bounding_box.x1 == 0.20
 
 
-def test_parse_response_captures_raw_text_when_present():
-    raw = {
-        "fields": [
+def test_parse_response_attaches_raw_text_from_full_block_content():
+    """raw_text is the block_content verbatim (label + value), not just value."""
+    raw = _hc_raw(
+        [
             {
-                "name": "vendor_name",
-                "value": "ACME Co.",
-                "confidence": 0.95,
-                "raw_text": "AGME Co.",  # OCR variant
+                "block_bbox": [0.20, 0.07, 0.56, 0.09],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
             }
         ]
-    }
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.raw_text == "AGME Co."
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.raw_text == "First Name: Jane"
 
 
-def test_parse_response_handles_empty_fields_list():
-    """Model returned nothing — form valid, all fields unattempted."""
-    form = _parse_response({"fields": []}, BusinessDocumentForm)
-    assert form.vendor_name.tier_used is None
-    assert form.metadata.form_type == "BusinessDocumentForm"
+def test_parse_response_skips_label_only_blocks():
+    """Block with the alias but no value text doesn't populate the field."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name",
+            }
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.tier_used is None
 
 
-def test_parse_response_handles_missing_fields_key():
+def test_parse_response_skips_unmatched_blocks():
+    """Block text matching nothing in the alias map → no field populated."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "the quick brown fox",
+            }
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    # No fields populated; form valid; metadata stub present
+    assert form.metadata.form_type == "HealthcareIntakeForm"
+    populated = [
+        name
+        for name in get_field_metadata(HealthcareIntakeForm)
+        if getattr(form, name).tier_used == 1
+    ]
+    assert populated == []
+
+
+def test_parse_response_handles_empty_parsing_res_list():
+    raw = _hc_raw([])
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.metadata.form_type == "HealthcareIntakeForm"
+    assert form.first_name.tier_used is None
+
+
+def test_parse_response_handles_missing_parsing_res_list_key():
     """Malformed response — be lenient, return empty extraction."""
-    form = _parse_response({}, BusinessDocumentForm)
-    assert form.vendor_name.tier_used is None
+    form = _parse_response({"page_size_px": [1700, 2200]}, HealthcareIntakeForm)
+    assert form.first_name.tier_used is None
 
 
-def test_parse_response_skips_non_dict_entries():
-    raw = {
-        "fields": ["not a dict", None, {"name": "vendor_name", "value": "ok", "confidence": 0.9}]
-    }
-    form = _parse_response(raw, BusinessDocumentForm)
-    assert form.vendor_name.value == "ok"
-
-
-def test_parse_response_works_for_healthcare_form():
-    """Same parser handles both verticals."""
-    raw = {
-        "fields": [
-            {"name": "first_name", "value": "Jane", "confidence": 0.96},
-            {"name": "patient_id", "value": "MRN-12345", "confidence": 0.89},
-        ]
-    }
+def test_parse_response_skips_non_dict_blocks():
+    raw = _hc_raw(["not a dict", None])  # type: ignore[list-item]
+    raw["parsing_res_list"].append(
+        {  # type: ignore[union-attr]
+            "block_bbox": [0.0, 0.0, 0.5, 0.05],
+            "block_label": "text",
+            "block_content": "First Name: Jane",
+        }
+    )
     form = _parse_response(raw, HealthcareIntakeForm)
     assert form.first_name.value == "Jane"
-    assert form.patient_id.value == "MRN-12345"
-    # HealthcareIntakeForm elevates first_name to PHI
+
+
+def test_parse_response_skips_blocks_with_missing_or_empty_content():
+    raw = _hc_raw(
+        [
+            {"block_bbox": [0.0, 0.0, 0.5, 0.05], "block_label": "text"},  # no content
+            {"block_bbox": [0.0, 0.0, 0.5, 0.05], "block_label": "text", "block_content": ""},
+            {"block_bbox": [0.0, 0.0, 0.5, 0.05], "block_label": "text", "block_content": "  "},
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            },
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.value == "Jane"
+
+
+def test_parse_response_normalizes_pixel_bbox_when_page_size_given():
+    raw = {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [340, 154, 952, 198],  # pixel coords
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            }
+        ],
+    }
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.bounding_box is not None
+    assert abs(form.first_name.bounding_box.x1 - 0.2) < 1e-9
+
+
+def test_parse_response_works_for_healthcare_form_phi_field():
+    """HealthcareIntakeForm elevates first_name to PHI."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            }
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.value == "Jane"
     assert get_field_metadata(HealthcareIntakeForm)["first_name"].data_class == DataClass.PHI
+
+
+def test_parse_response_works_for_business_form_with_synthetic_aliases():
+    """BusinessDocumentForm uses synthetic title-case aliases from canonical_name."""
+    raw = {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "Vendor Name: ACME Industrial Supply",
+            }
+        ],
+    }
+    form = _parse_response(raw, BusinessDocumentForm)
+    assert form.vendor_name.value == "ACME Industrial Supply"
+    assert form.vendor_name.tier_used == 1
 
 
 # ---------------------------------------------------------------------------
@@ -292,60 +505,58 @@ def test_parse_response_works_for_healthcare_form():
 # ---------------------------------------------------------------------------
 
 
+def _cached_first_name_jane() -> dict:
+    return {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [0.20, 0.07, 0.56, 0.09],
+                "block_label": "text",
+                "block_content": "First Name: Jane",
+            }
+        ],
+    }
+
+
 def test_extract_returns_cached_response_when_cache_hit(
     isolated_cache_root, eval_live_off, monkeypatch
 ):
     """Cache hit with EVAL_LIVE unset → no live call, latency_ms=0.0."""
-    # Seed the cache with a known response keyed on the fake PNG's sha256.
-    eval_cache.save_cached(
-        PROVIDER_NAME,
-        _FAKE_PNG_SHA256,
-        {
-            "fields": [
-                {"name": "vendor_name", "value": "CachedCorp", "confidence": 0.92},
-            ]
-        },
-    )
+    eval_cache.save_cached(PROVIDER_NAME, _FAKE_PNG_SHA256, _cached_first_name_jane())
 
-    # Sentinel: live path must NOT be reached. Replace the pipeline-loading
-    # helper with a raiser so a cache miss would visibly fail.
     def _should_not_be_called() -> None:
         raise AssertionError("live path called despite cache hit")
 
     monkeypatch.setattr(tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", _should_not_be_called)
 
     provider = Tier1PaddleOcrLocal()
-    result = provider.extract(_FAKE_PNG, BusinessDocumentForm)
+    result = provider.extract(_FAKE_PNG, HealthcareIntakeForm)
 
     assert isinstance(result, ProviderResult)
-    assert result.form.vendor_name.value == "CachedCorp"
-    assert result.form.vendor_name.tier_used == 1
+    assert result.form.first_name.value == "Jane"
+    assert result.form.first_name.tier_used == 1
     assert result.latency_ms == 0.0
     assert result.cost_usd == 0.0
-    assert result.raw_response["fields"][0]["name"] == "vendor_name"
+    assert "parsing_res_list" in result.raw_response
 
 
 def test_extract_falls_through_to_live_on_cache_miss(
     isolated_cache_root, eval_live_off, monkeypatch
 ):
     """Cache miss (no EVAL_LIVE) → still hits live path per starter-prompt spec."""
-    stub_response = {
-        "fields": [{"name": "iban", "value": "DE89370400440532013000", "confidence": 0.99}]
-    }
+    stub_response = _cached_first_name_jane()
     monkeypatch.setattr(
         tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", lambda: "stub-pipeline"
     )
     monkeypatch.setattr(
-        tier1_paddleocr_local,
-        "_invoke_pipeline",
-        lambda pipeline, png, prompt: stub_response,
+        tier1_paddleocr_local, "_invoke_pipeline", lambda pipeline, png: stub_response
     )
 
     provider = Tier1PaddleOcrLocal()
-    result = provider.extract(_FAKE_PNG, BusinessDocumentForm)
+    result = provider.extract(_FAKE_PNG, HealthcareIntakeForm)
 
-    assert result.form.iban.value == "DE89370400440532013000"
-    assert result.latency_ms >= 0.0  # live path → real wall-clock
+    assert result.form.first_name.value == "Jane"
+    assert result.latency_ms >= 0.0
     assert result.raw_response == stub_response
 
 
@@ -353,73 +564,76 @@ def test_extract_writes_back_to_cache_after_live_call(
     isolated_cache_root, eval_live_off, monkeypatch
 ):
     """Live call success → response persisted under the PNG's sha256."""
-    stub_response = {"fields": [{"name": "vendor_name", "value": "Fresh", "confidence": 0.88}]}
+    stub = _cached_first_name_jane()
     monkeypatch.setattr(
         tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", lambda: "stub-pipeline"
     )
-    monkeypatch.setattr(
-        tier1_paddleocr_local,
-        "_invoke_pipeline",
-        lambda pipeline, png, prompt: stub_response,
-    )
-
-    Tier1PaddleOcrLocal().extract(_FAKE_PNG, BusinessDocumentForm)
+    monkeypatch.setattr(tier1_paddleocr_local, "_invoke_pipeline", lambda *a, **kw: stub)
+    Tier1PaddleOcrLocal().extract(_FAKE_PNG, HealthcareIntakeForm)
 
     # Second call should hit cache and skip live.
     monkeypatch.setattr(
         tier1_paddleocr_local,
         "_invoke_pipeline",
-        lambda *args, **kw: pytest.fail("second call should be cache hit"),
+        lambda *a, **kw: pytest.fail("second call should be cache hit"),
     )
-    result2 = Tier1PaddleOcrLocal().extract(_FAKE_PNG, BusinessDocumentForm)
-    assert result2.form.vendor_name.value == "Fresh"
+    result2 = Tier1PaddleOcrLocal().extract(_FAKE_PNG, HealthcareIntakeForm)
+    assert result2.form.first_name.value == "Jane"
     assert result2.latency_ms == 0.0
 
 
 def test_extract_bypasses_cache_when_eval_live_set(isolated_cache_root, eval_live_on, monkeypatch):
     """EVAL_LIVE=true → always call live, overwriting any cached response."""
-    eval_cache.save_cached(
-        PROVIDER_NAME,
-        _FAKE_PNG_SHA256,
-        {"fields": [{"name": "vendor_name", "value": "Stale", "confidence": 0.5}]},
-    )
-    fresh = {"fields": [{"name": "vendor_name", "value": "Fresh", "confidence": 0.99}]}
+    stale = {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Stale",
+            }
+        ],
+    }
+    fresh = {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: Fresh",
+            }
+        ],
+    }
+    eval_cache.save_cached(PROVIDER_NAME, _FAKE_PNG_SHA256, stale)
     monkeypatch.setattr(
         tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", lambda: "stub-pipeline"
     )
     monkeypatch.setattr(tier1_paddleocr_local, "_invoke_pipeline", lambda *a, **k: fresh)
 
-    result = Tier1PaddleOcrLocal().extract(_FAKE_PNG, BusinessDocumentForm)
-    assert result.form.vendor_name.value == "Fresh"
-    # Cache now holds the fresh response — verify by reading directly.
+    result = Tier1PaddleOcrLocal().extract(_FAKE_PNG, HealthcareIntakeForm)
+    assert result.form.first_name.value == "Fresh"
     assert eval_cache.load_cached(PROVIDER_NAME, _FAKE_PNG_SHA256) == fresh
 
 
 def test_extract_recomputes_sha256_from_png_bytes(isolated_cache_root, eval_live_off, monkeypatch):
     """Provider keys the cache on sha256(png) not on any caller-supplied hash."""
-    # Seed cache under the CORRECT sha for _FAKE_PNG.
-    fresh = {"fields": [{"name": "vendor_name", "value": "Correct", "confidence": 0.9}]}
-    eval_cache.save_cached(PROVIDER_NAME, _FAKE_PNG_SHA256, fresh)
-    # A DIFFERENT PNG (different sha) should miss cache and hit live, even
-    # though both PNGs would be paired with the same sidecar in a buggy call.
+    correct = _cached_first_name_jane()
+    eval_cache.save_cached(PROVIDER_NAME, _FAKE_PNG_SHA256, correct)
     other_png = b"DIFFERENT_PNG_BYTES"
     monkeypatch.setattr(tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", lambda: "stub")
-    live_response = {"fields": [{"name": "vendor_name", "value": "FromLive", "confidence": 0.8}]}
+    live_response = {
+        "page_size_px": [1700, 2200],
+        "parsing_res_list": [
+            {
+                "block_bbox": [0.0, 0.0, 0.5, 0.05],
+                "block_label": "text",
+                "block_content": "First Name: FromLive",
+            }
+        ],
+    }
     monkeypatch.setattr(tier1_paddleocr_local, "_invoke_pipeline", lambda *a, **k: live_response)
-    result = Tier1PaddleOcrLocal().extract(other_png, BusinessDocumentForm)
-    assert result.form.vendor_name.value == "FromLive"
-
-
-def test_extract_caches_under_correct_sha_after_live_call(
-    isolated_cache_root, eval_live_off, monkeypatch
-):
-    """Live response is stored under sha256(png), not under a stale hash."""
-    payload = {"fields": [{"name": "vendor_name", "value": "X", "confidence": 0.8}]}
-    monkeypatch.setattr(tier1_paddleocr_local, "_load_paddleocr_vl_pipeline", lambda: "stub")
-    monkeypatch.setattr(tier1_paddleocr_local, "_invoke_pipeline", lambda *a, **k: payload)
-    Tier1PaddleOcrLocal().extract(_FAKE_PNG, BusinessDocumentForm)
-    # The cache file must exist under the canonical sha256(_FAKE_PNG).
-    assert eval_cache.load_cached(PROVIDER_NAME, _FAKE_PNG_SHA256) == payload
+    result = Tier1PaddleOcrLocal().extract(other_png, HealthcareIntakeForm)
+    assert result.form.first_name.value == "FromLive"
 
 
 # ---------------------------------------------------------------------------
@@ -432,17 +646,15 @@ def test_live_inference_smoke(isolated_cache_root, eval_live_on):
     """Skipped unless paddle is installed AND EVAL_LIVE=true.
 
     Real live-inference validation runs as the deliverable step for this PR
-    against the 10-doc validation set (``tests/fixtures/eval-validation/``).
-    This smoke test just confirms the live path doesn't blow up on import
-    when paddle IS available. CI never sets EVAL_LIVE so this stays skipped.
+    against the 6-doc validation set. This smoke test just confirms the
+    live path doesn't blow up on import when paddle IS available. CI never
+    sets EVAL_LIVE so this stays skipped.
     """
     try:
         import paddle  # noqa: F401
     except ImportError:
         pytest.skip("paddle not installed; see docs/local-development.md Tier 1 setup")
 
-    # If we got here, paddle is available; instantiating the provider should
-    # not fail at construction time (pipeline loads lazily).
     provider = Tier1PaddleOcrLocal()
     assert provider.name == PROVIDER_NAME
 
@@ -451,7 +663,6 @@ def test_load_paddleocr_vl_pipeline_raises_helpful_error_when_paddle_missing(mon
     """Without paddle installed the live path raises ImportError with an install hint."""
     if "paddle" in os.environ.get("_PYTHON_INSTALLED_PACKAGES", ""):
         pytest.skip("paddle is installed; can't exercise the missing-import path here")
-    # Force ImportError by removing paddle from sys.modules and shadowing the import.
     import sys
 
     monkeypatch.setitem(sys.modules, "paddle", None)
@@ -468,8 +679,6 @@ def test_load_paddleocr_vl_pipeline_raises_helpful_error_when_paddle_missing(mon
 # pages cannot be redistributed in this MIT public repo because DocILE is
 # CC-BY-NC-ND 4.0. DocILE-side validation is a local-only workflow on
 # Mark's GPU machine. See tests/fixtures/eval-cache/README.md.
-
-import pathlib  # noqa: E402
 
 VALIDATION_DIR = pathlib.Path("tests/fixtures/eval-validation/cms1500")
 
@@ -488,15 +697,13 @@ def test_validation_corpus_present():
 def test_tier1_cached_replay_on_validation_doc(png_path, monkeypatch):
     """Each validation doc has a cached Tier 1 response that parses cleanly.
 
-    Exercises the full pipeline: real PNG bytes -> sha256 -> cache lookup ->
-    _parse_response -> populated HealthcareIntakeForm. The acceptance gate
+    Exercises the full pipeline: real PNG bytes → sha256 → cache lookup →
+    _parse_response → populated HealthcareIntakeForm. The acceptance gate
     per the PR (a+b) starter: 'Tier 1 must return SOMETHING (parseable
     response, no exceptions) on all N docs.'
     """
     monkeypatch.delenv("EVAL_LIVE", raising=False)
 
-    # Sentinel: cache must HIT — if it misses the live path is hit and the
-    # test fails loudly rather than silently re-running inference.
     def _should_not_be_called(*args, **kwargs):
         raise AssertionError(
             f"Cache miss on {png_path.name}: cached fixture missing or PNG bytes drifted."
@@ -508,12 +715,9 @@ def test_tier1_cached_replay_on_validation_doc(png_path, monkeypatch):
     provider = Tier1PaddleOcrLocal()
     result = provider.extract(png_path.read_bytes(), HealthcareIntakeForm)
 
-    # Acceptance: parseable response with no exceptions.
     assert isinstance(result, ProviderResult)
     assert result.latency_ms == 0.0  # cache hit
     assert result.cost_usd == 0.0
-    # At least one field should be populated (the stub seeds always include
-    # demographic fields; live PaddleOCR-VL responses will too).
     populated = [
         name
         for name in get_field_metadata(HealthcareIntakeForm)
