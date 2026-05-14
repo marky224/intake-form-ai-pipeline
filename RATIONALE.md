@@ -312,8 +312,8 @@ class BoundingBox(BaseModel):
 Two conventions are common in vision OCR: `(x1, y1, x2, y2)` for top-left and bottom-right corners (PaddleOCR, most vision-LLM outputs), and `(left, top, width, height)` (AWS Textract).
 
 The schema uses x1/y1/x2/y2 because:
-- Tier 1 (PaddleOCR-VL) and Tier 3a (Qwen 2.5 VL) both output this format natively
-- Tier 2 (Textract) is the only provider that uses left/top/width/height; conversion happens in `tier2_textract.py` before returning to the canonical schema
+- Tier 1 (PaddleOCR-VL) and the Qwen 2.5 VL local tiers (V1's Tier 2 + Tier 3; V2's Tier 3a) all output this format natively
+- V2's Tier 2-cloud (Textract) is the only provider that uses left/top/width/height; conversion happens in `tier2_textract.py` before returning to the canonical schema
 - It's the dominant convention in the open-source vision-OCR ecosystem
 
 ### Why frozen

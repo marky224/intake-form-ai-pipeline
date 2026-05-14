@@ -248,7 +248,7 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 
 ### Scope (locked)
 
-- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
+- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
 - **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the 55-field KILE taxonomy against `BusinessDocumentForm`.
 - **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
 
@@ -311,7 +311,7 @@ The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.e
 
 ## Local-only mode for the quickstart
 
-> Lands in Phase 7. The quickstart `just demo` command runs the cascade against three local fixture documents using cached responses, with no cloud calls or AWS credentials needed. This section will document the cached fixture format, how to add new local-only test documents, and how to switch between local-only and full-cascade modes via environment flags.
+> Lands in Phase 7-V1. The quickstart `just demo` command runs the cascade against local fixture documents using cached responses (default) or live local inference (with `EVAL_LIVE=true`); no cloud calls, no AWS credentials needed. This is the default V1 demo shape — alternatives at Phase 7-V1 entry are CLI + screenshot artifacts or no-demo / eval-report-only. This section will document the cached fixture format, how to add new local-only test documents, and how to switch between cached-replay and live-local modes via environment flags.
 
 ## Coexistence with general-purpose Ollama workflows
 

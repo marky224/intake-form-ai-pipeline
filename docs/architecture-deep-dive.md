@@ -67,7 +67,7 @@ The distribution attaches AWS-managed `SecurityHeadersPolicy` via `response_head
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-XSS-Protection: 1; mode=block`
 
-CSP is intentionally not in the AWS-managed policy — Phase 7's React app has its own CSP requirements that vary by build, so a custom `aws_cloudfront_response_headers_policy` lands then.
+CSP is intentionally not in the AWS-managed policy — Phase 7-V2's React app has its own CSP requirements that vary by build, so a custom `aws_cloudfront_response_headers_policy` lands then.
 
 TLS 1.2 minimum (`TLSv1.2_2021`), SNI-only (no IP-bound SSL — costs $600/month), HTTP/2 + HTTP/3 enabled, IPv6 enabled. The ACM certificate for `ai-intake.markandrewmarquez.com` lives in `us-east-1` (CloudFront only accepts certs from that region), validated via DNS records published into the project's Route 53 hosted zone. `aws_acm_certificate_validation` blocks the distribution from attaching an unissued cert; `create_before_destroy` lifecycle on the certificate so future renewals don't take down the distribution.
 
@@ -93,11 +93,11 @@ The landing bucket is deliberately separate from `documents` and `artifacts`. Mi
 
 The same hardening applies as the documents/artifacts buckets: versioned, AES256, public-access-block on, TLS-only deny in the bucket policy, S3 server access logging delivering to the access-logs bucket under `landing/`. The OAC `s3:GetObject` grant is the only additional statement.
 
-### Phase 7 swap
+### Phase 7-V2 swap
 
-Phase 7 replaces the placeholder `index.html` with the React review UI bundle. Mechanics: `aws_s3_object` resources for the new bundle (multiple objects under `assets/` plus a transformed root `index.html`), updated `etag = filemd5(...)` triggers re-upload on content change, an optional cache invalidation via `cloudfront:CreateInvalidation` if the React bundle's filenames don't include hash suffixes (Vite/Next builds typically do, so the invalidation may be unnecessary). None of the surrounding CloudFront / WAF / ACM / Route 53 / log delivery configuration changes; only the bucket contents.
+Phase 7-V2 replaces the placeholder `index.html` with the React review UI bundle. Mechanics: `aws_s3_object` resources for the new bundle (multiple objects under `assets/` plus a transformed root `index.html`), updated `etag = filemd5(...)` triggers re-upload on content change, an optional cache invalidation via `cloudfront:CreateInvalidation` if the React bundle's filenames don't include hash suffixes (Vite/Next builds typically do, so the invalidation may be unnecessary). None of the surrounding CloudFront / WAF / ACM / Route 53 / log delivery configuration changes; only the bucket contents.
 
-The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aurora cold start, then auto-redirect to the React UI) lands in Phase 7 as part of that swap, not in PR 5.
+The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aurora cold start, then auto-redirect to the React UI) lands in Phase 7-V2 as part of that swap, not in V2's initial edge bring-up.
 
 ## V2 cascade structure (five tiers when cloud is wired)
 
