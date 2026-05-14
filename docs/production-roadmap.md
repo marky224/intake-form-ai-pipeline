@@ -6,11 +6,11 @@ This document collects items deliberately deferred from the build — decisions 
 
 This file is the long-form treatment of V2-deferred items and other "considered, not done" decisions. The locked architectural decisions in the project's main instructions document keep the brief "deferred" framing with don't-re-debate signals; this file is where the actual reasoning lives.
 
-## Tier 3a v2 candidate: Qwen3-VL-32B
+## Tier 3 model upgrade candidate: Qwen3-VL-32B
 
 Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants. The relevant new capability is mixed-precision GGUF support — different bit widths for language vs vision components within a single quantized model. This directly addresses the finding from the MBQ paper (arxiv 2412.19509) that VLM language tokens are roughly 10× more sensitive to quantization than vision tokens. In a Qwen 2.5 VL 32B GGUF, the LLM and vision encoder are quantized at the same bit width, so aggressive LLM quantization drags down VLM accuracy more than necessary; mixed precision lets you quantize the LLM aggressively while keeping the vision encoder at full precision.
 
-The locked architecture is Qwen 2.5 VL 32B per the main instructions document. Qwen3-VL-32B is a v2 candidate, not a v1 swap. Revisit conditions:
+The locked architecture is Qwen 2.5 VL 32B (V1's Tier 3; V2's Tier 3a) per the main instructions document. Qwen3-VL-32B is a model-upgrade candidate, not the locked default. Revisit conditions:
 
 1. Phase 4 dual-quant testing reveals Q8_0 limitations on Qwen 2.5 VL that mixed-precision Qwen3-VL would mitigate.
 2. Qwen3-VL community GGUF repositories mature enough to provide stable, well-documented mixed-precision builds (likely 6+ months post-release).
@@ -90,7 +90,7 @@ Cloud deployment (AWS) is locked. Revisit only if monthly costs become unmanagea
 
 Self-hosted alternatives considered and rejected:
 
-- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel) serving the **entire demo**: zero monthly cost but requires home internet uptime and home machine availability. A visitor at 2 AM local time gets a dead demo. (Distinct from the Phase 7 bridge layer, which also uses Cloudflare Tunnel but only for the Tier 1 / Tier 3a inference path — the public-facing edge stays on CloudFront so visits during a home-GPU outage land on the wake page and the cascade fails over to `EXTRACTION_MODE=degraded` rather than to a dead site.)
+- Home server with reverse proxy (Cloudflare Tunnel or Tailscale Funnel) serving the **entire demo**: zero monthly cost but requires home internet uptime and home machine availability. A visitor at 2 AM local time gets a dead demo. (Distinct from V2's Phase 7 bridge layer, which also uses Cloudflare Tunnel but only for the Tier 1 / Tier 2-local / Tier 3 inference path — the public-facing V2 edge stays on CloudFront so visits during a home-GPU outage land on the wake page and the cascade fails over to `EXTRACTION_MODE=degraded` rather than to a dead site.)
 - VPS (DigitalOcean, Hetzner, etc.): $20–40/month for adequate-sized droplet, eliminates Aurora's auto-pause cost-saving model, more operational burden than AWS managed services.
 
 Calculus would have to genuinely flip — cost spike to $100+/month sustained, or AWS account compromise — before this is worth re-evaluating.

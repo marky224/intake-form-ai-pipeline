@@ -184,11 +184,11 @@ The tradeoff: 30-90 seconds of visitor wait time is acceptable for a public demo
 
 `Sensitivity` is retained as an orthogonal axis (`low`, `medium`, `high`). `data_class` says WHAT regulated data; `sensitivity` says HOW careful within that regime. Both matter for routing — a `PII` field with `sensitivity="high"` (e.g., SSN) routes differently than a `PII` field with `sensitivity="low"` (e.g., a publicly-listed business name).
 
-### Why per-field confidence thresholds at 0.85 / 0.80 / 0.75
+### Why per-field confidence thresholds step down per tier
 
 Engineering judgment with calibration intent. The values come from PaddleOCR-VL's and Qwen 2.5 VL's empirical confidence ranges on intake-form fields: scores below 0.85 from a vision-OCR model correspond roughly to 70-80% accuracy — the threshold where re-extraction becomes cheaper than human review.
 
-The 0.85 → 0.80 → 0.75 step pattern reflects that each subsequent tier is more capable, so the bar for "this tier's answer is good enough" relaxes accordingly. Tier 1 needs to be confident before we trust it; Tier 3b is the last resort, and a 0.75 from Sonnet is a stronger signal than a 0.75 from PaddleOCR.
+V1's two escalation boundaries (Tier 1→2, Tier 2→3) sit at **0.85 / 0.80**. V2 adds two more boundaries when the cloud tiers wire in (Tier 2-local→Tier 2-cloud, Tier 3→Tier 3b), settling to **0.85 / 0.80 / 0.80 / 0.75**. The step-down pattern reflects that each subsequent tier is more capable, so the bar for "this tier's answer is good enough" relaxes accordingly — Tier 1 needs to be confident before we trust it; V2's Tier 3b is the last resort, and a 0.75 from Sonnet is a stronger signal than a 0.75 from PaddleOCR.
 
 These are starting values, not final ones. The Phase 6 eval harness sweeps thresholds across the test corpus to find the Pareto frontier of cost vs F1.
 
@@ -278,9 +278,9 @@ intake-form-ai-pipeline/
 │   └── intake_pipeline/
 │       ├── schemas/                  # Pydantic schemas, alias seed
 │       ├── cascade/
-│       │   ├── providers/            # tier1_*, tier2_*, tier3a_*, tier3b_*
-│       │   ├── router.py             # two-stage classifier
-│       │   └── orchestrator.py       # Step Functions integration
+│       │   ├── providers/            # V1: tier1_paddleocr_local, tier2_qwen_7b_local, tier3_qwen_32b_local. V2 adds: tier2_textract, tier3b_claude_bedrock.
+│       │   ├── router.py             # two-stage classifier (V1: local Qwen 7B for Stage 2; V2: Bedrock Nova Lite)
+│       │   └── orchestrator.py       # V1: in-process Python orchestrator. V2: Step Functions integration.
 │       ├── feedback/                 # correction loop, alias updates
 │       ├── retrieval/                # ColQwen 2.5 RAG
 │       └── eval/                     # F1, cost, latency metrics
@@ -330,7 +330,7 @@ The ~32× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the V2 casca
 
 The supplementary documentation in `docs/` goes deeper on specific topics. Each is a focused read.
 
-- **`docs/architecture-deep-dive.md`** — V1 local orchestrator architecture + V2 cloud architecture (CloudFront edge, four-tier routing structure, Step Functions state machine layout, schema introspection patterns)
+- **`docs/architecture-deep-dive.md`** — V1 local orchestrator architecture + V2 cloud architecture (CloudFront edge, five-tier V2 routing structure, Step Functions state machine layout, schema introspection patterns)
 - **`docs/hipaa-architecture.md`** — V2 BAA boundary deep-dive, healthcare-specific routing rules, the synthetic-to-real-PHI swap path (V1 is no-op for HIPAA — synthetic data only)
 - **`docs/eval-methodology.md`** — F1 computation details, cached-fixture strategy, train/dev/test partition discipline, leakage mitigations, latency metric definitions, progressive alias-table partition for F1-over-time
 - **`docs/production-roadmap.md`** — V2 cloud rebuild plan + deferred questions (Spanish-language support, multi-tenant SaaS, throughput optimization, vLLM scale-up path, fine-tuned local Tier 2 model, Qwen3-VL-32B mixed-precision candidate)
