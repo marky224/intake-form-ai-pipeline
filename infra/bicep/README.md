@@ -1,6 +1,8 @@
 # Bicep parallel — Azure branch (no deployment)
 
-This directory is the Azure-cloud parallel of `infra/terraform/`. It is **module structure only and is not deployed** — the project targets AWS as the primary cloud (Aurora Serverless v2, S3, CloudFront, WAFv2, etc.) and ships its public demo at `https://ai-intake.markandrewmarquez.com/` from there. The Bicep tree exists to demonstrate that the same architecture is buildable on Azure with the equivalent service set, and to document the cross-cloud impedance mismatches that show up when you actually try.
+> ⚠️ **V2 cloud target — not deployed in V1.** Same V1 status as the Terraform main stack (see `infra/terraform/README.md`): the project pivoted to a local-first V1 on 2026-05-14, so no cloud (AWS or Azure) is in the V1 build. The Bicep tree was always documentation-only and stays so. When V2 begins, the AWS Terraform stack reapplies and this Bicep tree continues to mirror it for the multi-cloud thinking artifact.
+
+This directory is the Azure-cloud parallel of `infra/terraform/`. It is **module structure only and is not deployed** — the project's V2 target is AWS as the primary cloud (Aurora Serverless v2, S3, CloudFront, WAFv2, etc.) with the public demo at `https://ai-intake.markandrewmarquez.com/` shipping from there. The Bicep tree exists to demonstrate that the same architecture is buildable on Azure with the equivalent service set, and to document the cross-cloud impedance mismatches that show up when you actually try.
 
 CI runs `bicep build` on every push so syntax stays clean as the Terraform side evolves. Nothing here ever touches an Azure subscription.
 
