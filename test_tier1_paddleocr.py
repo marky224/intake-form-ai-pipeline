@@ -33,8 +33,11 @@ from cascade.providers.tier1_paddleocr_local import (
     TIER,
     Tier1PaddleOcrLocal,
     _alias_map_for_form,
+    _iter_table_label_value_pairs,
     _match_block,
+    _match_label_only,
     _parse_bbox,
+    _parse_html_table,
     _parse_page_size,
     _parse_response,
     _strip_label_prefix,
@@ -221,6 +224,148 @@ def test_match_block_label_only_block_yields_no_value():
 def test_match_block_no_aliases_match_returns_none():
     alias_map = {"first_name": ["First Name"]}
     assert _match_block("absolutely unrelated text", alias_map) is None
+
+
+# ---------------------------------------------------------------------------
+# _match_label_only (used for table-cell label matching)
+# ---------------------------------------------------------------------------
+
+
+def test_match_label_only_returns_canonical_and_score():
+    alias_map = {"first_name": ["First Name"], "last_name": ["Last Name"]}
+    match = _match_label_only("First Name", alias_map)
+    assert match is not None
+    assert match[0] == "first_name"
+    assert match[1] == pytest.approx(1.0)
+
+
+def test_match_label_only_below_threshold_returns_none():
+    """Long label cell with tiny alias substring scores below threshold."""
+    alias_map = {"sex": ["Sex"]}  # alias "Sex" is 3 chars
+    # text 30 chars → 3/30 = 0.10 < 0.30
+    assert _match_label_only("Astronaut Travel History Sex", alias_map) is None
+
+
+def test_match_label_only_empty_text_returns_none():
+    assert _match_label_only("", {"x": ["X"]}) is None
+    assert _match_label_only("   ", {"x": ["X"]}) is None
+
+
+def test_match_label_only_picks_higher_scoring_alias():
+    """When two aliases match, the longer one wins on score."""
+    alias_map = {"first_name": ["First"], "last_name": ["First Name"]}
+    match = _match_label_only("First Name", alias_map)
+    assert match is not None
+    # "First Name" alias (10 chars) outscores "First" (5 chars) at text-len 10.
+    assert match[0] == "last_name"
+
+
+# ---------------------------------------------------------------------------
+# _parse_html_table + _iter_table_label_value_pairs (table-aware extractor)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_html_table_basic_two_row():
+    html = "<table><tr><td>A</td><td>B</td></tr><tr><td>1</td><td>2</td></tr></table>"
+    assert _parse_html_table(html) == [["A", "B"], ["1", "2"]]
+
+
+def test_parse_html_table_unescapes_html_entities():
+    """PaddleOCR-VL emits ``&#x27;`` for ``'`` — entity escapes must be undone."""
+    html = "<table><tr><td>INSURED&#x27;S ID</td></tr></table>"
+    rows = _parse_html_table(html)
+    assert rows == [["INSURED'S ID"]]
+
+
+def test_parse_html_table_empty_cells_preserved():
+    """Empty <td></td> cells stay in the row so column indices align."""
+    html = "<table><tr><td>A</td><td></td><td>C</td></tr></table>"
+    assert _parse_html_table(html) == [["A", "", "C"]]
+
+
+def test_parse_html_table_malformed_input_returns_empty():
+    """Non-table garbage doesn't crash; empty rows are returned."""
+    assert _parse_html_table("not html") == []
+
+
+def test_iter_table_pairs_column_aligned_across_two_rows():
+    html = (
+        "<table>"
+        "<tr><td>First Name</td><td>Last Name</td></tr>"
+        "<tr><td>Jane</td><td>Doe</td></tr>"
+        "</table>"
+    )
+    pairs = list(_iter_table_label_value_pairs(html))
+    assert ("First Name", "Jane") in pairs
+    assert ("Last Name", "Doe") in pairs
+
+
+def test_iter_table_pairs_skips_empty_value_cells():
+    html = (
+        "<table>"
+        "<tr><td>First Name</td><td>Last Name</td></tr>"
+        "<tr><td>Jane</td><td></td></tr>"
+        "</table>"
+    )
+    pairs = list(_iter_table_label_value_pairs(html))
+    assert pairs == [("First Name", "Jane")]
+
+
+def test_iter_table_pairs_handles_uneven_row_widths():
+    """Short row caps the column iteration — no IndexError."""
+    html = (
+        "<table>"
+        "<tr><td>A</td><td>B</td><td>C</td></tr>"
+        "<tr><td>1</td><td>2</td></tr>"
+        "</table>"
+    )
+    pairs = list(_iter_table_label_value_pairs(html))
+    assert pairs == [("A", "1"), ("B", "2")]
+
+
+def test_parse_response_extracts_fields_from_table_block():
+    """A ``block_label='table'`` block expands into (label, value) cell pairs."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 1.0, 1.0],
+                "block_label": "table",
+                "block_content": (
+                    "<table>"
+                    "<tr><td>First Name</td><td>Last Name</td></tr>"
+                    "<tr><td>Jane</td><td>Doe</td></tr>"
+                    "</table>"
+                ),
+            }
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    assert form.first_name.value == "Jane"
+    assert form.first_name.tier_used == 1
+    assert form.last_name.value == "Doe"
+
+
+def test_parse_response_drops_table_pairs_that_fail_pydantic_validation():
+    """A column-shift mis-pair (e.g. ``date_of_birth='F'``) is dropped, not crashes."""
+    raw = _hc_raw(
+        [
+            {
+                "block_bbox": [0.0, 0.0, 1.0, 1.0],
+                "block_label": "table",
+                "block_content": (
+                    "<table>"
+                    "<tr><td>First Name</td><td>Date of Birth</td></tr>"
+                    "<tr><td>Jane</td><td>F</td></tr>"  # 'F' is not a valid date
+                    "</table>"
+                ),
+            }
+        ]
+    )
+    form = _parse_response(raw, HealthcareIntakeForm)
+    # first_name still populates; date_of_birth is dropped (would have crashed
+    # form construction). tier_used=None means "not attempted".
+    assert form.first_name.value == "Jane"
+    assert form.date_of_birth.tier_used is None
 
 
 # ---------------------------------------------------------------------------

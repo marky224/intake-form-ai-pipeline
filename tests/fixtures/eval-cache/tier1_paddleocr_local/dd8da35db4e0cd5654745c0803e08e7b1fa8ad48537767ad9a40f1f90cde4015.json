@@ -1,109 +1,60 @@
 {
-  "_seed_note": "STUB \u2014 regenerate via EVAL_LIVE=true on the GPU build machine. Format reflects PaddleOCR-VL's parsing_res_list layout output; the alias-table-driven post-processor in _parse_response maps block_content text to canonical fields via alias_table_seed.json.",
+  "height": 1100,
   "page_size_px": [
-    1700,
-    2200
+    850,
+    1100
   ],
   "parsing_res_list": [
     {
       "block_bbox": [
-        0.36,
-        0.07,
-        0.56,
-        0.09
+        308,
+        24,
+        542,
+        37
       ],
-      "block_content": "First Name: Ezekiel373",
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
       "block_label": "text"
     },
     {
       "block_bbox": [
-        0.25,
-        0.07,
-        0.42,
-        0.09
+        26,
+        60,
+        824,
+        294
       ],
-      "block_content": "Last Name: Walter473",
-      "block_label": "text"
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A.INSUREd&#x27;S 1.0.NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-4F083CE3</td><td>Walter473, Ezekiel373</td><td>08/22/1998 M</td></tr><tr><td colspan=\"2\">4.INSUREd&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>332 Schuist Underpass</td><td>Self</td></tr><tr><td rowspan=\"2\">58. CITY\nWatertown</td><td>SC. STATE</td><td>50. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>MA</td><td>02472</td><td>55S-154-3309</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>19C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"2\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td>15. OTHER DATE</td><td></td></tr><tr><td colspan=\"2\">10/30/2025</td><td></td><td></td></tr><tr><td colspan=\"2\">21. DIAGNOSTS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td></td><td></td></tr><tr><td colspan=\"2\">Acute bronchitis (disorder)</td><td></td><td></td></tr><tr><td>25. FEDERAL TAX 1.0.NUMBER</td><td>26. PATIENT&#x27;S ACCOUNT NO.</td><td></td><td>27. ACCEPT ASSIGMENT</td></tr><tr><td>12-3456789</td><td>4f083ce3-f12</td><td></td><td>YES</td></tr></table>",
+      "block_label": "table"
     },
     {
       "block_bbox": [
-        0.75,
-        0.07,
-        0.92,
-        0.09
+        31,
+        309,
+        819,
+        422
       ],
-      "block_content": "Date of Birth: 1998-08-22",
-      "block_label": "text"
+      "block_content": "<table><tr><td colspan=\"3\">12. Patient&#x27;s or Authorized Person&#x27;s Signature\nEzekiel 373 Walter 473</td></tr><tr><td colspan=\"3\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td colspan=\"2\">DATE\n10/30/2025</td></tr></table>",
+      "block_label": "table"
     },
     {
       "block_bbox": [
-        0.88,
-        0.07,
-        0.95,
-        0.09
+        30,
+        439,
+        820,
+        508
       ],
-      "block_content": "Sex: M",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.38,
-        0.11,
-        0.78,
-        0.13
-      ],
-      "block_content": "Street Address: 332 Schulist Underpass",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.0,
-        0.14,
-        0.27,
-        0.16
-      ],
-      "block_content": "City: Watertown",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.24,
-        0.14,
-        0.4,
-        0.16
-      ],
-      "block_content": "State: MA",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.37,
-        0.14,
-        0.51,
-        0.16
-      ],
-      "block_content": "ZIP: 02472",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.57,
-        0.14,
-        0.8,
-        0.16
-      ],
-      "block_content": "Phone: 555-154-3309",
-      "block_label": "text"
-    },
-    {
-      "block_bbox": [
-        0.11,
-        0.32,
-        0.85,
-        0.35
-      ],
-      "block_content": "Reason for Visit: Acute bronchitis (disorder)",
-      "block_label": "text"
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
     }
-  ]
+  ],
+  "width": 850
 }

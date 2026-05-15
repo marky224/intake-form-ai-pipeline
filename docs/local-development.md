@@ -155,18 +155,32 @@ Local Tier 1 (Phase 4 PR (a+b)) runs **PaddleOCR-VL-1.5** on the RTX 4060 Ti —
 
 ### Install (manual, not via `uv sync`)
 
-PaddlePaddle 3.x (required by PaddleOCR-VL-1.5) ships from PaddlePaddle's own index URL — not PyPI — so it's installed manually rather than declared in `pyproject.toml`'s dependency tree. CI doesn't need it (Tier 1 runs against cached eval-fixtures), so this is a build-machine-only step.
+PaddlePaddle 3.x (required by PaddleOCR-VL-1.5) ships from PaddlePaddle's own CDN — not PyPI — so it's installed manually rather than declared in `pyproject.toml`'s dependency tree. CI doesn't need it (Tier 1 runs against cached eval-fixtures), so this is a build-machine-only step. Order matters: install `paddleocr` *first* because its transitive deps pull in the CPU `paddlepaddle` wheel from PyPI; then force the GPU wheel on top of that.
 
 ```bash
-# From repo root, inside the project's uv-managed venv:
-uv pip install paddlepaddle-gpu --index-url https://www.paddlepaddle.org.cn/packages/stable/cu128/
-uv pip install paddleocr
+# From repo root, inside the project's uv-managed venv.
+# 1) Install paddleocr + paddlex[ocr] extra (this pulls in CPU paddlepaddle from PyPI).
+uv pip install paddleocr "paddlex[ocr]==3.5.2"
 
-# Verify import + device pin succeeds:
-uv run python -c "import paddle; paddle.set_device('gpu:1'); print(paddle.utils.run_check())"
+# 2) Force-reinstall the GPU build over the CPU one. The package name on
+#    Baidu's CDN is `paddlepaddle-gpu` but the wheel's distribution metadata
+#    is `paddlepaddle`, so `uv pip install` via `--index-url` rejects it
+#    ("expected paddlepaddle-gpu, got paddlepaddle"). Pass the bcebos origin
+#    URL directly instead. Note: do not use the `cu128/paddlepaddle-gpu/`
+#    path advertised on paddlepaddle.org.cn — it serves a CPU wheel despite
+#    the name. Use `cu126` (paddle 3.0.0) for driver 570.x.
+uv pip install --reinstall-package paddlepaddle \
+  "https://paddle-whl.bj.bcebos.com/stable/cu129/paddlepaddle-gpu/paddlepaddle_gpu-3.1.1-cp311-cp311-linux_x86_64.whl"
+
+# 3) Verify CUDA + device pin succeeds:
+uv run python -c "import paddle; paddle.set_device('gpu:1'); paddle.utils.run_check()"
 ```
 
-The cu128 index URL matches the local NVIDIA driver (570.x) — confirmed working with `torch==2.11.0+cu128` per the Phase 1 multi-GPU validation. PaddleOCR's pretrained PaddleOCR-VL-1.5 checkpoint downloads on first `PaddleOCRVL()` construction (~5 GB to `~/.paddlex/`).
+The cu129 wheel (paddle 3.1.1) ships against CUDA 12.9 runtime — your driver (570.x) reports `Driver API Version: 12.8` but CUDA's intra-12.x forward-compat makes 12.9 runtime work fine. PaddleOCR-VL-1.5 needs paddle ≥ 3.1 for `paddle.incubate.nn.functional.fused_rms_norm_ext` — the cu126 paddle 3.0.0 wheel is missing that symbol. PaddleOCR's pretrained PaddleOCR-VL-1.5 checkpoint downloads on first `PaddleOCRVL()` construction (~5 GB to `~/.paddlex/`).
+
+#### Network notes
+
+`www.paddlepaddle.org.cn` is behind BAIDU_WAF and returns `content-length: 0` for `.whl` requests from non-Chinese IPs (the wheel URL responds HTTP 200 with an empty body). The actual CDN origin `paddle-whl.bj.bcebos.com` is unaffected — always download wheels from there directly.
 
 ### Device pin
 
@@ -178,15 +192,21 @@ nvidia-smi -i 1
 
 ### Generating eval-cache fixtures
 
-Cached responses live at `tests/fixtures/eval-cache/tier1_paddleocr_local/<image_sha256>.json` and are checked in so CI can exercise the cached-replay path without paddle installed. The initial PR (a+b) seed is a stub generated from the Synthea demographic fields — regenerate against the real model before merging the PR:
+Cached responses live at `tests/fixtures/eval-cache/tier1_paddleocr_local/<image_sha256>.json` and are checked in so CI can exercise the cached-replay path without paddle installed. To regenerate against the real model:
 
 ```bash
-# On the GPU build machine, with --extra paddle installed:
-EVAL_LIVE=true uv run pytest -m slow test_tier1_paddleocr.py -v
+EVAL_LIVE=true uv run python - <<'PY'
+from pathlib import Path
+from cascade.providers.tier1_paddleocr_local import Tier1PaddleOcrLocal
+from intake_schemas import HealthcareIntakeForm
+
+provider = Tier1PaddleOcrLocal()
+for png in sorted(Path("tests/fixtures/eval-validation/cms1500").glob("*.png")):
+    provider.extract(png.read_bytes(), HealthcareIntakeForm)
+PY
 
 # Commit the regenerated fixtures:
 git add tests/fixtures/eval-cache/tier1_paddleocr_local/
-git commit -m "regen tier1_paddleocr_local eval cache against PaddleOCR-VL-1.5"
 ```
 
 `EVAL_LIVE=true` bypasses the cache, runs live inference against the 6 CMS-1500 validation PNGs in `tests/fixtures/eval-validation/cms1500/`, and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run.

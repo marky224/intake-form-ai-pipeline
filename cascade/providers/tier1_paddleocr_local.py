@@ -42,16 +42,20 @@ CI). Cached-replay tests never touch the live path; only the
 from __future__ import annotations
 
 import hashlib
+import html as html_lib
 import io
 import json
 import re
 import time
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from functools import lru_cache
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
+from pydantic import ValidationError
 
 from cascade import eval_cache
 from cascade.providers._base import ProviderResult, T
@@ -231,6 +235,107 @@ def _match_block(
     return None
 
 
+def _match_label_only(text: str, alias_map: dict[str, list[str]]) -> tuple[str, float] | None:
+    """Match a known-to-be-label cell against the alias map.
+
+    Like ``_match_block`` but skips the value-strip step — when the caller
+    has already separated label and value into different table cells, the
+    label cell has no trailing value to extract. Returns
+    ``(canonical_name, score)`` of the best match or None below threshold.
+    """
+    text_stripped = text.strip()
+    if not text_stripped:
+        return None
+    text_len = len(text_stripped)
+    text_upper = text_stripped.upper()
+    best: tuple[str, float] | None = None
+    for canonical_name, aliases in alias_map.items():
+        for alias in aliases:
+            alias_stripped = alias.strip()
+            if not alias_stripped:
+                continue
+            if alias_stripped.upper() not in text_upper:
+                continue
+            score = min(len(alias_stripped) / text_len, 1.0)
+            if best is None or score > best[1]:
+                best = (canonical_name, score)
+    if best is not None and best[1] >= ALIAS_MATCH_THRESHOLD:
+        return best
+    return None
+
+
+class _TableHTMLParser(HTMLParser):
+    """Parse ``<table><tr><td>...</td></tr></table>`` into rows of cell text.
+
+    Stdlib-only. HTML entities (``&#x27;``, ``&amp;``, ``&lt;``) get unescaped
+    via ``html.unescape``. Nested tags inside cells are ignored — only the
+    raw text content of each ``<td>`` is captured.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.rows: list[list[str]] = []
+        self._row: list[str] | None = None
+        self._cell: list[str] | None = None
+
+    def handle_starttag(self, tag: str, _attrs: list[Any]) -> None:
+        if tag == "tr":
+            self._row = []
+        elif tag == "td" and self._row is not None:
+            self._cell = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "td" and self._row is not None and self._cell is not None:
+            text = html_lib.unescape("".join(self._cell)).strip()
+            self._row.append(text)
+            self._cell = None
+        elif tag == "tr" and self._row is not None:
+            self.rows.append(self._row)
+            self._row = None
+
+    def handle_data(self, data: str) -> None:
+        if self._cell is not None:
+            self._cell.append(data)
+
+
+def _parse_html_table(html_content: str) -> list[list[str]]:
+    """Return ``<table>`` HTML as ``[[cell_text, ...], ...]``. ``[]`` on parse failure."""
+    parser = _TableHTMLParser()
+    try:
+        parser.feed(html_content)
+    except Exception:
+        return []
+    return parser.rows
+
+
+def _iter_table_label_value_pairs(html_content: str) -> Iterator[tuple[str, str]]:
+    """Yield (label_cell, value_cell) candidate pairs from a table HTML block.
+
+    Strategy: column-aligned pairing of consecutive rows. For each pair of
+    rows ``(r_i, r_{i+1})``, iterate columns ``0..min(len(r_i), len(r_{i+1}))-1``
+    and yield ``(r_i[c], r_{i+1}[c])`` when both cells are non-empty. Cells
+    that don't alias-match a known field are filtered downstream by the
+    matcher — no need to classify label-vs-value rows here.
+
+    Known limitation: PaddleOCR-VL's table-to-HTML conversion can produce
+    column-shifted output when value cells span what would be multiple
+    label columns (e.g. a single checkbox-value cell paired with a 2-cell
+    label header). Off-by-one mis-pairs reach the matcher and are filtered
+    on score; Phase 4 PR (c)'s Tier 2 Qwen will refine table parsing
+    natively via prompted extraction.
+    """
+    rows = _parse_html_table(html_content)
+    for i in range(len(rows) - 1):
+        label_row = rows[i]
+        value_row = rows[i + 1]
+        ncols = min(len(label_row), len(value_row))
+        for c in range(ncols):
+            label = label_row[c]
+            value = value_row[c]
+            if label and value:
+                yield (label, value)
+
+
 def _parse_bbox(bbox: Any, page_size_px: tuple[int, int] | None = None) -> BoundingBox | None:
     """Parse a 4-tuple bbox, normalizing pixel coords to [0, 1] when possible.
 
@@ -303,8 +408,13 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
     The alias-table-driven post-processor:
       1. Builds the alias map for ``form_cls``'s vertical.
       2. Walks ``parsing_res_list``.
-      3. For each block, finds the best-matching canonical field.
-      4. Extracts the value text by stripping the recognized label prefix.
+      3. For ``block_label == "table"`` blocks (dense forms like CMS-1500
+         that PaddleOCR-VL serializes as ``<table>`` HTML), expands the
+         block into column-aligned (label, value) cell pairs and
+         alias-matches each label cell. The paired cell text is the value.
+      4. For all other block labels, matches the whole ``block_content``
+         against the alias table and strips the recognized label prefix
+         to get the value.
       5. Populates the form, taking the highest-scoring match per field.
 
     Locked rules:
@@ -312,9 +422,6 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
         fields (model attempted, value=None) aren't producible from
         PaddleOCR-VL's layout-parser output, so V1 Tier 1 never emits them —
         all populated fields carry a non-None value.
-      - Unknown ``block_label`` types (table, formula, etc.) don't fail —
-        the post-processor only reads ``block_content``, so non-text labels
-        with text content still get matched.
       - Confidence is the alias-match score from ``_match_block``, clamped
         to [0, 1]. NOT a model-reported confidence (PaddleOCR-VL doesn't
         emit per-field confidences).
@@ -335,6 +442,30 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
         content = block.get("block_content")
         if not isinstance(content, str) or not content.strip():
             continue
+        bbox = _parse_bbox(block.get("block_bbox"), page_size)
+
+        if block.get("block_label") == "table":
+            # PaddleOCR-VL renders dense forms (CMS-1500, business intake,
+            # claim forms) as a single ``table`` block whose ``block_content``
+            # is an HTML <table>. Expand it into column-aligned (label, value)
+            # cell pairs so the alias matcher operates on individual fields
+            # rather than the whole HTML blob.
+            for label_text, value_text in _iter_table_label_value_pairs(content):
+                tmatch = _match_label_only(label_text, alias_map)
+                if tmatch is None:
+                    continue
+                canonical_name, score = tmatch
+                field = ExtractedField(
+                    value=value_text,
+                    confidence=score,
+                    tier_used=TIER,
+                    raw_text=f"{label_text} | {value_text}",
+                    bounding_box=bbox,
+                )
+                existing = best_by_field.get(canonical_name)
+                if existing is None or score > existing[1]:
+                    best_by_field[canonical_name] = (field, score)
+            continue
 
         match = _match_block(content, alias_map)
         if match is None:
@@ -345,7 +476,6 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
             # adjacent value blocks via layout heuristics. V1 Tier 1 skips.
             continue
 
-        bbox = _parse_bbox(block.get("block_bbox"), page_size)
         field = ExtractedField(
             value=value,
             confidence=score,
@@ -358,7 +488,19 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
             best_by_field[canonical_name] = (field, score)
 
     field_overrides = {name: ef for name, (ef, _score) in best_by_field.items()}
-    return form_cls(metadata=_stub_metadata(form_cls), **field_overrides)
+    # Drop fields whose value doesn't fit the schema. Two common causes:
+    #   - column-shifted table cells (e.g. ``date_of_birth=ExtractedField(value='F')``
+    #     because PaddleOCR-VL's HTML put SEX in the column where DOB should be).
+    #   - format mismatches (CMS-1500 uses MM/DD/YYYY; Pydantic ``date`` wants
+    #     ISO YYYY-MM-DD). Per-field date coercion is Phase 5 orchestrator work.
+    # Either way, dropping is better than crashing the form — Tier 2 reruns
+    # against the same PNG and is more permissive on text/format.
+    try:
+        return form_cls(metadata=_stub_metadata(form_cls), **field_overrides)
+    except ValidationError as e:
+        bad_fields = {err["loc"][0] for err in e.errors() if err["loc"]}
+        cleaned = {k: v for k, v in field_overrides.items() if k not in bad_fields}
+        return form_cls(metadata=_stub_metadata(form_cls), **cleaned)
 
 
 def _parse_page_size(raw: Any) -> tuple[int, int] | None:
@@ -418,30 +560,62 @@ def _invoke_pipeline(pipeline: Any, png: bytes) -> dict[str, Any]:
     """Run one PaddleOCR-VL prediction. Tests stub via ``monkeypatch.setattr``.
 
     No ``prompt`` parameter — PaddleOCR-VL is a layout parser, not a prompted
-    VL model. ``pipeline.predict(input=img)`` returns ``parsing_res_list``
-    (verbatim from upstream); ``page_size_px`` is captured from the PIL
-    image so ``_parse_response`` can normalize pixel bboxes to [0, 1].
+    VL model. ``pipeline.predict(input=arr)`` returns a one-element list
+    wrapping a result dict with a dozen keys; we only keep the fields
+    ``_parse_response`` needs (parsing blocks + page size) and discard the
+    rest (preprocessor/layout-detection ndarrays, table_res_list, etc.) so
+    the cached fixture stays under ~10 KB and round-trips through ``json``.
 
-    PaddleOCR-VL's ``predict`` returns different shapes across versions; we
-    normalize to a single ``dict`` containing ``parsing_res_list`` + the
-    PIL-captured ``page_size_px``.
+    Each ``parsing_res_list`` entry is a ``PaddleOCRVLBlock`` instance with
+    attributes ``label``/``bbox``/``content``. We project them to the dict
+    keys ``_parse_response`` expects: ``block_label``/``block_bbox``/
+    ``block_content`` (verbatim names from the prior synthetic-stub schema,
+    kept stable so cached-replay fixtures interop with both).
     """
+    import numpy as np
+
     img = Image.open(io.BytesIO(png))
     page_size_px = list(img.size)  # PIL .size is (w, h)
-    result = pipeline.predict(input=img)
+    # PaddleOCR-VL accepts numpy.ndarray or str path — not PIL. Convert via
+    # RGB so 1-bit / palette images don't blow up the downstream decoder.
+    raw = pipeline.predict(input=np.asarray(img.convert("RGB")))
 
-    if isinstance(result, dict):
-        normalized: dict[str, Any] = dict(result)
-    elif isinstance(result, list) and len(result) == 1 and isinstance(result[0], dict):
-        normalized = dict(result[0])
+    if isinstance(raw, list) and len(raw) == 1:
+        result_obj = raw[0]
+    elif isinstance(raw, dict):
+        result_obj = raw
     else:
-        normalized = {"_warning": "unexpected_predict_shape", "raw": repr(result)}
+        return {
+            "_warning": "unexpected_predict_shape",
+            "raw_type": type(raw).__name__,
+            "page_size_px": page_size_px,
+            "parsing_res_list": [],
+        }
 
-    # page_size_px is the parser's bridge from pixel-bbox land to normalized
-    # [0, 1] land. Keep it alongside parsing_res_list in the raw_response so
-    # the cached fixture round-trips correctly without re-loading the PNG.
-    normalized.setdefault("page_size_px", page_size_px)
-    return normalized
+    parsing_blocks_raw = result_obj.get("parsing_res_list", []) or []
+    parsing_blocks: list[dict[str, Any]] = []
+    for blk in parsing_blocks_raw:
+        bbox = getattr(blk, "bbox", None)
+        if isinstance(bbox, np.ndarray):
+            bbox = bbox.tolist()
+        parsing_blocks.append(
+            {
+                "block_label": getattr(blk, "label", None),
+                "block_bbox": bbox,
+                "block_content": getattr(blk, "content", None),
+            }
+        )
+
+    # Prefer the model's own width/height (more authoritative than PIL when
+    # the preprocessor rescaled the input); fall back to PIL .size.
+    width = result_obj.get("width", page_size_px[0])
+    height = result_obj.get("height", page_size_px[1])
+    return {
+        "parsing_res_list": parsing_blocks,
+        "page_size_px": [int(width), int(height)],
+        "width": int(width),
+        "height": int(height),
+    }
 
 
 class Tier1PaddleOcrLocal:
