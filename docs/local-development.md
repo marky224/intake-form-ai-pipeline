@@ -1,6 +1,8 @@
 # Local development
 
-This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, and the local-only mode of the quickstart. Sections fill out as the build progresses; the Phase 1 / Phase 4 GPU-and-model material is the most fleshed out because that's what lands first.
+This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, the DocILE workflow, and the Tier 1 PaddleOCR-VL setup. Sections fill out as the build progresses.
+
+**As of 2026-05-14 the project pivoted to a local-first V1 build.** The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local; NEW post-pivot, replaces V2's planned AWS Textract at the Tier 2-local slot) + Tier 3 (Qwen 2.5 VL 32B local; was Tier 3a in V2 numbering). The cloud-only AWS upload steps in the Synthea + DocILE workflows below are V2 work — V1 follow-up refactors the uploaders to write to a local filesystem store under `synthetic_data/output/render/`. Until that refactor lands, the upload step is deferred (deliverable corpora can still be regenerated locally; just not pushed to S3).
 
 ## Hardware overview
 
@@ -9,9 +11,21 @@ This document covers the local development environment — GPU configuration, Ol
 - Combined 32 GB VRAM, PCIe-only inter-GPU communication
 - Ubuntu (hostname `openclaw-pc`)
 
-## Local Tier 3a model setup
+## Local Tier 2 model setup (Qwen 2.5 VL 7B)
 
-Local Tier 3a runs Qwen 2.5 VL 32B on the combined VRAM. The locked default is **Q8_0 imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` HuggingFace repository via custom Ollama Modelfile**. The Ollama registry only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL (no Q6_K), so the higher-precision Q6_K and the locked Q8_0 default both come via custom import.
+V1 Tier 2 runs Qwen 2.5 VL 7B on the RTX 4080. ~16 GB FP16 fits one GPU comfortably; same model family as V1 Tier 3 so escalation is "more parameters" rather than "different model family."
+
+```bash
+# Pull from the Ollama registry — 7B has a stable Q8_0 build there.
+ollama pull qwen2.5vl:7b
+ollama list | grep qwen2.5vl
+```
+
+The Tier 2 provider pins `OLLAMA_HOST=http://127.0.0.1:11434` (default) and `keep_alive=1h` during eval batches to prevent unload between consecutive documents. Tier 2 and Tier 3 can be co-resident on the GPU pool when VRAM allows (Q6_K Tier 3 + 7B Tier 2 fits cleanly; Q8_0 Tier 3 + 7B Tier 2 spills extra to CPU). The cascade orchestrator's tier-batched eval pattern (process all Tier 1 docs first, then escalated docs through Tier 2, then escalated docs through Tier 3) avoids the coexistence pressure entirely.
+
+## Local Tier 3 model setup
+
+V1 Tier 3 runs Qwen 2.5 VL 32B on the combined VRAM. The locked default is **Q8_0 imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` HuggingFace repository via custom Ollama Modelfile**. The Ollama registry only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL (no Q6_K), so the higher-precision Q6_K and the locked Q8_0 default both come via custom import.
 
 Q4_K_M from the Ollama registry is retained as a fast-iteration fallback and is what the quickstart pulls. The Phase 4 dual-quant sanity test compares Q8_0 against Q6_K to lock the locked default empirically; see the contingency tree in the project's main instructions document for the full decision logic.
 
@@ -135,7 +149,9 @@ If anything breaks during validation, capture the exact error message plus `olla
 
 ### Contingency
 
-If Q8_0 load testing reveals problems (vision broken, F1 too low on the Phase 4 sanity test, or unmanageable CPU spill), the contingency tree in the project's main instructions document defines the fallback path: Q6_K → Q4_K_M → InternVL3.5-8B local → Tier 3a marked unavailable (only Tier 3a is broken; Tier 1 still runs locally, and Tier 3a-bound escalations are absorbed by Tier 3b instead). Don't deviate from the documented contingency without surfacing the issue first. Note: this is distinct from `EXTRACTION_MODE=degraded` in `.env.example`, which is a broader operational failover triggered when the entire home-GPU bridge is unreachable — under `degraded` both local tiers (Tier 1 AND Tier 3a) are skipped, and every document escalates straight through Tier 2 → Tier 3b.
+If Q8_0 load testing reveals problems (vision broken, F1 too low on the Phase 4 sanity test, or unmanageable CPU spill), the contingency tree in the project's main instructions document defines the fallback path: Q6_K → Q4_K_M → InternVL3.5-8B local → Tier 3 marked unavailable. In V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there's no V1 cloud fallback above Tier 3. In V2 the same contingency routes Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, so V2 stays operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
+
+V2 also defines a broader operational failover via `EXTRACTION_MODE=degraded` in `.env.example`: triggered when the home-GPU bridge from deployed Lambda is unreachable, all local tiers (Tier 1, Tier 2-local, Tier 3) are skipped and every document escalates straight through Tier 2-cloud → Tier 3b. Not applicable in V1 — V1 has no Lambda, no bridge, and no degraded mode (the build machine runs everything in-process).
 
 ## Multi-GPU layer split details
 
@@ -298,7 +314,7 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 
 ### Scope (locked)
 
-- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
+- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
 - **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the 55-field KILE taxonomy against `BusinessDocumentForm`.
 - **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
 
@@ -361,7 +377,7 @@ The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.e
 
 ## Local-only mode for the quickstart
 
-> Lands in Phase 7. The quickstart `just demo` command runs the cascade against three local fixture documents using cached responses, with no cloud calls or AWS credentials needed. This section will document the cached fixture format, how to add new local-only test documents, and how to switch between local-only and full-cascade modes via environment flags.
+> Lands in Phase 7-V1. The quickstart `just demo` command runs the cascade against local fixture documents using cached responses (default) or live local inference (with `EVAL_LIVE=true`); no cloud calls, no AWS credentials needed. This is the default V1 demo shape — alternatives at Phase 7-V1 entry are CLI + screenshot artifacts or no-demo / eval-report-only. This section will document the cached fixture format, how to add new local-only test documents, and how to switch between cached-replay and live-local modes via environment flags.
 
 ## Coexistence with general-purpose Ollama workflows
 

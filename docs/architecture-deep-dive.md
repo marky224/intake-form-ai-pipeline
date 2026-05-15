@@ -2,9 +2,40 @@
 
 Detailed view of the cascade orchestration, routing layer, and data model. Sections fill out as the corresponding phases land; the README is the canonical entry point until then.
 
-## Public edge (Phase 2 PR 5)
+The project ships in two iterations. **V1** is the active local-first build — three local cascade tiers (PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B), local Python orchestrator, SQLite + sqlite-vec for storage, no AWS. **V2** is the deferred cloud rebuild — adds BAA-eligible AWS services in the middle of the cascade (Textract) and at the top (Bedrock Sonnet), wires the local tiers to deployed Lambda via Cloudflare Tunnel, and stands up the public demo at `ai-intake.markandrewmarquez.com`. Sections below are labeled V1 / V2 / both as appropriate.
 
-The project's public surface — `https://ai-intake.markandrewmarquez.com/` — is a CloudFront distribution fronting an S3-origin landing bucket, with WAFv2 attached and v2 access logs delivered to S3. Phase 2 PR 5 stood it up serving a static placeholder; Phase 7 swaps the bucket contents for the React review UI bundle without changing any of the surrounding edge configuration.
+## V1 local orchestrator (active build)
+
+The V1 cascade runs as an in-process Python orchestrator on the home GPU machine. No state machine, no managed service, no network hop between tiers — the orchestrator constructs each provider instance once, then iterates documents through Tier 1 → Tier 2 → Tier 3 with per-field confidence checks at each escalation boundary.
+
+Trust boundary: the V1 orchestrator runs as the local user with filesystem access to `synthetic_data/output/`, the SQLite database at `data/v1.db`, the eval-cache fixtures under `tests/fixtures/eval-cache/`, and the Ollama daemon at `localhost:11434`. No network egress beyond Ollama's localhost. The cascade is fully reproducible on a fresh clone given the locked model weights — same fixture inputs + same model versions = same outputs.
+
+### V1 tier wiring
+
+- **Tier 1** (`cascade/providers/tier1_paddleocr_local.py`): instantiates `PaddleOCRVL()` on first call, pinning `paddle.set_device("gpu:1")` so it lands on the RTX 4060 Ti. Calls `pipeline.predict(input=image_bytes)` which returns `parsing_res_list` — layout blocks with `block_bbox` + `block_label` + `block_content`. A downstream layout-to-fields post-processor inside `_invoke_pipeline` walks the blocks, matches `block_content` text against `alias_table_seed.json`, and builds per-field `ExtractedField` outputs. Confidence is the post-processor's match-score against the alias table (a weighted-substring score, not a model confidence).
+- **Tier 2** (`cascade/providers/tier2_qwen_7b_local.py`, lands Phase 4-V1 PR (c)): Ollama prompted-extraction against `qwen2.5vl:7b`. Per-field re-extraction targeting only the fields that escalated past Tier 1's threshold. Vision model handles the bounding-box image patch from Tier 1's output as input.
+- **Tier 3** (`cascade/providers/tier3_qwen_32b_local.py`, lands Phase 4-V1 PR (d)): Ollama prompted-extraction against `qwen2.5vl:32b-q8_0` (or `qwen2.5vl:32b-q6_k` if the Phase 4 dual-quant sanity test prefers Q6_K). Same prompt shape as Tier 2, more parameters.
+
+### V1 router
+
+Stage 1 is a vocabulary keyword classifier built at orchestrator startup from `alias_table_seed.json` — runtime build, ~50 ms, no cache file to invalidate. Substring match per line of OCR text (normalized to uppercase), weighted by alias specificity (inverse frequency in the seed file). Healthcare classification when accumulated weighted-match score ≥ N (starting value 1.0; Phase 5 spot-check tunes against ~50 hand-classified docs).
+
+Stage 2 is the fallback for documents that score below N at Stage 1 (~20% of inputs). V1 routes Stage 2 to the local Qwen 2.5 VL 7B model with a routing prompt; the marginal cost is zero because the model is already loaded for Tier 2 of the cascade anyway. V2 swaps Stage 2 to Bedrock Nova Lite at the BAA boundary.
+
+### V1 persistence
+
+SQLite at `data/v1.db`, single file, gitignored. Schema (subject to change at Phase 5-V1 entry):
+
+- `eval_results` — one row per (doc_id, batch_id, tier). Columns: extracted_value, ground_truth, tier_used, confidence, escalation_history (JSON), latency_ms.
+- `corrections` — one row per reviewer correction. Columns: doc_id, field_name, original_value, corrected_value, tier_that_produced_original, session_id, created_at.
+- `alias_table` — current alias seed, queryable by `(canonical_name, vertical)`. Reloaded from `alias_table_seed.json` on orchestrator startup.
+- `embeddings` — ColQwen 2.5 multivector embeddings via `sqlite-vec` extension. One row per indexed document, vector column stored as BLOB. Loaded at startup, queried by the correction feedback loop in Phase 8-V1.
+
+V2 migrates by replaying SQLite contents into the Aurora `staging` schema, then promoting to `demo` / `eval` as appropriate. The V1 schema is intentionally Aurora-compatible — type names map cleanly.
+
+## V2 public edge (deferred cloud rebuild)
+
+V2's public surface — `https://ai-intake.markandrewmarquez.com/` — is a CloudFront distribution fronting an S3-origin landing bucket, with WAFv2 attached and v2 access logs delivered to S3. The in-tree Terraform at `infra/terraform/` describes the full V2 target and was applied through 2026-05-12 (PRs #29 through #38 + #40); the `terraform destroy` on 2026-05-14 cleared the main stack for V1, leaving the bootstrap stack (TF state + DynamoDB lock + OIDC role) live. V2 re-applies the main-stack `.tf` files when the cloud rebuild begins. Phase 7-V2 swaps the bucket contents for the React review UI bundle without changing any of the surrounding edge configuration.
 
 ### Why this layout
 
@@ -36,7 +67,7 @@ The distribution attaches AWS-managed `SecurityHeadersPolicy` via `response_head
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-XSS-Protection: 1; mode=block`
 
-CSP is intentionally not in the AWS-managed policy — Phase 7's React app has its own CSP requirements that vary by build, so a custom `aws_cloudfront_response_headers_policy` lands then.
+CSP is intentionally not in the AWS-managed policy — Phase 7-V2's React app has its own CSP requirements that vary by build, so a custom `aws_cloudfront_response_headers_policy` lands then.
 
 TLS 1.2 minimum (`TLSv1.2_2021`), SNI-only (no IP-bound SSL — costs $600/month), HTTP/2 + HTTP/3 enabled, IPv6 enabled. The ACM certificate for `ai-intake.markandrewmarquez.com` lives in `us-east-1` (CloudFront only accepts certs from that region), validated via DNS records published into the project's Route 53 hosted zone. `aws_acm_certificate_validation` blocks the distribution from attaching an unissued cert; `create_before_destroy` lifecycle on the certificate so future renewals don't take down the distribution.
 
@@ -62,28 +93,30 @@ The landing bucket is deliberately separate from `documents` and `artifacts`. Mi
 
 The same hardening applies as the documents/artifacts buckets: versioned, AES256, public-access-block on, TLS-only deny in the bucket policy, S3 server access logging delivering to the access-logs bucket under `landing/`. The OAC `s3:GetObject` grant is the only additional statement.
 
-### Phase 7 swap
+### Phase 7-V2 swap
 
-Phase 7 replaces the placeholder `index.html` with the React review UI bundle. Mechanics: `aws_s3_object` resources for the new bundle (multiple objects under `assets/` plus a transformed root `index.html`), updated `etag = filemd5(...)` triggers re-upload on content change, an optional cache invalidation via `cloudfront:CreateInvalidation` if the React bundle's filenames don't include hash suffixes (Vite/Next builds typically do, so the invalidation may be unnecessary). None of the surrounding CloudFront / WAF / ACM / Route 53 / log delivery configuration changes; only the bucket contents.
+Phase 7-V2 replaces the placeholder `index.html` with the React review UI bundle. Mechanics: `aws_s3_object` resources for the new bundle (multiple objects under `assets/` plus a transformed root `index.html`), updated `etag = filemd5(...)` triggers re-upload on content change, an optional cache invalidation via `cloudfront:CreateInvalidation` if the React bundle's filenames don't include hash suffixes (Vite/Next builds typically do, so the invalidation may be unnecessary). None of the surrounding CloudFront / WAF / ACM / Route 53 / log delivery configuration changes; only the bucket contents.
 
-The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aurora cold start, then auto-redirect to the React UI) lands in Phase 7 as part of that swap, not in PR 5.
+The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aurora cold start, then auto-redirect to the React UI) lands in Phase 7-V2 as part of that swap, not in V2's initial edge bring-up.
 
-## Four-tier routing structure (Tier 3a / 3b distinction)
+## V2 cascade structure (five tiers when cloud is wired)
 
-> Lands in Phase 4 with the provider implementations. The cascade is described as "three tiers" in the README, but Tier 3 splits internally into 3a (vision-capable open-weights LLM — Qwen 2.5 VL 32B, local on the project's combined RTX 4080 + RTX 4060 Ti both in development and in the deployed demo via Cloudflare Tunnel bridge) and 3b (strongest closed LLM — Claude Sonnet 4.6 via Bedrock). The 3a/3b distinction matters because 3a is locally hosted (HIPAA-safe when the host environment meets HIPAA Security Rule controls) while 3b is cloud-only managed inference (AWS BAA-eligible). This section will diagram the per-tier escalation thresholds (0.85 / 0.80 / 0.75), the retry-then-escalate failure handling, and the per-field provenance trail in `ExtractedField.escalation_history`.
+> Lands when V2 begins. V1's three-tier all-local cascade (PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B) expands to five tiers in V2 by inserting Tier 2-cloud (AWS Textract Regular Queries) between V1's Tier 2-local and V1's Tier 3, and adding Tier 3b (Bedrock Claude Sonnet 4.6) after V1's Tier 3. The escalation order at the V2 boundary: Tier 1 → Tier 2-local → Tier 2-cloud → Tier 3 → Tier 3b. Per-tier escalation thresholds: 0.85 / 0.80 / 0.80 / 0.75 (V1's 0.85 / 0.80 plus two new thresholds at the V2 cloud boundaries). The Tier 2-cloud / Tier 3b distinction matters because both V1 local tiers AND Tier 3 are HIPAA-safe when the host environment meets HIPAA Security Rule controls, while the V2 cloud tiers are cloud-only managed inference (AWS BAA-eligible). This section will diagram the per-tier failure-handling tree (retry-then-escalate per tier) and the per-field provenance trail in `ExtractedField.escalation_history` once V2 lands.
 
-## Step Functions state machine layout
+## Step Functions state machine layout (V2)
 
-> Lands in Phase 5 with the orchestration code. State machine has one state per tier plus the two-stage classifier, with Retry/Catch wired per state for the hybrid retry-then-escalate failure-handling pattern (4xx fails immediately; 5xx/timeout retries 3× with exponential backoff 1s/2s/4s with jitter then escalates; 429 respects Retry-After; schema-validation failure retries once with stricter prompt then escalates). Tier 3b exhaustion routes to a review-queue state with full error history attached.
+> Lands in Phase 5-V2 with the cloud orchestration code. V1's local Python orchestrator (`cascade/orchestrator.py`) is the operational equivalent — same routing logic, same retry/escalate behavior, same confidence-threshold escalation. V2 wraps the V1 orchestrator in a Step Functions state machine (or replaces it; decided at V2 entry). One state per tier plus the two-stage classifier, with Retry/Catch wired per state for the hybrid retry-then-escalate failure-handling pattern (4xx fails immediately; 5xx/timeout retries 3× with exponential backoff 1s/2s/4s with jitter then escalates; 429 respects Retry-After; schema-validation failure retries once with stricter prompt then escalates). Tier 3b exhaustion routes to a review-queue state with full error history attached.
 
 ## Sequence diagrams
 
-> Lands in Phase 10 polish. Mermaid or Excalidraw export covering: standard-mode happy path (Tier 1 only), low-confidence escalation through Tier 2 → 3a → 3b, two-stage classifier with Stage 2 fallback, and the full failure-handling tree.
+> Lands in Phase 10 polish. Mermaid or Excalidraw export covering: V1 happy path (Tier 1 only), V1 low-confidence escalation through Tier 2 → Tier 3, V2 happy path with cloud tiers wired, V2 frontier-fallback escalation through Tier 3b, two-stage classifier with Stage 2 fallback (V1 local, V2 Bedrock Nova Lite), and the full failure-handling tree.
 
 ## Schema introspection patterns
 
-> Lands in Phase 4 alongside the provider implementations. The Pydantic v2 schemas are introspected at runtime to drive: prompt template generation per vertical, alias-table vocabulary extraction for the Stage 1 classifier, and the `compute_form_confidence` aggregation that decides auto-approval vs review-queue. Section will cover `get_field_metadata`, `field_metadata_as_dict`, and the `FieldMeta`-keyed canonical-name invariant enforced at module import.
+> Lands in Phase 4 alongside the provider implementations. The Pydantic v2 schemas are introspected at runtime to drive: prompt template generation per vertical, alias-table vocabulary extraction for the Stage 1 classifier, and the `compute_form_confidence` aggregation that decides auto-approval vs review-queue. Section will cover `get_field_metadata`, `field_metadata_as_dict`, and the `FieldMeta`-keyed canonical-name invariant enforced at module import. Same module surface works in both V1 (called directly by the local orchestrator) and V2 (called from Lambda handlers).
 
 ## Data model
 
-> Lands incrementally as Aurora schema migrations land in Phase 2 (eval/staging schemas) and Phase 7 (demo schema). Section will cover the three-schema layout (`demo`, `eval`, `staging`), the alias-table key structure (`canonical_name`, `vertical`, `alias_text`), the pgvector embedding columns, and the session-keyed reset path for `demo`.
+V1's data model is a single SQLite file at `data/v1.db` with four tables: `eval_results`, `corrections`, `alias_table`, `embeddings` (the last via `sqlite-vec`). All gitignored. The V1 schema is intentionally Aurora-compatible so the V2 migration is a row-copy, not a redesign.
+
+V2's data model is Aurora Serverless v2 PostgreSQL with three schemas: `demo` (session-keyed, truncated per visit by the `reset_demo` Lambda), `eval` (source of truth for F1-over-time numbers), `staging` (development sandbox). The alias table key structure is `(canonical_name, vertical, alias_text)` in both V1 and V2. V2 adds pgvector embedding columns. Session-keyed reset uses a DynamoDB single-item lock to prevent simultaneous-wake races.

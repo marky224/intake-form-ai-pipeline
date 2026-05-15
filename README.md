@@ -1,10 +1,16 @@
 # intake-form-ai-pipeline
 
-> 🚧 **In active development.** Phase 2 of 10 (in progress). Last updated 2026-05-10.
+> 🚧 **In active development. Local-first V1 build in progress; V2 cloud deployment is the documented roadmap, not active work.** Last updated 2026-05-14.
 
 ## What this is
 
-A self-improving intake-form processing pipeline. Forms — healthcare patient intake, business invoices, contracts — come in as PDFs or page images; structured fields come out as validated JSON. A three-tier extraction cascade routes each field to the cheapest model that can confidently handle it, escalating to more capable models only when confidence is low. Reviewer corrections feed back into the alias table and a ColQwen 2.5 retrieval corpus, so subsequent extractions on similar documents land Tier 1 more often. F1 trends upward as corrections accumulate; cost per document trends downward.
+A self-improving intake-form processing pipeline. Forms — healthcare patient intake, business invoices, contracts — come in as PDFs or page images; structured fields come out as validated JSON. A three-tier extraction cascade routes each field to the cheapest model that can confidently handle it, escalating to more capable models only when confidence is low. Reviewer corrections feed back into the alias table and a ColQwen 2.5 retrieval corpus, so subsequent extractions on similar documents land Tier 1 more often. F1 trends upward as corrections accumulate; latency per document trends downward.
+
+**V1 (active) is local-only.** The full cascade runs on consumer hardware — PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B, all local on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB combined VRAM). No AWS, no cloud calls, no deployed demo URL. The build target through Phase 10 is a coherent local pipeline with a measurable F1-over-time story.
+
+**V2 (deferred) adds the cloud.** A second iteration after V1 ships introduces BAA-eligible AWS services in the middle of the cascade (Textract Queries) and at the top (Bedrock Claude Sonnet 4.6), wires the local tiers to a deployed Lambda via a Cloudflare Tunnel bridge to the home GPU, and stands up the public demo at `ai-intake.markandrewmarquez.com`. The Terraform that builds the AWS side is preserved in `infra/terraform/` as the V2 target; the bootstrap stack (TF state + OIDC role) remains live so V2 can `terraform apply` without re-bootstrapping IAM.
+
+The rest of this README describes both layers explicitly. Sections covering V1 describe what's being built; sections covering V2 describe the architectural target and the work that lands when the cloud iteration begins.
 
 ## Headline metric: F1-over-time
 
@@ -14,47 +20,53 @@ A self-improving intake-form processing pipeline. Forms — healthcare patient i
 
 The chart updates as eval batches run. Phase 6 produces the first real points; until then this is a placeholder.
 
-## Live demo
+## Demo
 
-*[ai-intake.markandrewmarquez.com](https://ai-intake.markandrewmarquez.com)* — *placeholder served by CloudFront as of Phase 2. Phase 7 swaps the bucket contents for the React review UI.*
+**V1 (active).** The Phase 7-V1 demo is a local Streamlit/Gradio app run via `just demo` on the build machine. The cascade runs end-to-end against fixture documents, showing per-tier escalations, per-field confidence, and the F1-over-time chart. A short Loom walkthrough lands at Phase 10. No deployed URL in V1.
 
-The current page is a static placeholder so the production edge can stabilize before any application code lands behind it. CloudFront fronts an S3-origin landing bucket via Origin Access Control (signing CloudFront → S3 requests with SigV4), AWS WAF v2 enforces a per-IP rate limit (100 req / 5 min) plus a User-Agent block list and three AWS-managed rule groups, the AWS-managed `SecurityHeadersPolicy` adds HSTS / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` / `X-XSS-Protection` to every response, and access logs deliver to S3 via the v2 CloudWatch Logs Delivery primitives (`DeliverySource → DeliveryDestination → Delivery`) for downstream Athena querying.
-
-Phase 7 swaps the placeholder for a wake-on-request flow: Aurora Serverless v2 wakes on request (~30-90 second cold start), the page shows the project pitch and current F1-over-time chart while it warms, then auto-redirects to the React review UI with three pre-loaded documents waiting. Live cost telemetry on every page — every session shows the actual inference cost incurred, pulled from the database. Most sessions cost less than $0.05.
+**V2 (deferred).** The deployed demo at `ai-intake.markandrewmarquez.com` is V2 work. The architectural target is unchanged from the pre-pivot plan: a CloudFront-fronted landing bucket with OAC, AWS WAF v2 (per-IP rate limit + UA block list + three AWS-managed rule groups), the AWS-managed `SecurityHeadersPolicy` for HSTS / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` / `X-XSS-Protection` on every response, and v2 CloudWatch Logs Delivery for access logs landing in S3 for Athena querying. A wake-on-request flow gives Aurora Serverless v2 (~30-90 s cold start) cover with a project pitch and live F1-over-time chart, then auto-redirects to a React review UI with three pre-loaded documents. Live cost telemetry on every page — most V2 sessions cost less than $0.05. The cloud edge is fully described in `docs/architecture-deep-dive.md`; the deployment lands when V2 begins.
 
 ## Architecture overview
 
 <!-- ARCHITECTURE_DIAGRAM: real diagram (likely Excalidraw export) lands in Phase 10 polish. Prose description below stands in for now. -->
 
-A document arrives at the S3 upload bucket. A two-stage classifier — vocabulary keyword match locally, Bedrock Nova Lite fallback for ambiguous documents — determines vertical (healthcare or business document) and form type. The classification picks the right Pydantic schema and seeds the cascade.
+### V1 (active, local-first)
 
-Step Functions orchestrates the cascade: a Tier 1 extraction with PaddleOCR-VL (local on the RTX 4060 Ti, exposed to the deployed demo via a Cloudflare Tunnel bridge to the home GPU), per-field confidence scoring against thresholds, then conditional escalation to Tier 2 (AWS Textract Regular Queries), Tier 3a (Qwen 2.5 VL 32B, local on combined RTX 4080 + RTX 4060 Ti via the same bridge), and Tier 3b (Bedrock Claude Sonnet 4.6) for hard cases. Per-field thresholds at 0.85 / 0.80 / 0.75 govern escalation; ~90% of fields never leave Tier 1.
+A document arrives at a local filesystem path (the V1 store; V2 reintroduces S3). A two-stage classifier — vocabulary keyword match against the alias table locally, then a Qwen 2.5 VL 7B fallback for ambiguous documents — determines vertical (healthcare or business document) and form type. The classification picks the right Pydantic schema and seeds the cascade.
 
-Extracted fields are stored in Aurora Serverless v2 alongside the alias table and pgvector embeddings. The React review UI fetches low-confidence fields for human review; reviewer corrections write back to Aurora, update the alias table, and append to the ColQwen 2.5 retrieval corpus. The eval harness reads from a partitioned manifest (train/dev/test), computes F1, cost-per-document, and latency p50/p99, and publishes the F1-over-time chart that's the project's headline metric.
+A local Python orchestrator runs the cascade: Tier 1 extraction with PaddleOCR-VL on the RTX 4060 Ti (sub-second per page, layout parser whose output runs through an alias-table-driven layout-to-fields post-processor), per-field confidence scoring against thresholds, then conditional escalation to Tier 2 (Qwen 2.5 VL **7B** local on the RTX 4080), and finally to Tier 3 (Qwen 2.5 VL **32B** local on combined VRAM) for hard cases. Per-field thresholds at 0.85 / 0.80 govern escalation; ~90% of fields are expected to clear Tier 1 (validated by Phase 6 eval).
+
+Extracted fields are stored in SQLite (with `sqlite-vec` for ColQwen 2.5 embeddings) alongside the alias table and the eval-results log. The Phase 7-V1 local demo (Streamlit/Gradio) surfaces low-confidence fields for human review; corrections write back to SQLite, update the alias table, and append to the ColQwen 2.5 retrieval corpus. The eval harness reads from a partitioned manifest (train/dev/test), computes F1, latency p50/p99, and (in V1) reports cost-per-doc at $0 — local inference is sunk-cost on always-on dev hardware. The F1-over-time chart is the project's headline metric.
+
+### V2 (deferred cloud rebuild)
+
+V2 reintroduces AWS in three places. The classifier's Stage 2 fallback moves to Bedrock Nova Lite (~$0.05/1K, BAA-eligible). The cascade gains a mid-cloud Tier 2-cloud (AWS Textract Regular Queries) between V1's Tier 2-local and Tier 3, and a frontier-fallback Tier 3b (Bedrock Claude Sonnet 4.6) after V1's Tier 3 — both BAA-eligible. AWS Step Functions wraps the V1 Python orchestrator (or replaces it; decided at V2 Phase 5 entry). Aurora Serverless v2 with three schemas (`demo`, `eval`, `staging`) replaces V1's SQLite. CloudFront + WAFv2 + ACM stand up the public demo at `ai-intake.markandrewmarquez.com`. A Cloudflare Tunnel bridges the deployed Lambda to the home-GPU FastAPI service so Tier 1 + Tier 2-local + Tier 3 stay on the operator's local GPUs in production — Lambda routes inference calls through the tunnel with a shared-secret header.
+
+V2 per-1K cascade cost: ~$9.50 at estimated escalation rates. V1's measured escalation rates feed the V2 cost projection — the V1 build provides the empirical input for V2's pricing story. Full V2 details are in `docs/architecture-deep-dive.md` (V2 cloud architecture) and `docs/production-roadmap.md` (V2 deferred items).
 
 ## How it works
 
-A concrete example. A patient intake form arrives — a scanned CMS-1500 with mostly typed fields and one handwritten signature.
+A concrete example, V1 cascade. A scanned CMS-1500 with mostly typed fields and one handwritten signature.
 
-**Stage 1: classification.** The vocabulary classifier scans the OCR text from the first page for healthcare-specific terms. Hits on "Patient ID," "MRN," "HIPAA," "Member ID" — confident healthcare classification, no need for the Nova Lite fallback. The router picks `HealthcareIntakeForm`. Total time: ~50 ms. Cost: $0.
+**Stage 1: classification.** The vocabulary classifier scans the OCR text from the first page for healthcare-specific terms. Hits on "Patient ID," "MRN," "HIPAA," "Member ID" — confident healthcare classification, no need for the Stage 2 fallback. The router picks `HealthcareIntakeForm`. Total time: ~50 ms. Cost: $0.
 
-**Stage 2: Tier 1 extraction.** PaddleOCR-VL processes the page image and returns field-level extractions with bounding boxes and per-field confidence. First name 0.97. Last name 0.95. DOB 0.88. Phone 0.92. SSN 0.79. Most fields clear the 0.85 threshold and land Tier 1. SSN doesn't.
+**Stage 2: Tier 1 extraction.** PaddleOCR-VL processes the page image. It's a layout parser — it returns `parsing_res_list` blocks (one per detected text region, each carrying `block_bbox` + `block_label` + `block_content`). A downstream layout-to-fields post-processor inside the Tier 1 provider walks those blocks, matches `block_content` text against the project's `alias_table_seed.json` (~465 aliases across 86 records), and produces field-level extractions with bounding boxes and per-field confidence. First name 0.97. Last name 0.95. DOB 0.88. Phone 0.92. SSN 0.79. Most fields clear the 0.85 threshold and land Tier 1. SSN doesn't.
 
-**Stage 3: per-field escalation.** SSN escalates to Tier 2 (Textract Regular Queries). Textract's "What is the patient's social security number?" query against the SSN region returns "123-45-6789" at 0.93. Above threshold. Done.
+**Stage 3: per-field escalation.** SSN escalates to Tier 2 (Qwen 2.5 VL 7B local). A vision-LLM prompt against the SSN bounding-box region returns "123-45-6789" at 0.91. Above the Tier 2 threshold (0.80). Done.
 
 **Stage 4: confidence aggregation.** `compute_form_confidence` walks the populated fields and returns min/mean/blank/unattempted counts. Min 0.88 (DOB), mean 0.93. Form-level confidence is good; the form goes to the auto-approval queue, not the review queue.
 
-A second example. A multi-page commercial invoice arrives with three line items in a poorly-aligned table. Tier 1 extracts header fields confidently but the table escalates to Tier 3a (Qwen 2.5 VL — vision-capable, handles spatial layout). Qwen returns the line items at 0.82 confidence. Above the Tier 3a threshold (0.75). Done. The form's min confidence is 0.82 — borderline. It goes to the review queue with low-confidence fields highlighted.
+A second example. A multi-page commercial invoice arrives with three line items in a poorly-aligned table. Tier 1 extracts header fields confidently but the table-line-item extractions fall below Tier 2's threshold too, so they escalate all the way to Tier 3 (Qwen 2.5 VL 32B — same family as Tier 2, more parameters). Qwen 32B returns the line items at 0.82 confidence. The form's min confidence is 0.82 — borderline. It goes to the review queue with low-confidence fields highlighted.
 
-This is what cost-routing by capability buys you: ~90% of fields stay at Tier 1 (local, near-zero per-call cost beyond hardware amortization); the few hard fields pay the cloud Tier 2 + Tier 3b cost. Single-model approaches at Bedrock Sonnet pricing would cost ~$300 per 1,000 documents at typical field densities; the cascade lands at ~$9.50.
+This is what cost-routing by capability buys you in V1: ~90% of fields are expected to stay at Tier 1 (sub-second per page on the 4060 Ti). The few hard fields pay extra GPU time at Tier 2 (Qwen 7B, single-GPU) and Tier 3 (Qwen 32B, dual-GPU). V1 cascade per-1K cost is **$0** (electricity is sunk cost on always-on dev hardware); latency is the more useful telemetry. V2 introduces cloud tiers that change the economics — Textract Queries between Tier 2-local and Tier 3, plus a Bedrock Sonnet 4.6 frontier fallback after Tier 3, lifting per-1K cost to ~$9.50. The cascade still beats single-model Bedrock Sonnet (~$300/1K at typical field densities) by ~32×.
 
 ## Self-improvement mechanism
 
-When a reviewer corrects a field, three things happen. First, the corrected value is written back to Aurora with full provenance — which tier produced the wrong answer, which other fields were also incorrect on the same form, the corrected value, the reviewer's session ID. Second, if a previously-unseen label phrasing was encountered, the correction handler appends it to the alias table keyed on `(canonical_name, vertical, alias_text)`. Third, the corrected document is embedded with ColQwen 2.5 and appended to the retrieval corpus.
+When a reviewer corrects a field, three things happen. First, the corrected value is written back to the store (SQLite in V1, Aurora in V2) with full provenance — which tier produced the wrong answer, which other fields were also incorrect on the same form, the corrected value, the reviewer's session ID. Second, if a previously-unseen label phrasing was encountered, the correction handler appends it to the alias table keyed on `(canonical_name, vertical, alias_text)`. Third, the corrected document is embedded with ColQwen 2.5 and appended to the retrieval corpus.
 
-Subsequent extractions on similar documents benefit two ways. Late-interaction visual retrieval surfaces the corrected document as a few-shot example for Tier 3a/3b prompts, so the LLM has a concrete worked example for the layout it's looking at. And the alias table — joined into the schema-validation step — expands the recognized variant phrasings; what was previously an unrecognized label "Pt. First Nm" now resolves to `first_name` directly, no escalation needed.
+Subsequent extractions on similar documents benefit two ways. Late-interaction visual retrieval surfaces the corrected document as a few-shot example for Tier 2 + Tier 3 prompts, so the LLM has a concrete worked example for the layout it's looking at. And the alias table — joined into Tier 1's layout-to-fields post-processor and the Stage 1 router vocabulary — expands the recognized variant phrasings; what was previously an unrecognized label "Pt. First Nm" now resolves to `first_name` directly, no escalation needed.
 
-The eval harness measures this. F1 over batches, with batches numbered as corrections accumulate. The headline F1-over-time chart is the visible artifact of the loop working. Cost per document trends downward in parallel — cleaner Tier 1 hits mean fewer escalations.
+The eval harness measures this. F1 over batches, with batches numbered as corrections accumulate. The headline F1-over-time chart is the visible artifact of the loop working. In V1 the secondary signal is latency (more Tier 1 hits = faster cascade); in V2 it's cost-per-document (more Tier 1 hits = fewer cloud-tier escalations).
 
 **How the F1-over-time chart works in this demo.** The corrections feeding the loop come from the `alias_table_seed.json` file's accumulated schema-design work, not from live reviewer corrections. Aliases are introduced progressively — batch 1 starts with the canonical phrasing for every field (~18% of the alias set), each subsequent batch adds the next-priority variant per field, batch ~8 has the full set. F1 is measured at each batch. The mechanism is identical to the production reviewer-correction loop; the only difference is that corrections in this demo are seeded from the schema build rather than generated by reviewers in real-time. `docs/eval-methodology.md` walks through the partition strategy.
 
@@ -62,37 +74,37 @@ The eval harness measures this. F1 over batches, with batches numbered as correc
 
 The pipeline supports two production verticals: healthcare (Synthea-rendered CMS-1500-inspired forms) and business documents (DocILE's annotated dataset).
 
-Healthcare and business documents share the same cascade; healthcare documents may contain PHI under HIPAA, which constrains *where the cascade is deployed*, not which providers it uses. The entire provider surface is BAA-eligible by design: local Tier 1 + Tier 3a inference (HIPAA-safe when the host environment is itself HIPAA-compliant), plus AWS BAA-eligible cloud services (Textract Tier 2, Bedrock Sonnet Tier 3b, Bedrock Nova Lite Router Stage 2). No non-BAA cloud provider is in the routing table.
+**V1.** Both verticals run against synthetic data only — Synthea generates the healthcare corpus, DocILE provides the business-document corpus (CC-BY-NC-ND, redistribution-restricted derivatives stay local). No real PHI ever enters V1. The `HIPAA_MODE` env var exists in code and the `is_baa_required(meta)` helper exists in the schema layer, but they're no-ops at the routing level: V1 has no cloud routing surface for the flag to assert against. Healthcare and business documents share the V1 cascade, distinguished only by which Pydantic schema the router selects (`HealthcareIntakeForm` vs `BusinessDocumentForm`).
 
-A single config flag (`HIPAA_MODE`) governs deployment posture, not provider selection. When `on`, the routing layer asserts at startup that every configured provider is BAA-eligible (a defense-in-depth no-op under the current architecture; it catches future configuration mistakes), enforces verbose audit logging, and surfaces a deployment-environment checklist the operator must satisfy (physical access controls, encryption at rest/in-transit, workforce HIPAA training, breach response runbook). When `off`, audit logging defaults to standard verbosity. The cascade composition is identical in both modes.
+**V2.** The Hybrid architecture's BAA boundary returns. The entire V2 provider surface is BAA-eligible by design: local Tier 1 + Tier 2-local + Tier 3 inference (HIPAA-safe when the host environment meets the HIPAA Security Rule's technical, physical, and administrative safeguards), plus AWS BAA-eligible cloud services (Textract for Tier 2-cloud, Bedrock Sonnet for Tier 3b, Bedrock Nova Lite for Router Stage 2). No non-BAA cloud provider is in the V2 routing table. `HIPAA_MODE=on` becomes a startup-time deployment-posture assertion (enumerate every provider, reject non-BAA-eligible entries; a defense-in-depth no-op since all V2 providers are BAA-eligible) plus raised audit-log verbosity. Cost is identical in both V2 modes: ~$9.50 per 1,000 documents at estimated escalation rates. Cascade composition is identical too — what changes between V2 standard and V2 HIPAA mode is the *deployment environment*, not the provider mix. `docs/hipaa-architecture.md` covers the V2 BAA boundary in full.
 
-Cost is consequently identical in both modes: **~$9.50 per 1,000 documents** at typical escalation rates. This is estimated from cascade priors; Phase 6 eval will measure actual rates on this corpus and update the figures. `docs/eval-methodology.md` walks through the methodology, and `docs/hipaa-architecture.md` covers the BAA boundary in full.
-
-The classification step is itself the BAA boundary's first line. The vocabulary keyword classifier runs locally and never sends document content over the network. Only the ~20% of inputs that fall through to the LLM stage go to Bedrock Nova Lite, which is BAA-eligible.
+V2's classifier step is the BAA boundary's first line. Stage 1 vocabulary keyword classifier runs locally inside the operator's environment and never sends document content over the network. Only the ~20% of V2 inputs that fall through to Stage 2 reach Bedrock Nova Lite, which is itself BAA-eligible. V1 collapses Stage 2 to a local model (Qwen 2.5 VL 7B), eliminating the network hop entirely.
 
 ## Key engineering decisions
 
-Fifteen choices made deliberately.
+Fifteen choices made deliberately. Each is marked **(V1)** if it applies to the active local-first build, **(V2)** if it applies to the deferred cloud rebuild, or unmarked if it applies to both.
 
 ### Why three tiers
 
-The pipeline uses three tiers of extraction with progressively more capable (and more expensive) models. Documents start at PaddleOCR-VL — fast, runs locally on the RTX 4060 Ti, near-zero per-call cost beyond hardware amortization. Confidence-borderline fields escalate to Textract Regular Queries, then to Qwen 2.5 VL, and finally to Claude Sonnet 4.6 for the rare hard case. This cost-routes by capability: ~90% of fields never leave Tier 1.
+The pipeline uses three tiers of extraction with progressively more capable models. In V1 the tiers are all local on consumer GPUs: PaddleOCR-VL on the RTX 4060 Ti (sub-second per page, layout parser plus an alias-table-driven layout-to-fields post-processor) → Qwen 2.5 VL **7B** on the RTX 4080 (vision-capable prompted extraction, ~16 GB FP16) → Qwen 2.5 VL **32B** on combined VRAM (frontier-tier reasoning, Q8_0 quant with ~4 GB CPU spill). Confidence-borderline fields escalate; ~90% are expected to clear Tier 1.
 
-Single-model approaches were rejected on cost. At typical field densities, sending every field to Bedrock Sonnet costs ~$300 per 1,000 documents. The cascade lands at ~$9.50 — a ~32× cost ratio. Tier 3 splits internally into 3a (vision-capable LLMs, Qwen 2.5 VL local) and 3b (strongest LLMs, Claude Sonnet 4.6 via Bedrock) — covered in `docs/architecture-deep-dive.md` for readers who want the full routing detail.
+V1's cascade cost is **$0/1K** — electricity on always-on dev hardware is sunk cost. The cost-routing engineering payoff appears in V2, where the cascade gains BAA-cloud tiers in the middle (Textract Queries) and at the top (Bedrock Claude Sonnet 4.6 as a Tier 3b frontier fallback). V2 lands at ~$9.50/1K, beating single-model Bedrock Sonnet (~$300/1K at typical field densities) by ~32×. V1's measured escalation rates are the empirical input for the V2 cost projection — the local build's eval harness produces the numbers that make V2's cost story credible.
 
-### Why Aurora Serverless v2 with auto-pause
+### Why Aurora Serverless v2 with auto-pause (V2)
 
-Aurora Serverless v2 with min 0 ACU and auto-pause after 5 minutes idle costs ~$5-10/month at portfolio-scale traffic — most of the day, the database isn't running and isn't billing. Always-on Aurora at the 0.5 ACU minimum bills $0.06/hour ≈ $43/month.
+V2's persistence target is Aurora Serverless v2 with min 0 ACU and auto-pause after 5 minutes idle — costs ~$5-10/month at portfolio-scale traffic. Most of the day, the database isn't running and isn't billing. Always-on Aurora at the 0.5 ACU minimum bills $0.06/hour ≈ $43/month.
 
 A single Aurora cluster with three schemas (`demo`, `eval`, `staging`) avoids multi-cluster cost while preserving environment isolation. Demo gets reset per visitor session via the `reset_demo` Lambda; eval is the source of truth for F1-over-time numbers; staging is for development work.
 
 The cost of auto-pause is the 30-90 second cold start when a visitor arrives. Mitigated by the wake-on-request landing page, which gives them something to read while Aurora warms.
 
-### Why pgvector for embeddings
+V1 uses SQLite + `sqlite-vec` instead. The schema is much smaller (just `eval_results`, `corrections`, and the alias table + embeddings) and SQLite is operationally trivial for a single-machine local build. V2 migrates by replaying the SQLite contents into the Aurora `staging` schema; the migration story is straightforward because the V1 schema is intentionally Aurora-compatible.
 
-The retrieval layer is local-first by design. ColQwen 2.5 runs on the local GPU for embedding generation; only the storage of those embeddings is in the cloud. Pgvector lives inside the same Aurora instance as the operational data — one connection string, one IAM role, one place to debug.
+### Why pgvector for embeddings (V2; V1 uses sqlite-vec)
 
-The alias table and the embedding table can JOIN, which matters for the correction feedback loop where corrections need to update both atomically. Pgvector folds into Aurora's $5-10/month cost envelope rather than adding a separate vector-DB line item. And the project's self-improvement story depends on inspecting and updating embeddings as corrections accumulate — straightforward against pgvector, much harder against managed black-box services where chunking strategy is opaque.
+V2's retrieval layer is local-first by design at inference time and cloud-first at storage time. ColQwen 2.5 runs on the local GPU for embedding generation in both V1 and V2; only the storage location differs. V2 puts embeddings in pgvector inside the same Aurora instance as the operational data — one connection string, one IAM role, one place to debug. The alias table and the embedding table can JOIN, which matters for the correction feedback loop. Pgvector folds into Aurora's $5-10/month cost envelope rather than adding a separate vector-DB line item.
+
+V1 uses `sqlite-vec` for the same reason scaled down: one database file for everything, JOIN works the same way, debugging is `sqlite3 data/v1.db`. The cost envelope is $0. V2 migration is a column-format change (sqlite-vec stores vectors as BLOBs; pgvector uses a dedicated `vector(n)` type) plus a script to copy rows; not a hard migration once the corpus is small.
 
 ### Why DocILE for the business-document vertical
 
@@ -108,57 +120,63 @@ Local rendering via HTML+Playwright was chosen over LaTeX, ReportLab, and LibreO
 
 The headline F1-over-time chart depends on this volume. Without synthetic generation at scale, batched eval isn't tractable for a portfolio project budget.
 
-### Why Q8_0 with multi-GPU split (and CPU spill) for local Tier 3a
+### Why Q8_0 with multi-GPU split (and CPU spill) for Tier 3
 
-The local hardware is two consumer GPUs sharing PCIe — RTX 4080 (16 GB) plus RTX 4060 Ti (16 GB), no NVLink. Combined 32 GB VRAM with PCIe-only inter-GPU communication. Qwen 2.5 VL 32B at Q8_0 weighs ~36.3 GB; it doesn't fully fit, but ~4 GB of CPU spill is acceptable when the goal is fixture-generation accuracy over interactive iteration speed. The cascade's batch workflow tolerates the velocity hit — Phase 6 fixture generation against 1000 documents runs overnight either way.
+The local hardware is two consumer GPUs sharing PCIe — RTX 4080 (16 GB) plus RTX 4060 Ti (16 GB), no NVLink. Combined 32 GB VRAM with PCIe-only inter-GPU communication. Qwen 2.5 VL 32B at Q8_0 weighs ~36.3 GB; it doesn't fully fit, but ~4 GB of CPU spill is acceptable when the goal is fixture-generation accuracy over interactive iteration speed. The cascade's batch workflow tolerates the velocity hit — Phase 6 fixture generation against the V1 build partition runs overnight either way.
 
-Q8_0 is imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` Hugging Face repository via custom Ollama Modelfile rather than the official Ollama registry, which only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL. Q4_K_M (the registry default, ~20.1 GB, validated working May 5, 2026 with 7% CPU spill) is retained as a fast-iteration fallback option — not as the locked Tier 3a default.
+Q8_0 is imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` Hugging Face repository via custom Ollama Modelfile rather than the official Ollama registry, which only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL. Q4_K_M (the registry default, ~20.1 GB, validated working May 5, 2026 with 7% CPU spill) is retained as a fast-iteration fallback option — not as the locked Tier 3 default.
 
 Phase 4 begins with a 20-doc dual-quant sanity test pitting Q8_0 against Q6_K (custom Modelfile from the same Hugging Face repo, ~28.7 GB, no CPU spill expected). If F1 is within ±0.02, Q6_K wins by saving the spill. If F1 differs measurably, Q8_0 stays locked. The full contingency tree (including Q4_K_M and InternVL3.5-8B fallback paths) is documented in `docs/local-development.md`.
 
-Production runs Tier 3a on the same local Qwen 2.5 VL 32B model exposed to AWS via a Cloudflare Tunnel bridge to the home GPU (Phase 7). A managed-cloud Tier 3a host (Together AI's 72B, Novita's hosted inference, etc.) was considered and rejected: managed cloud Tier 3a at the project's escalation rate adds ~$15/1K to the cascade cost without a material F1 lift over Qwen 32B local, and routing PHI through a non-BAA managed inference provider would force a HIPAA-mode routing swap the architecture now avoids by design.
+V2 reaches the same local Qwen 2.5 VL 32B from a deployed Lambda via a Cloudflare Tunnel bridge — the production cascade keeps Tier 3 local rather than swapping in a managed-cloud Tier 3. Managed-cloud Tier 3 hosts (Together AI's 72B, Novita's hosted inference, etc.) were considered and rejected: they'd add ~$15/1K to the cascade cost without a material F1 lift over Qwen 32B local, and routing PHI through a non-BAA managed inference provider would force a routing swap the V2 architecture avoids by design.
 
-### Why HIPAA mode is a deployment posture, not a separate codebase
+### Why HIPAA mode is a deployment posture, not a separate codebase (V2)
 
-`HIPAA_MODE=on` is a deployment-posture assertion rather than a provider-routing switch. The cascade's entire provider surface is BAA-eligible by design — local Tier 1 + Tier 3a (HIPAA-safe when the host environment is HIPAA-compliant) plus AWS BAA-eligible Tier 2 (Textract), Tier 3b (Bedrock Sonnet), and Router Stage 2 (Bedrock Nova Lite) — so there's no non-BAA provider for the flag to swap out. What `HIPAA_MODE=on` does: enforce a startup-time assertion that every configured provider is BAA-eligible (defense-in-depth against future misconfiguration), raise audit-logging verbosity, and surface the operator deployment-environment checklist (physical access controls, encryption at rest/in-transit, workforce HIPAA training, breach response runbook).
+V2's `HIPAA_MODE=on` is a deployment-posture assertion rather than a provider-routing switch. The cascade's entire V2 provider surface is BAA-eligible by design — local Tier 1 + Tier 2-local + Tier 3 (HIPAA-safe when the host environment is HIPAA-compliant) plus AWS BAA-eligible Tier 2-cloud (Textract), Tier 3b (Bedrock Sonnet), and Router Stage 2 (Bedrock Nova Lite) — so there's no non-BAA provider for the flag to swap out. What `HIPAA_MODE=on` does in V2: enforce a startup-time assertion that every configured provider is BAA-eligible (defense-in-depth against future misconfiguration), raise audit-logging verbosity, and surface the operator deployment-environment checklist (physical access controls, encryption at rest/in-transit, workforce HIPAA training, breach response runbook).
 
 A separate codebase for healthcare would have meant maintaining two parallel implementations indefinitely. The boundary between "what's PHI" and "what's not" is data-driven (the `DataClass` enum on each field) and routing-aware (the `is_baa_required` helper). Moving that boundary doesn't require changing extraction logic or schemas — only the operator's deployment environment.
 
-The HIPAA-safe deployment posture targets real customers running on-prem inside their HIPAA-compliant infrastructure (hospital data center, HITRUST-certified hosting). The portfolio's deployed demo at `ai-intake.markandrewmarquez.com` operates against Synthea-generated synthetic data only and is documented as a non-HIPAA deployment; HIPAA mode is exercised in tests and documented as a capability, not run live against PHI. Cost is identical in both modes: ~$9.50 per 1,000 documents.
+The HIPAA-safe deployment posture targets real customers running on-prem inside their HIPAA-compliant infrastructure (hospital data center, HITRUST-certified hosting). The V2 deployed demo at `ai-intake.markandrewmarquez.com` operates against Synthea-generated synthetic data only and is documented as a non-HIPAA deployment; HIPAA mode is exercised in tests and documented as a capability, not run live against PHI. Cost is identical in both V2 modes: ~$9.50 per 1,000 documents.
+
+V1's `HIPAA_MODE` is a no-op: synthetic data only, no PHI ever, no cloud routing surface to assert against. The env var and the `is_baa_required` helper remain in code as forward-compat for V2.
 
 ### Why a two-stage router
 
-The router runs in two stages. Stage 1 is a vocabulary keyword classifier that runs locally and handles ~80% of documents with no PHI exposure to any cloud provider. Stage 2 is Bedrock Nova Lite, which handles the ambiguous ~20% that falls through and is BAA-eligible. Total cost ~$0.05 per 1,000 documents.
+The router runs in two stages. Stage 1 is a vocabulary keyword classifier that runs locally and handles ~80% of documents — no network hop, deterministic, near-instant.
 
-The vocabulary list seeds from `alias_table_seed.json` — terms that only appear in healthcare contexts (MRN, HIPAA acknowledgment, allergies) become Stage 1 healthcare classifiers. The pattern (vocabulary classifier with LLM fallback) is itself a portfolio-worthy decision: cost-aware, BAA-correct, accuracy-preserving.
+Stage 2 is the fallback for the ambiguous ~20% that falls through. In V1 Stage 2 routes to the local Qwen 2.5 VL 7B model (it's already loaded on GPU for Tier 2 anyway, so the marginal cost is zero). In V2 Stage 2 routes to Bedrock Nova Lite — BAA-eligible managed inference, ~$0.05 per 1,000 documents at the ~20% fallback rate. The V1→V2 swap is one provider-implementation switch; the routing logic above it stays identical.
+
+The vocabulary list seeds from `alias_table_seed.json` — terms that only appear in healthcare contexts (MRN, HIPAA acknowledgment, allergies) become Stage 1 healthcare classifiers. The pattern (vocabulary classifier with LLM fallback) is itself a portfolio-worthy decision: cost-aware, BAA-correct in V2 (Stage 1 keeps documents out of the network entirely), accuracy-preserving.
 
 ### Why cached fixtures by default, opt-in live mode for eval
 
-The eval harness defaults to cached fixtures: per-tier, per-document responses captured once and replayed on subsequent runs. Live mode (`EVAL_LIVE=true`) hits the actual providers. Default-cached saves $125-275 in build budget vs running paid live mode on every iteration; the opt-in switch keeps the live path tested.
+The eval harness defaults to cached fixtures: per-tier, per-document responses captured once and replayed on subsequent runs. Live mode (`EVAL_LIVE=true`) hits the actual providers — which in V1 means running the local Ollama models against the eval set (slow but free), and in V2 means paid cloud calls (Textract + Bedrock). Default-cached saves wall-clock time in V1 and build-budget dollars in V2; the opt-in switch keeps the live path tested.
 
-Fixtures are versioned per tier and per document, with `evals/fixtures_manifest.json` recording the model versions used. When a provider's model version changes upstream, the manifest mismatch surfaces in CI and a refresh is triggered explicitly.
+Fixtures are versioned per tier and per document, with `evals/fixtures_manifest.json` recording the model versions used. When a provider's model version changes upstream — a new Ollama model build in V1, or an AWS-managed model upgrade in V2 — the manifest mismatch surfaces in CI and a refresh is triggered explicitly.
 
-This separates two questions that often get conflated. "Does the eval logic work?" is answered by cached fixtures with no cloud cost. "Does the cascade still produce the same outputs against current provider versions?" is answered by `EVAL_LIVE=true` runs gated behind the env var. Both questions matter; running them together every time is wasteful.
+This separates two questions that often get conflated. "Does the eval logic work?" is answered by cached fixtures with no I/O cost. "Does the cascade still produce the same outputs against current provider versions?" is answered by `EVAL_LIVE=true` runs gated behind the env var. Both questions matter; running them together every time is wasteful.
 
 ### Why ColQwen 2.5
 
 ColQwen 2.5 is the current state-of-the-art in late-interaction visual retrieval. It benchmarks ~5 nDCG@5 points higher than predecessor models on ViDoRe, uses fewer patch embeddings (768 vs 1024 — cheaper to store and query at the same accuracy), and ships with permissive Apache 2.0 / MIT licensing. Runs locally on the 4080 alongside the cascade.
 
-### Why bulk batch correction UX, with single-document review as a secondary view
+### Why bulk batch correction UX, with single-document review as a secondary view (V2)
 
-Real intake teams operate as a queue, not as a single-document pipeline. The reviewer is correcting "the bad fields across the next 50 documents," not "every field in this one document." Bulk batch correction surfaces all low-confidence fields across the queue, lets reviewers accept/reject in batches with auto-save to localStorage, and gives the audit trail a clear commit point via an explicit "Submit corrections" save action.
+Real intake teams operate as a queue, not as a single-document pipeline. The reviewer is correcting "the bad fields across the next 50 documents," not "every field in this one document." V2's React review UI implements bulk batch correction — surfaces all low-confidence fields across the queue, lets reviewers accept/reject in batches with auto-save to localStorage, and gives the audit trail a clear commit point via an explicit "Submit corrections" save action.
 
 Single-document review is also supported as a secondary view — the reviewer can drill into any document from the batch view to see fields in context. This handles cases where field-level context across the form matters (e.g., subscriber name doesn't match patient name when relationship=self).
 
 The product-design angle: bulk-batch-as-primary plus single-doc-as-drill-down reflects that production review workflows are throughput-driven without sacrificing the precision a reviewer occasionally needs. Both modes read from the same Aurora data, so adding the secondary view costs essentially nothing infrastructure-wise.
 
-### Why wake-on-request over always-on Aurora
+V1's local Streamlit/Gradio demo doesn't ship the full bulk-correction UX — the goal of the V1 demo is "show the cascade working end-to-end against fixtures with the F1-over-time chart visible," not "production-grade review workflow." The bulk-correction story is V2's, where production-style review actually matters.
 
-Aurora Serverless v2 minimum 0.5 ACU at $0.12/ACU-hour = $0.06/hour running. Always-on for a public demo: ~$43/month. Wake-on-request with auto-pause after 5 min idle: ~$5-10/month total — Aurora wakes ~50 times/month for visitor traffic, each wake bills 10-20 minutes before idle-pause kicks in. Annual savings: ~$400.
+### Why wake-on-request over always-on Aurora (V2)
+
+V2's Aurora Serverless v2 minimum 0.5 ACU at $0.12/ACU-hour = $0.06/hour running. Always-on for a public demo: ~$43/month. Wake-on-request with auto-pause after 5 min idle: ~$5-10/month total — Aurora wakes ~50 times/month for visitor traffic, each wake bills 10-20 minutes before idle-pause kicks in. Annual savings: ~$400.
 
 The UX cost is the 30-90 second cold start. Mitigated three ways. The wake page shows project pitch and F1-over-time chart during the wait — the visitor gets value immediately rather than staring at a spinner. A DynamoDB single-item lock prevents simultaneous-wake race conditions if multiple visitors arrive in the same minute. An explicit progress indicator confirms the system is working.
 
-The tradeoff: 30-90 seconds of visitor wait time is acceptable for a public demo; $400/year of always-on is not. Production deployment with paying customers would flip this calculus, which is documented in `docs/production-roadmap.md`.
+The tradeoff: 30-90 seconds of visitor wait time is acceptable for a public demo; $400/year of always-on is not. Production deployment with paying customers would flip this calculus, which is documented in `docs/production-roadmap.md`. (V1 has no Aurora at all — SQLite is always-resident at $0/month, no cold-start to manage.)
 
 ### Why a DataClass enum
 
@@ -166,11 +184,11 @@ The tradeoff: 30-90 seconds of visitor wait time is acceptable for a public demo
 
 `Sensitivity` is retained as an orthogonal axis (`low`, `medium`, `high`). `data_class` says WHAT regulated data; `sensitivity` says HOW careful within that regime. Both matter for routing — a `PII` field with `sensitivity="high"` (e.g., SSN) routes differently than a `PII` field with `sensitivity="low"` (e.g., a publicly-listed business name).
 
-### Why per-field confidence thresholds at 0.85 / 0.80 / 0.75
+### Why per-field confidence thresholds step down per tier
 
 Engineering judgment with calibration intent. The values come from PaddleOCR-VL's and Qwen 2.5 VL's empirical confidence ranges on intake-form fields: scores below 0.85 from a vision-OCR model correspond roughly to 70-80% accuracy — the threshold where re-extraction becomes cheaper than human review.
 
-The 0.85 → 0.80 → 0.75 step pattern reflects that each subsequent tier is more capable, so the bar for "this tier's answer is good enough" relaxes accordingly. Tier 1 needs to be confident before we trust it; Tier 3b is the last resort, and a 0.75 from Sonnet is a stronger signal than a 0.75 from PaddleOCR.
+V1's two escalation boundaries (Tier 1→2, Tier 2→3) sit at **0.85 / 0.80**. V2 adds two more boundaries when the cloud tiers wire in (Tier 2-local→Tier 2-cloud, Tier 3→Tier 3b), settling to **0.85 / 0.80 / 0.80 / 0.75**. The step-down pattern reflects that each subsequent tier is more capable, so the bar for "this tier's answer is good enough" relaxes accordingly — Tier 1 needs to be confident before we trust it; V2's Tier 3b is the last resort, and a 0.75 from Sonnet is a stronger signal than a 0.75 from PaddleOCR.
 
 These are starting values, not final ones. The Phase 6 eval harness sweeps thresholds across the test corpus to find the Pareto frontier of cost vs F1.
 
@@ -178,13 +196,13 @@ These are starting values, not final ones. The Phase 6 eval harness sweeps thres
 
 The GitHub repo is public from the first commit, with an "in development" banner and a README skeleton. Visitors discover and bookmark URLs at any phase; a 404 because the repo is private is a worse signal than visible work-in-progress. The public commit history demonstrates real iteration over time — visible work-in-progress beats a single polished commit.
 
-The deployed demo at ai-intake.markandrewmarquez.com is on a different timeline. The DNS and URL are reserved from Phase 1 (visitors bookmark URLs they see, even before they're live), and the production edge (CloudFront + WAF + ACM cert + landing bucket) lands in Phase 2 serving a static placeholder. The cascade behind it doesn't go live until Phase 7, which swaps the bucket contents for the wake-on-request landing page and the React review UI without changing any of the surrounding edge configuration. This avoids both broken-link-on-day-1 (bad signal) and over-promising-on-day-1 (worse signal).
+The deployed demo at ai-intake.markandrewmarquez.com is V2 work and is documented as such. The DNS, URL, and ACM cert path are reserved from V2's first apply (visitors bookmark URLs they see, even before they're live), and the production edge (CloudFront + WAF + ACM cert + landing bucket) stands up alongside the V2 cascade rebuild. V1 doesn't deploy any of this — the README signals the local-first build status clearly, so visitors aren't expecting a live demo they can't reach.
 
-Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1.
+Pre-commit hooks (ruff + black + tests) and GitHub Actions on every PR are configured from Phase 1, which forces commit hygiene and main-branch quality from day 1. V1 CI runs four required status checks (lint + tests + secret scan + IaC scan against the in-tree Terraform files) on every PR; the workflow is checks-only with no review-bot wait. V2 adds back CodeRabbit review when the cloud rebuild begins.
 
 ## Getting started
 
-The project is mid-build (Phase 2 of 10). The schema layer is complete and tested; the cascade orchestrator, eval harness, and review UI land in subsequent phases. The two blocks below split what works today from what lands later.
+The project is mid-build. Phase 4 (cascade implementation) is in flight as of 2026-05-14. The schema layer is complete and tested; Phase 3 + 3.5 shipped the synthetic-data generation pipeline (Synthea + Playwright CMS-1500 renderer + DocILE ingestion); Phase 4 is implementing the V1 cascade providers; subsequent phases land per the build plan in `.claude-context/phases.md`.
 
 ### What works today
 
@@ -192,46 +210,57 @@ The project is mid-build (Phase 2 of 10). The schema layer is complete and teste
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 
-just install        # uv sync + pre-commit install
-just test           # 40 schema tests against intake_schemas.py
-just lint           # ruff check + ruff format check + black check
-just format         # auto-fix
-just alias-seed     # regenerate alias_table_seed.json from intake_schemas.py
+just install                       # uv sync + pre-commit install
+just test                          # all schema + cascade + synthetic-data tests
+just lint                          # ruff check + ruff format check + black check
+just format                        # auto-fix
+just alias-seed                    # regenerate alias_table_seed.json
+just synthetic-data-patients 5 42  # generate 5 Synthea FHIR bundles
+just synthetic-data-render-500     # full 500-patient CMS-1500 corpus (V1 follow-up: local-store refactor in progress)
+just synthetic-data-docile-build 5 # 5-doc DocILE smoke (V1 follow-up: same local-store refactor)
 ```
 
-The schema layer (`intake_schemas.py`, `RATIONALE.md`, `alias_table_seed.json`) is the substantive content as of Phase 2. CI runs `Lint (ruff + black)` and `Test (pytest)` on every PR.
+The schema layer (`intake_schemas.py`, `RATIONALE.md`, `alias_table_seed.json`), the Synthea + Playwright rendering pipeline (`synthetic_data/synthea/`, `synthetic_data/render/`), and the DocILE ingestion module (`synthetic_data/docile/`) are all live. CI runs `Lint (ruff + black)` + `Test (pytest)` + `Secret scan (gitleaks)` + `IaC scan (checkov)` on every PR.
 
-### Local cascade demo (lands Phase 7)
+### V1 cascade demo (lands Phase 7-V1)
 
 ```bash
-# Local Tier 3a model (~20 GB; locked default for fixture generation is Q8_0
-# imported via custom Modelfile — see docs/local-development.md).
+# Tier 3 model (~20 GB Q4_K_M from registry for fast iteration; locked
+# default for fixture generation is Q8_0 imported via custom Modelfile —
+# see docs/local-development.md).
 ollama pull qwen2.5vl:32b-q4_K_M
 
-# Local Tier 1 (PaddleOCR-VL) installs as a Python package, not via Ollama.
-# The exact install path lands with Phase 4 provider implementations.
+# Tier 2 model (Qwen 2.5 VL 7B, new in V1 post-pivot; replaces V2's planned
+# AWS Textract). ~16 GB FP16 fits one GPU comfortably.
+ollama pull qwen2.5vl:7b
+
+# Tier 1 (PaddleOCR-VL) installs from PaddlePaddle's own index — see
+# docs/local-development.md "Tier 1 PaddleOCR-VL setup" for the manual
+# install (not via uv sync; PaddlePaddle 3.x isn't on PyPI).
 
 cp .env.example .env
-just demo          # lands Phase 7 — runs cascade against fixture documents
+just demo          # lands Phase 7-V1 — runs cascade against fixture documents
 ```
 
-Once Phase 7 lands, `just demo` runs the cascade against three local fixture documents using cached responses. No cloud calls, no AWS credentials needed. The deployed live demo at `ai-intake.markandrewmarquez.com` goes live alongside Phase 7.
+Once Phase 7-V1 lands, `just demo` runs the cascade against fixture documents using cached responses (or live local inference when `EVAL_LIVE=true` is set). No cloud calls, no AWS credentials needed in V1. The default lock for the Phase 7-V1 demo shape is a Streamlit/Gradio app; alternatives (CLI + screenshot artifacts; no demo, eval-report only) are decided at Phase 7-V1 entry.
 
-The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly on combined VRAM with no CPU spill). The locked default for Phase 4+ fixture generation is **Q8_0 imported via custom Ollama Modelfile from the Mungert HuggingFace repository** — see `docs/local-development.md` for the import workflow and the rationale behind running with ~4 GB CPU spill.
+The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly on combined VRAM with no CPU spill). The locked default for fixture generation is **Q8_0 imported via custom Ollama Modelfile from the Mungert HuggingFace repository** — see `docs/local-development.md` for the import workflow and the rationale behind running with ~4 GB CPU spill.
+
+### V2 cloud demo (deferred)
+
+The deployed demo at `ai-intake.markandrewmarquez.com` goes live alongside V2's Phase 7 (Cloudflare Tunnel bridge layer + Lambda + React UI + wake-on-request landing page). V2 entry is a separate decision from V1's local-first build; the README is updated when V2 starts.
 
 ### Recipes that land with later phases
 
 ```bash
-just synthetic-data # generate Synthea patients + render forms (Phase 3)
 just eval           # eval harness, cached fixtures (Phase 6)
-just eval-live      # eval harness with paid cloud calls (Phase 6)
-just demo           # cascade against fixture documents (Phase 7)
-just review-ui      # React dev server (Phase 7)
+just eval-live      # eval harness with live local inference (Phase 6)
+just demo           # cascade against fixture documents (Phase 7-V1, local-only)
 ```
 
-Terraform stacks at `infra/terraform/` (bootstrap state backend + main stack for VPC + S3) are managed via `just tf-check` and `just tf-bootstrap-{init,apply,migrate}`. CI runs `fmt`/`validate`/`plan` on every PR and `apply` on push to main once OIDC variables are configured.
+The in-tree Terraform stacks at `infra/terraform/` describe the V2 cloud target. The bootstrap stack (TF state + DynamoDB lock + OIDC role) is live in AWS for V2 readiness; the main stack is `terraform destroy`-d in V1 and stands up again when V2 begins. CI runs `fmt`/`validate`/`checkov` on every PR against the in-tree files regardless; `apply` is gated behind `vars.TF_APPLY_ENABLED == 'true'`, which is `false` for V1.
 
-Full current task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, and the Synthea workflow.
+Full current task list in `justfile`. See `docs/local-development.md` for GPU configuration, multi-GPU model split details, the Synthea workflow, and the DocILE workflow.
 
 ## Project structure
 
@@ -249,9 +278,9 @@ intake-form-ai-pipeline/
 │   └── intake_pipeline/
 │       ├── schemas/                  # Pydantic schemas, alias seed
 │       ├── cascade/
-│       │   ├── providers/            # tier1_*, tier2_*, tier3a_*, tier3b_*
-│       │   ├── router.py             # two-stage classifier
-│       │   └── orchestrator.py       # Step Functions integration
+│       │   ├── providers/            # V1: tier1_paddleocr_local, tier2_qwen_7b_local, tier3_qwen_32b_local. V2 adds: tier2_textract, tier3b_claude_bedrock.
+│       │   ├── router.py             # two-stage classifier (V1: local Qwen 7B for Stage 2; V2: Bedrock Nova Lite)
+│       │   └── orchestrator.py       # V1: in-process Python orchestrator. V2: Step Functions integration.
 │       ├── feedback/                 # correction loop, alias updates
 │       ├── retrieval/                # ColQwen 2.5 RAG
 │       └── eval/                     # F1, cost, latency metrics
@@ -275,32 +304,34 @@ intake-form-ai-pipeline/
 
 ## Cost characteristics
 
-The cascade has two cost modes.
+The cascade has two cost regimes, separated by V1 vs V2.
 
-**Local development.** Tier 1 and Tier 3a run on the project's own GPUs (RTX 4080 + RTX 4060 Ti). The eval harness defaults to cached fixtures, so day-to-day development cost is essentially $0. Local-first is the primary mode for dev iteration.
+**V1 (active, local-first).** All three tiers run on the project's own GPUs (RTX 4080 + RTX 4060 Ti). The eval harness defaults to cached fixtures, so day-to-day development cost is essentially $0. Live eval mode runs local Ollama models — slow but free. Per-1,000-document V1 cascade cost: **$0** at the cloud-provider level. Electricity on always-on dev hardware is sunk cost. The cascade's engineering value in V1 is measured in latency, not dollars — the F1-over-time + latency-over-time charts are the primary measurement targets. V1's measured escalation rates feed the V2 cost projection: V1 produces the empirical input that makes V2's cost story credible.
 
-**Deployed demo.** The demo at ai-intake.markandrewmarquez.com reaches Tier 1 (PaddleOCR-VL) and Tier 3a (Qwen 2.5 VL 32B) on the project's own GPUs (RTX 4080 + RTX 4060 Ti) via a Cloudflare Tunnel bridge — AWS Step Functions calls a FastAPI wrapper service on the home GPU through the tunnel, with shared-secret auth and a `degraded`-mode failover when the bridge is unreachable (skip local tiers, escalate every document to Tier 2 + Tier 3b). Tier 2 (Textract Regular Queries), Tier 3b (Bedrock Sonnet), and Router Stage 2 (Bedrock Nova Lite) are cloud by architecture, all AWS BAA-eligible. Per-1,000-document inference cost: **~$9.50** at estimated escalation rates of ~30% to Tier 2, ~10% to Tier 3a, ~3% to Tier 3b. HIPAA-mode deployment runs the same cascade — no provider swap, no second cost number — though the home-GPU host of the portfolio's deployed demo is not HIPAA-compliant infrastructure, so the public demo operates against Synthea synthetic data only. These rates are industry-prior estimates for cascade extraction on form-like documents; Phase 6 eval harness will measure actual rates on this corpus and update the cost figures accordingly. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly run cost at portfolio traffic: ~$5-10 (cloud-tier portion only; the local tiers run on hardware already owned).
+**V2 (deferred).** The deployed demo at ai-intake.markandrewmarquez.com reaches Tier 1 (PaddleOCR-VL), Tier 2-local (Qwen 2.5 VL 7B), and Tier 3 (Qwen 2.5 VL 32B) on the project's own GPUs via a Cloudflare Tunnel bridge — AWS Step Functions calls a FastAPI wrapper service on the home GPU through the tunnel, with shared-secret auth and a `degraded`-mode failover when the bridge is unreachable (skip local tiers, escalate every document to Tier 2-cloud + Tier 3b). Tier 2-cloud (AWS Textract Regular Queries), Tier 3b (Bedrock Sonnet 4.6), and Router Stage 2 (Bedrock Nova Lite) are cloud by architecture, all AWS BAA-eligible. Per-1,000-document V2 inference cost: **~$9.50** at estimated escalation rates of ~30% to Tier 2-cloud, ~10% to Tier 3, ~3% to Tier 3b. HIPAA-mode deployment runs the same cascade — no provider swap, no second cost number — though the home-GPU host of the V2 deployed demo is not HIPAA-compliant infrastructure, so the public demo operates against Synthea synthetic data only. Idle cost: $0/month thanks to Aurora auto-pause. Realistic monthly V2 run cost at portfolio traffic: ~$5-10 (cloud-tier portion only; the local tiers run on hardware already owned).
 
-The ~32× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the cascade's engineering payoff. AWS Budgets ($5/day threshold routing breach notifications to an SNS topic), the AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), and Cost Anomaly Detection (account-level Default-Services-Subscription delivering anomaly alerts to email) are all wired before Phase 7 ships, so any abuse pattern surfaces before the bill does.
+The ~32× cost ratio over single-model Bedrock Sonnet (~$300/1K) is the V2 cascade's engineering payoff. AWS Budgets ($5/day threshold routing breach notifications to an SNS topic), the AWS WAF rate-based rule at the CloudFront edge (100 req / 5 min per IP, BLOCK), and Cost Anomaly Detection (account-level Default-Services-Subscription delivering anomaly alerts to email) are wired in V2 before the deployed demo ships, so any abuse pattern surfaces before the bill does.
 
 ## What's not in scope
 
+- **V1: no deployed demo URL.** Local Streamlit/Gradio only. Deployed demo at `ai-intake.markandrewmarquez.com` is V2 work; the URL is reserved but doesn't resolve to a live system during V1.
+- **V1: no cloud cascade tiers.** Tier 2-cloud (Textract) and Tier 3b (Bedrock Sonnet) return with V2.
 - Not a multi-tenant SaaS. Single-tenant portfolio demo; multi-tenancy would require row-level security and per-tenant rate limiting that aren't built.
-- No real PHI ever. Healthcare data is Synthea-generated; production deployment with real PHI requires BAA execution per `docs/hipaa-architecture.md`.
+- No real PHI ever. Healthcare data is Synthea-generated; production deployment with real PHI is V2-and-beyond work that requires BAA execution per `docs/hipaa-architecture.md`.
 - Not a production claims-processing system. Extraction only — no claim adjudication, no payer integration, no eligibility verification.
-- No SOC 2 / HITRUST / formal compliance audits. Architecture is HIPAA-mode-capable; certification is out of scope.
-- Not optimized for high-throughput production. Aurora auto-pause means cold starts; suitable for portfolio demo, not 1,000+ requests/minute.
+- No SOC 2 / HITRUST / formal compliance audits. V2's architecture is HIPAA-mode-capable; certification is out of scope.
+- Not optimized for high-throughput production. V1 is single-machine local. V2's Aurora auto-pause means cold starts; suitable for portfolio demo, not 1,000+ requests/minute.
 - English only. Spanish-language extension noted in `docs/production-roadmap.md`.
 - Not a fine-tuned-model-for-sale offering. Phase 9 QLoRA experimentation demonstrates the feedback loop; the resulting adapter isn't a productized artifact.
 - No real-time streaming inference. Per-document batch processing.
-- Browser-based review UI only. No mobile app.
+- Browser-based review UI only (V2). No mobile app.
 
 ## Further reading
 
-The supplementary documentation in `docs/` goes deeper on specific topics. Each is a focused 500-1,000 word read.
+The supplementary documentation in `docs/` goes deeper on specific topics. Each is a focused read.
 
-- **`docs/architecture-deep-dive.md`** — detailed sequence diagrams, the four-tier routing structure (3a/3b distinction), Step Functions state machine layout, schema introspection patterns
-- **`docs/hipaa-architecture.md`** — BAA boundary deep-dive, healthcare-specific routing rules, the synthetic-to-real-PHI swap path
-- **`docs/eval-methodology.md`** — F1 computation details, cached-fixture strategy, train/dev/test partition discipline, leakage mitigations, cost-per-document and latency metric definitions
-- **`docs/production-roadmap.md`** — what changes when this hits real production scale, deferred questions (Spanish-language support, multi-tenant SaaS, throughput optimization, vLLM scale-up path, fine-tuned local Tier 2 model, Qwen3-VL-32B mixed-precision candidate)
-- **`docs/local-development.md`** — GPU setup, Ollama configuration, multi-GPU model split details, Q8_0 import workflow, Synthea workflow, local-only mode for the quickstart
+- **`docs/architecture-deep-dive.md`** — V1 local orchestrator architecture + V2 cloud architecture (CloudFront edge, five-tier V2 routing structure, Step Functions state machine layout, schema introspection patterns)
+- **`docs/hipaa-architecture.md`** — V2 BAA boundary deep-dive, healthcare-specific routing rules, the synthetic-to-real-PHI swap path (V1 is no-op for HIPAA — synthetic data only)
+- **`docs/eval-methodology.md`** — F1 computation details, cached-fixture strategy, train/dev/test partition discipline, leakage mitigations, latency metric definitions, progressive alias-table partition for F1-over-time
+- **`docs/production-roadmap.md`** — V2 cloud rebuild plan + deferred questions (Spanish-language support, multi-tenant SaaS, throughput optimization, vLLM scale-up path, fine-tuned local Tier 2 model, Qwen3-VL-32B mixed-precision candidate)
+- **`docs/local-development.md`** — GPU setup, Ollama configuration, multi-GPU model split details, Q8_0 import workflow, Synthea workflow, DocILE workflow, Tier 1 PaddleOCR-VL setup

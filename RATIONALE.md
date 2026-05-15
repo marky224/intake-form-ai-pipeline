@@ -131,7 +131,7 @@ The routing intent `data_class` drives (semantic — see `docs/hipaa-architectur
 - `DataClass.PHI`: BAA-eligible providers only (always)
 - `DataClass.PCI`: BAA-eligible providers only (always)
 
-Under the current architecture (Hybrid, locked 2026-05-12), every provider in the routing table is BAA-eligible by design — local Tier 1 + Tier 3a (HIPAA-safe via the operator's environment) plus AWS Bedrock + Textract — so these rules become a defense-in-depth invariant the routing layer asserts at startup rather than an active runtime restriction. The rules remain authoritative for the schema's data-classification intent: if a future deployment ever introduces a non-BAA provider (e.g., a cost-optimized non-BAA inference path for business documents in a non-healthcare deployment), the rules above describe how the routing layer should treat PHI/PCI fields against it.
+Under V1 (local-first, locked 2026-05-14), the cascade has no cloud routing surface at all — the rules above are inert because every tier is local. Under V2 (the deferred cloud rebuild), every provider in the routing table is BAA-eligible by design — local Tier 1 + Tier 2-local + Tier 3 (HIPAA-safe via the operator's environment) plus AWS Bedrock + Textract — so these rules become a defense-in-depth invariant the routing layer asserts at startup rather than an active runtime restriction. The rules remain authoritative for the schema's data-classification intent in both V1 and V2: if a future deployment ever introduces a non-BAA provider (e.g., a cost-optimized non-BAA inference path for business documents in a non-healthcare deployment), the rules above describe how the routing layer should treat PHI/PCI fields against it. See `docs/hipaa-architecture.md` for the V2 BAA boundary; V1 operates against synthetic data only and never exercises the boundary live.
 
 ### Why bank credentials moved to `DataClass.PCI`
 
@@ -312,8 +312,8 @@ class BoundingBox(BaseModel):
 Two conventions are common in vision OCR: `(x1, y1, x2, y2)` for top-left and bottom-right corners (PaddleOCR, most vision-LLM outputs), and `(left, top, width, height)` (AWS Textract).
 
 The schema uses x1/y1/x2/y2 because:
-- Tier 1 (PaddleOCR-VL) and Tier 3a (Qwen 2.5 VL) both output this format natively
-- Tier 2 (Textract) is the only provider that uses left/top/width/height; conversion happens in `tier2_textract.py` before returning to the canonical schema
+- Tier 1 (PaddleOCR-VL) and the Qwen 2.5 VL local tiers (V1's Tier 2 + Tier 3; V2's Tier 3a) all output this format natively
+- V2's Tier 2-cloud (Textract) is the only provider that uses left/top/width/height; conversion happens in `tier2_textract.py` before returning to the canonical schema
 - It's the dominant convention in the open-source vision-OCR ecosystem
 
 ### Why frozen
@@ -481,11 +481,11 @@ The `present` field has no `None` state because the cascade is always required t
 
 ### Routing benefit
 
-The cascade can now make context-aware escalation decisions:
+The cascade can now make context-aware escalation decisions. Examples below use V1 tier names (Tier 2 = Qwen 2.5 VL 7B local, Tier 3 = Qwen 2.5 VL 32B local); V2 inserts Tier 2-cloud (Textract) between V1 Tier 2 and V1 Tier 3, and Tier 3b (Sonnet) after V1 Tier 3, but the routing-nuance logic transfers cleanly.
 
 - Tier 1 confidence 0.92 with `appears_typed=True`: typed signatures are reliable for Tier 1; accept.
 - Tier 1 confidence 0.92 with `appears_handwritten=True`: Tier 1 confidence is unreliable on handwriting; force escalation despite high reported confidence.
-- Tier 1 confidence 0.65 with `appears_handwritten=True`: expected pattern; escalate to Tier 3a where vision-LLM handles handwriting better.
+- Tier 1 confidence 0.65 with `appears_handwritten=True`: expected pattern; escalate to Tier 3 where vision-LLM handles handwriting better.
 - Tier 1 confidence 0.65 with `appears_typed=True`: surprising; possibly form-quality issue rather than signature ambiguity. Escalate to Tier 2 for second look.
 - `present=True` with both `appears_handwritten=True` and `appears_typed=True`: genuinely ambiguous; route to review queue.
 
