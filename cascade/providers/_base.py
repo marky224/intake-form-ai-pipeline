@@ -69,7 +69,7 @@ class CascadeProvider(Protocol):
         name: Stable identifier. Used as the eval-cache subdirectory name
             (``tests/fixtures/eval-cache/<name>/<sha>.json``) so it must be a
             filesystem-safe slug. Convention: ``tier{N}_{shortname}_{location}``
-            (e.g. ``tier1_paddleocr_local``, ``tier3b_claude_bedrock``).
+            (e.g. ``tier1_paddleocr_local``, ``tier3_qwen_32b_local``).
         tier: The cascade tier ID per ``intake_schemas.TierId``. ``1`` / ``2``
             for the integer tiers, ``"3a"`` / ``"3b"`` for the lettered
             sub-tiers.
