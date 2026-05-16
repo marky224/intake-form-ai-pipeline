@@ -165,6 +165,72 @@ Ollama distributes layers automatically based on each card's available VRAM, acc
 
 If you need to override the automatic split for debugging, `PARAMETER num_gpu N` (where N is a specific layer count) forces N layers onto GPU and the rest onto CPU. Useful when validating that CPU spill happens predictably for the Q8_0 case.
 
+## Tier 1 PaddleOCR-VL setup
+
+Local Tier 1 (Phase 4 PR (a+b)) runs **PaddleOCR-VL-1.5** on the RTX 4060 Ti — GPU 0 (RTX 4080) is reserved for Tier 3a Qwen so the cascade can hold both models resident across a batch. Sub-second per page, $0/call.
+
+### Install (manual, not via `uv sync`)
+
+PaddlePaddle 3.x (required by PaddleOCR-VL-1.5) ships from PaddlePaddle's own CDN — not PyPI — so it's installed manually rather than declared in `pyproject.toml`'s dependency tree. CI doesn't need it (Tier 1 runs against cached eval-fixtures), so this is a build-machine-only step. Order matters: install `paddleocr` *first* because its transitive deps pull in the CPU `paddlepaddle` wheel from PyPI; then force the GPU wheel on top of that.
+
+```bash
+# From repo root, inside the project's uv-managed venv.
+# 1) Install paddleocr + paddlex[ocr] extra (this pulls in CPU paddlepaddle from PyPI).
+uv pip install paddleocr "paddlex[ocr]==3.5.2"
+
+# 2) Force-reinstall the GPU build over the CPU one. The package name on
+#    Baidu's CDN is `paddlepaddle-gpu` but the wheel's distribution metadata
+#    is `paddlepaddle`, so `uv pip install` via `--index-url` rejects it
+#    ("expected paddlepaddle-gpu, got paddlepaddle"). Pass the bcebos origin
+#    URL directly instead. Note: do not use the `cu128/paddlepaddle-gpu/`
+#    path advertised on paddlepaddle.org.cn — it serves a CPU wheel despite
+#    the name. Use `cu126` (paddle 3.0.0) for driver 570.x.
+uv pip install --reinstall-package paddlepaddle \
+  "https://paddle-whl.bj.bcebos.com/stable/cu129/paddlepaddle-gpu/paddlepaddle_gpu-3.1.1-cp311-cp311-linux_x86_64.whl"
+
+# 3) Verify CUDA + device pin succeeds:
+uv run python -c "import paddle; paddle.set_device('gpu:1'); paddle.utils.run_check()"
+```
+
+The cu129 wheel (paddle 3.1.1) ships against CUDA 12.9 runtime — your driver (570.x) reports `Driver API Version: 12.8` but CUDA's intra-12.x forward-compat makes 12.9 runtime work fine. PaddleOCR-VL-1.5 needs paddle ≥ 3.1 for `paddle.incubate.nn.functional.fused_rms_norm_ext` — the cu126 paddle 3.0.0 wheel is missing that symbol. PaddleOCR's pretrained PaddleOCR-VL-1.5 checkpoint downloads on first `PaddleOCRVL()` construction (~5 GB to `~/.paddlex/`).
+
+#### Network notes
+
+`www.paddlepaddle.org.cn` is behind BAIDU_WAF and returns `content-length: 0` for `.whl` requests from non-Chinese IPs (the wheel URL responds HTTP 200 with an empty body). The actual CDN origin `paddle-whl.bj.bcebos.com` is unaffected — always download wheels from there directly.
+
+### Device pin
+
+The provider pins `paddle.set_device("gpu:1")` so Tier 1 runs on the RTX 4060 Ti. If you need to inspect GPU memory:
+
+```bash
+nvidia-smi -i 1
+```
+
+### Generating eval-cache fixtures
+
+Cached responses live at `tests/fixtures/eval-cache/tier1_paddleocr_local/<image_sha256>.json` and are checked in so CI can exercise the cached-replay path without paddle installed. To regenerate against the real model:
+
+```bash
+EVAL_LIVE=true uv run python - <<'PY'
+from pathlib import Path
+from cascade.providers.tier1_paddleocr_local import Tier1PaddleOcrLocal
+from intake_schemas import HealthcareIntakeForm
+
+provider = Tier1PaddleOcrLocal()
+for png in sorted(Path("tests/fixtures/eval-validation/cms1500").glob("*.png")):
+    provider.extract(png.read_bytes(), HealthcareIntakeForm)
+PY
+
+# Commit the regenerated fixtures:
+git add tests/fixtures/eval-cache/tier1_paddleocr_local/
+```
+
+`EVAL_LIVE=true` bypasses the cache, runs live inference against the 6 CMS-1500 validation PNGs in `tests/fixtures/eval-validation/cms1500/`, and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run.
+
+### Validation set
+
+The checked-in validation corpus is CMS-1500 only (6 PNGs rendered from the Synthea fixtures). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded `docile-labeled-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
+
 ## Synthea workflow
 
 The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the uploader pushes the pairs to S3 under content-addressable keys. Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
