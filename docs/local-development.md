@@ -21,149 +21,57 @@ ollama pull qwen2.5vl:7b
 ollama list | grep qwen2.5vl
 ```
 
-The Tier 2 provider pins `OLLAMA_HOST=http://127.0.0.1:11434` (default) and `keep_alive=1h` during eval batches to prevent unload between consecutive documents. Tier 2 and Tier 3 can be co-resident on the GPU pool when VRAM allows (Q6_K Tier 3 + 7B Tier 2 fits cleanly; Q8_0 Tier 3 + 7B Tier 2 spills extra to CPU). The cascade orchestrator's tier-batched eval pattern (process all Tier 1 docs first, then escalated docs through Tier 2, then escalated docs through Tier 3) avoids the coexistence pressure entirely.
+The Tier 2 provider pins `OLLAMA_HOST=http://127.0.0.1:11434` (default) and `keep_alive=1h` during eval batches to prevent unload between consecutive documents. Tier 3 (registry `qwen2.5vl:32b`, Q4_K_M) uses ~31 GB across the GPU pool at its default context, so it does not co-reside with Tier 2 — the cascade orchestrator's tier-batched eval pattern (process all Tier 1 docs first, then escalated docs through Tier 2, then escalated docs through Tier 3) avoids the coexistence pressure entirely.
 
 ## Local Tier 3 model setup
 
-V1 Tier 3 runs Qwen 2.5 VL 32B on the combined VRAM. The locked default is **Q8_0 imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` HuggingFace repository via custom Ollama Modelfile**. The Ollama registry only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL (no Q6_K), so the higher-precision Q6_K and the locked Q8_0 default both come via custom import.
-
-Q4_K_M from the Ollama registry is retained as a fast-iteration fallback and is what the quickstart pulls. The Phase 4 dual-quant sanity test compares Q8_0 against Q6_K to lock the locked default empirically; see the contingency tree in the project's main instructions document for the full decision logic.
-
-### Phase 1 prep: download both quants
-
-You're downloading Q8_0 (locked default) and Q6_K (Phase 4 comparison candidate) at the same time. Doing both now means Phase 4 is fully unblocked when it starts. Total download: ~66 GB.
-
-**Pre-flight checks:**
+V1 Tier 3 runs **Qwen 2.5 VL 32B from the Ollama registry — `qwen2.5vl:32b` (Q4_K_M, ~21 GB)**. Same install model as Tier 2's `qwen2.5vl:7b`: a plain registry pull, no custom Modelfile.
 
 ```bash
-# Need ~140 GB free temporarily — 66 GB for HF downloads + 66 GB for
-# Ollama blob copies during 'ollama create'. After both creates succeed,
-# the HF download dir can be deleted to reclaim ~66 GB.
-df -h ~/models /usr/share/ollama 2>/dev/null
-
-# Ollama version — VL Modelfile syntax has shifted across versions
-ollama --version
-
-# Verify the existing Q4_K_M baseline still works
-ollama list | grep qwen2.5vl
+ollama pull qwen2.5vl:32b
+ollama list | grep qwen2.5vl   # qwen2.5vl:32b (~21 GB) + qwen2.5vl:7b (~6 GB)
 ```
 
-**Confirm exact filenames before pulling 65 GB:**
+That is the entire setup. On the build box (`openclaw-pc`, RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) this runs ~52 s/doc at the model's default `num_ctx 32768` (Ollama auto-splits the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500.
+
+### Why registry Q4_K_M, not a higher-precision Mungert import?
+
+The architecture *originally* locked a higher-precision path: Q8_0 imported from `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` via a custom dual-`FROM` Ollama Modelfile, with a Phase 4 dual-quant sanity test against Q6_K (the Ollama registry only ships Q4_K_M / Q8_0 / FP16 for this model — no Q6_K — so the higher-precision quants required a custom import). That path was **empirically infeasible on 31.2 GB of consumer VRAM** and was rescoped (decided 2026-05-17). The findings, kept here because they are the substance of the consumer-hardware trade-off and a watch-list for any future revisit:
+
+- **Per-card *usable* VRAM is ~15.6 GB** (≈800 MiB system reservation off the 16 GB nameplate) → combined usable ≈ **31.2 GB**.
+- **Mungert Q8_0** (~35 GB resident incl. f16 mmproj + KV) does not fit 31.2 GB. It needs an explicit lowered `num_gpu` (e.g. `num_gpu 48` → ~26 % CPU / 74 % GPU) to force genuine spill, at multi-minute-per-document latency. Impractical.
+- **Mungert Q6_K_M** (~29 GB resident) *does* fit — at `num_ctx 8192` / `num_gpu 99` it loads 100 % on GPU with no OOM — but **every vision inference then fails** with `GGML_ASSERT(hparams.n_pos_per_embd()==1 && "seq_add() is only supported for n_pos_per_embd()==1")` (HTTP 500). This is the M-RoPE context-shift assert — Qwen2.5-VL uses `n_pos_per_embd > 1` and llama.cpp's `seq_add()` (the context-shift primitive) is unimplemented for it: open issue [ggml-org/llama.cpp#19915](https://github.com/ggml-org/llama.cpp/issues/19915). It is **not** a `num_ctx` or VRAM problem — a known-good run needs only ~2315 context tokens (measured `prompt_eval_count` 1997 + `eval_count` 318), 8192 is ample, and the model is fully GPU-resident. The assert is intrinsic to the Mungert GGUF Modelfile-import path on this Ollama; the registry build never triggers it regardless of `num_ctx`.
+- **`num_gpu 99` does NOT mean "fit what you can, spill the rest"** (Ollama 0.20.7). It forces *all* layers onto GPU; if they don't fit, the llama runner OOMs and the process crashes (`cudaMalloc failed: out of memory` → Go panic → 500). A controlled spill requires an explicit lowered `num_gpu`.
+- **A bare `FROM`-only Modelfile silently produces garbage** (HTTP 200, `prompt_eval_count=None`, zero populated fields): the imported GGUF has no chat template, so the prompt is never wrapped in Qwen's `<|im_start|>…<|im_end|>` markers. A correct VL import must carry the registry model's `TEMPLATE` + `SYSTEM` + `PARAMETER temperature` (`ollama show --modelfile qwen2.5vl:32b | awk '/^TEMPLATE /{f=1}/^LICENSE /{f=0}f'`).
+- Tooling notes that still bite anyone attempting the Mungert path: `huggingface-cli` is deprecated — the CLI is now `hf` (`pip install -U huggingface_hub`); Mungert's README documents `…-q6_k.gguf` but the actual upload is `…-q6_k_m.gguf` (the Q6_K_M variant); the repo also carries `bf16-q8_0`/`f16-q8_0`/`bf16-q6_k`/`f16-q6_k` mixed-precision variants you do not want — pin exact filenames, never glob.
+
+**Decision:** ship the registry **Q4_K_M** build — the only configuration that runs correctly on this hardware. No Ollama upgrade was taken (issue #19915 was open at decision time; an upgrade is an unconfirmed fix that also restarts the shared Ollama server). The full empirical decision + the still-applicable absolute-F1 contingency branches are recorded in the project's `architecture-locked.md` "Quantization choice and contingency tree" — treat that as the source of truth.
+
+### Vision-capability sanity check
 
 ```bash
-pip install -U "huggingface_hub[cli]" --break-system-packages
-
-huggingface-cli download Mungert/Qwen2.5-VL-32B-Instruct-GGUF README.md \
-  --local-dir ~/models/qwen-vl-32b
-
-grep -iE "Q8_0|Q6_K|mmproj" ~/models/qwen-vl-32b/README.md
+# Any test image works (a scanned form page or simple photo).
+ollama run qwen2.5vl:32b "What is in this image? Describe what you see." ~/path/to/test-image.png
+ollama ps   # confirm it loaded; expect ~31 GB across the two cards
 ```
 
-That `grep` gives you the exact filenames Mungert uses. Filename casing and naming conventions vary by uploader (e.g., `Q8_0` vs `q8_0`); use what the README shows.
-
-**Pull Q8_0 LLM, Q6_K LLM, and mmproj projector together:**
-
-```bash
-huggingface-cli download Mungert/Qwen2.5-VL-32B-Instruct-GGUF \
-  --include "*[Qq]8_0*.gguf" \
-  --include "*[Qq]6_[Kk]*.gguf" \
-  --include "*mmproj*" \
-  --local-dir ~/models/qwen-vl-32b
-```
-
-The `mmproj` (vision projector) is shared — both quants reference the same projector file. At ~50–70 MB/s typical HuggingFace download speed, 66 GB lands in 15–30 minutes.
-
-### Modelfile templates
-
-Adjust filenames below to match what `huggingface-cli` actually downloaded.
-
-```bash
-cat > ~/models/qwen-vl-32b/Modelfile-q8_0 <<'EOF'
-FROM ./Qwen2.5-VL-32B-Instruct-Q8_0.gguf
-FROM ./mmproj-Qwen2.5-VL-32B-Instruct-f16.gguf
-PARAMETER num_gpu 99
-PARAMETER num_ctx 4096
-EOF
-
-cat > ~/models/qwen-vl-32b/Modelfile-q6_k <<'EOF'
-FROM ./Qwen2.5-VL-32B-Instruct-Q6_K.gguf
-FROM ./mmproj-Qwen2.5-VL-32B-Instruct-f16.gguf
-PARAMETER num_gpu 99
-PARAMETER num_ctx 4096
-EOF
-```
-
-`num_gpu 99` tells Ollama "put as many layers on GPU as fit, spill the rest to CPU." For Q8_0 you should see a meaningful CPU spill in `ollama ps` (~4 GB / ~11% of layers). For Q6_K all layers should fit on GPU.
-
-If the dual `FROM` syntax doesn't work in your Ollama version, the fallback for the projector is:
-
-```
-PARAMETER mmproj ./mmproj-Qwen2.5-VL-32B-Instruct-f16.gguf
-```
-
-(without a second `FROM` line). Some Ollama versions only accept one `FROM` directive per Modelfile.
-
-### Register with Ollama
-
-```bash
-cd ~/models/qwen-vl-32b
-
-ollama create qwen2.5vl:32b-q8_0 -f Modelfile-q8_0
-ollama create qwen2.5vl:32b-q6_k -f Modelfile-q6_k
-
-# Verify both registered
-ollama list | grep qwen2.5vl
-```
-
-`ollama create` copies the GGUFs into Ollama's blob store at `/usr/share/ollama/.ollama/models/blobs/`. After both creates succeed, the original `~/models/qwen-vl-32b/*.gguf` files can be deleted to reclaim ~66 GB. Keep the `README.md` and Modelfiles around for reference.
-
-### Load and vision-capability validation
-
-```bash
-# Use any test image — a scanned PDF page or simple photo works.
-# Synthea-rendered samples don't exist yet (Phase 3).
-TEST_IMAGE=~/path/to/some/test-image.png
-
-# Q8_0 load test
-ollama run qwen2.5vl:32b-q8_0 "What is in this image? Describe what you see." "$TEST_IMAGE"
-
-# Concurrent in another terminal — check actual VRAM/CPU split:
-ollama ps
-
-# Q6_K load test
-ollama run qwen2.5vl:32b-q6_k "What is in this image? Describe what you see." "$TEST_IMAGE"
-
-ollama ps
-```
-
-### Validation checklist
-
-For each quant, record:
-
-1. **Loaded cleanly?** Any OOM errors, missing-file errors, or Modelfile syntax errors.
-2. **Actual VRAM/CPU split** per `ollama ps`. Q8_0 should show ~89% GPU / ~11% CPU; Q6_K should show 100% GPU. Materially different splits indicate either a different layer-allocation strategy than expected (worth investigating) or a Modelfile parameter issue.
-3. **Tokens/sec on a vision query.** `ollama run` reports the eval rate at the end of each response. Q8_0 should land in the 8–15 tok/s range; Q6_K in the 25–40 tok/s range. If Q8_0 lands much lower (e.g., 3 tok/s), the layer split is hitting cold PCIe heavily and the Phase 6 fixture-generation batch timing estimate needs revising.
-4. **Vision capability sanity.** Did the model produce a sensible description of the test image, or did it hallucinate / produce text-only output / produce garbage? GGUFs occasionally have broken projector linkage; the load test catches this.
-
-If anything breaks during validation, capture the exact error message plus `ollama ps` output before troubleshooting. The most common gotchas are Modelfile syntax differences across Ollama versions and mmproj filename mismatches.
+The model should produce a sensible description, not text-only output or garbage. Registry builds ship with a working projector + chat template, so the broken-projector / missing-template failure modes that plague raw GGUF imports do not apply here.
 
 ### Contingency
 
-If Q8_0 load testing reveals problems (vision broken, F1 too low on the Phase 4 sanity test, or unmanageable CPU spill), the contingency tree in the project's main instructions document defines the fallback path: Q6_K → Q4_K_M → InternVL3.5-8B local → Tier 3 marked unavailable. In V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there's no V1 cloud fallback above Tier 3. In V2 the same contingency routes Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, so V2 stays operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
+If Tier 3 validation reveals problems (vision broken, or F1 below the contingency-tree bar), the fallback path is defined in `architecture-locked.md` "Quantization choice and contingency tree": F1 ≥ 0.80 ship; 0.65–0.80 document the gap publicly and ship; < 0.65 or hallucinating → InternVL3.5-8B local → Tier 3 marked unavailable. In V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there's no V1 cloud fallback above Tier 3. In V2 the same contingency routes Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, so V2 stays operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
 
 V2 also defines a broader operational failover via `EXTRACTION_MODE=degraded` in `.env.example`: triggered when the home-GPU bridge from deployed Lambda is unreachable, all local tiers (Tier 1, Tier 2-local, Tier 3) are skipped and every document escalates straight through Tier 2-cloud → Tier 3b. Not applicable in V1 — V1 has no Lambda, no bridge, and no degraded mode (the build machine runs everything in-process).
 
 ## Multi-GPU layer split details
 
-The locked Modelfile uses `num_gpu 99` (let Ollama figure out the split). On Mark's hardware, this typically lands as:
+Tier 3's registry `qwen2.5vl:32b` (Q4_K_M, ~21 GB weights + KV/image overhead ≈ ~31 GB at default context) is auto-split by Ollama across the GPU pool:
 
-- RTX 4080 (16 GB): bottom half of layers (~32 layers for Q4_K_M, fewer for Q8_0)
-- RTX 4060 Ti (16 GB): top half of layers
-- CPU/system RAM: remaining layers when model size exceeds combined VRAM
+- RTX 4080 (16 GB): roughly half the layers
+- RTX 4060 Ti (16 GB): the other half
+- CPU/system RAM: the remainder (~9 % at default `num_ctx 32768`) — eliminable with a custom registry-based Modelfile at a lower `num_ctx` (only ~2315 context tokens are actually used; deferred — the default-context spill is not latency-fatal at ~52 s/doc).
 
-Ollama distributes layers automatically based on each card's available VRAM, accounting for KV cache and image-token overhead. The 4080 typically gets slightly more layers than the 4060 Ti when both have similar free VRAM, since the 4080 is faster.
-
-If you need to override the automatic split for debugging, `PARAMETER num_gpu N` (where N is a specific layer count) forces N layers onto GPU and the rest onto CPU. Useful when validating that CPU spill happens predictably for the Q8_0 case.
+Ollama distributes layers based on each card's available VRAM, accounting for KV cache and image-token overhead; the 4080 typically gets slightly more layers than the 4060 Ti when free VRAM is similar, since it is faster. For debugging, `PARAMETER num_gpu N` in a custom Modelfile forces exactly N layers onto GPU and the rest onto CPU (note: `num_gpu 99` forces *all* layers and crashes on OOM rather than spilling — see the Mungert findings above).
 
 ## Tier 1 PaddleOCR-VL setup
 
@@ -229,7 +137,7 @@ git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 
 ### Validation set
 
-The checked-in validation corpus is CMS-1500 only (6 PNGs rendered from the Synthea fixtures). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded `docile-labeled-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
+The checked-in validation corpus is CMS-1500 only (6 PNGs rendered from the Synthea fixtures). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
 
 ## Synthea workflow
 
@@ -304,7 +212,7 @@ Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping th
 
 ## DocILE workflow
 
-The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `labeled-trainval` archive (6680 annotated train+val docs combined), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The 55-field KILE taxonomy is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` consumes those annotations in Phase 4.
+The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The 55-field KILE taxonomy is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` consumes those annotations in Phase 4.
 
 ### Pre-requisites
 
@@ -339,7 +247,7 @@ just synthetic-data-docile-build 5     # 5 documents from the train split
 ### Step-by-step (debugging)
 
 ```bash
-# 1. Download labeled-trainval (~1.6 GB extracted into synthetic_data/output/docile/).
+# 1. Download annotated-trainval (~1.1 GB zip, extracts into synthetic_data/output/docile/).
 #    Idempotent: skips if annotations/ is already populated.
 uv run python -m synthetic_data.docile.download \
     --dest synthetic_data/output/docile

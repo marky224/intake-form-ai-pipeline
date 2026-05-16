@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-16T23:01:46.05942546Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 319,
+  "eval_duration": 32955200910,
+  "load_duration": 115570238,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Ezekiel1373\",\n  \"middle_name\": \"Walter473\",\n  \"last_name\": \"Walter473\",\n  \"address_street\": \"332 Schulist Underpass\",\n  \"address_apt\": null,\n  \"address_city\": \"Watertown\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02472\",\n  \"date_of_birth\": \"1998-08-22\",\n  \"phone\": \"555-154-3309\",\n  \"email\": null,\n  \"date_signed\": \"2025-10-30\",\n  \"patient_id\": \"4f083ce3-f12\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-4F083CE3\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Walter473, Ezekiel1373\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Acute bronchitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 2336029859,
+  "total_duration": 36802643638
+}

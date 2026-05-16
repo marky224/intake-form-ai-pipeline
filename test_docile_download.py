@@ -232,8 +232,8 @@ def test_download_redacts_token_from_subprocess_stdout(
         # Mirror the real script's stdout shape: one Downloading line + one Unzipping line.
         script_stdout = (
             f"Downloading https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/"
-            f"{token}/labeled-trainval.zip\n"
-            f"Unzipping labeled-trainval.zip\n"
+            f"{token}/annotated-trainval.zip\n"
+            f"Unzipping annotated-trainval.zip\n"
         )
         return subprocess.CompletedProcess(argv, 0, stdout=script_stdout, stderr=None)
 
@@ -265,8 +265,8 @@ def test_download_redacts_token_from_called_process_error(
     import subprocess as sp
 
     token = "secret-tok-err999"  # gitleaks:allow — fake placeholder for redaction test
-    leaky_stdout = f"Downloading https://example.com/{token}/labeled-trainval.zip\n"
-    leaky_stderr = f"curl: (22) URL: https://example.com/{token}/labeled-trainval.zip\n"
+    leaky_stdout = f"Downloading https://example.com/{token}/annotated-trainval.zip\n"
+    leaky_stderr = f"curl: (22) URL: https://example.com/{token}/annotated-trainval.zip\n"
 
     def failing_runner(argv: list[str], **kwargs: object) -> sp.CompletedProcess:
         raise sp.CalledProcessError(
@@ -312,7 +312,7 @@ def test_download_redacts_token_from_subprocess_stderr(
             "  % Total    % Received % Xferd  Average Speed\n"
             f"curl: (22) The requested URL returned error: 404 "
             f"https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/"
-            f"{token}/labeled-trainval.zip\n"
+            f"{token}/annotated-trainval.zip\n"
         )
         return subprocess.CompletedProcess(argv, 0, stdout="", stderr=script_stderr)
 

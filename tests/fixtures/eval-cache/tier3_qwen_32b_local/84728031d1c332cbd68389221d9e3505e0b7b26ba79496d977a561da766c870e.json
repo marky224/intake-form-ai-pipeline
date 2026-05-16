@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-16T23:03:36.287014962Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 305,
+  "eval_duration": 31497268334,
+  "load_duration": 85827103,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Wilfredo\",\n  \"middle_name\": \"593\",\n  \"last_name\": \"Fritsch\",\n  \"address_street\": \"265 Schamberger Rapid Unit 70\",\n  \"address_apt\": null,\n  \"address_city\": \"Whitman\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"2010-01-08\",\n  \"phone\": \"555-125-1922\",\n  \"email\": null,\n  \"date_signed\": \"2025-09-07\",\n  \"patient_id\": \"aee7bbe1-0c4\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-AEE7BBE1\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Fritsch593, Wilfredo622\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 2349366309,
+  "total_duration": 35328856280
+}

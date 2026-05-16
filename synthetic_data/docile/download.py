@@ -1,4 +1,4 @@
-"""Download the DocILE ``labeled-trainval`` archive into a local directory.
+"""Download the DocILE ``annotated-trainval`` archive into a local directory.
 
 Thin Python wrapper around the vendored upstream ``download_dataset.sh``.
 The script itself is the canonical download path published by
@@ -12,7 +12,8 @@ wrapper exists to:
 - Pull the access token from ``DOCILE_ACCESS_TOKEN`` rather than the
   command line, so the token doesn't leak into shell history when the
   recipe is invoked interactively.
-- Enforce a single allowed dataset (``labeled-trainval``). The
+- Enforce a single allowed dataset (``annotated-trainval``; renamed
+  upstream from ``labeled-trainval`` — see ``BUILD_DATASET``). The
   half-now-half-later corpus-partitioning lock in ``cost-model.md``
   reserves the ``test`` split for the Phase 7 ``just process-batch``
   recipe; rejecting ``test`` here is defense-in-depth against
@@ -49,10 +50,17 @@ when re-vendoring."""
 TOKEN_ENV_VAR = "DOCILE_ACCESS_TOKEN"
 """Environment variable carrying the DocILE registration token."""
 
-BUILD_DATASET = "labeled-trainval"
-"""The only dataset name Phase 3.5 may fetch. ``test`` / ``synthetic`` /
-``unlabeled`` are reserved for post-launch batches per the
-half-now-half-later partitioning lock; see module docstring."""
+BUILD_DATASET = "annotated-trainval"
+"""The only dataset name Phase 3.5 may fetch. **Renamed upstream**
+``labeled-trainval`` -> ``annotated-trainval`` after the pinned vendored
+script's 2024-05-15 commit: the S3 object is now
+``<token>/annotated-trainval.zip`` and the old name 404s (``NoSuchKey``)
+even with a valid token (verified 2026-05-17). The vendored
+``download_dataset.sh`` is a pure URL builder (``<host>/<token>/<dataset>.zip``,
+no name allowlist), so passing the new name needs no re-vendor and the
+pinned sha256 stays valid. Same combined train+val zip — ``test`` /
+``synthetic`` / ``unlabeled`` remain reserved for post-launch batches per
+the half-now-half-later partitioning lock; see module docstring."""
 
 # Subprocess runner type — matches subprocess.run's signature closely
 # enough for our purposes. Injecting it makes tests trivial without
@@ -155,12 +163,12 @@ def download_labeled_trainval(
     runner: SubprocessRunner | None = None,
     env: dict[str, str] | None = None,
 ) -> Path:
-    """Download the DocILE labeled-trainval archive into ``dest_dir``.
+    """Download the DocILE annotated-trainval archive into ``dest_dir``.
 
     Returns ``dest_dir`` (the unzipped layout root: ``annotations/``,
     ``pdfs/``, ``train.json``, ``val.json`` land directly under it).
 
-    ``dataset`` defaults to the only allowed value (``"labeled-trainval"``).
+    ``dataset`` defaults to the only allowed value (``"annotated-trainval"``).
     Passing any other value — ``test``, ``synthetic``, ``unlabeled`` —
     raises ``ValueError`` per the half-now-half-later lock. The
     parameter exists so a future Phase 7 ``process-batch`` module can
@@ -251,7 +259,7 @@ def download_labeled_trainval(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Download the DocILE labeled-trainval archive.
+    """Download the DocILE annotated-trainval archive.
 
     Usage::
 
@@ -266,7 +274,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = argparse.ArgumentParser(
         description=(
-            "Download the DocILE labeled-trainval archive (annotations + PDFs + "
+            "Download the DocILE annotated-trainval archive (annotations + PDFs + "
             "split indexes) into a local directory via the vendored upstream script."
         ),
     )
@@ -304,7 +312,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 4
-    print(f"DocILE labeled-trainval ready at {dest}")
+    print(f"DocILE annotated-trainval ready at {dest}")
     return 0
 
 

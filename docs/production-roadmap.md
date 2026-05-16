@@ -12,7 +12,7 @@ Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants
 
 The locked architecture is Qwen 2.5 VL 32B (V1's Tier 3; V2's Tier 3a) per the main instructions document. Qwen3-VL-32B is a model-upgrade candidate, not the locked default. Revisit conditions:
 
-1. Phase 4 dual-quant testing reveals Q8_0 limitations on Qwen 2.5 VL that mixed-precision Qwen3-VL would mitigate.
+1. **Realized (2026-05-17).** Phase 4 found that on 31.2 GB of consumer VRAM the higher-precision Qwen 2.5 VL 32B GGUFs are unusable — Q8_0 spills impractically and the Mungert Q6_K import hits an open llama.cpp M-RoPE `seq_add` assert (#19915) — so V1 Tier 3 ships the **registry Q4_K_M** build: aggressive *uniform* LLM+vision quantization, exactly the case the MBQ finding says costs the most accuracy. A stable mixed-precision Qwen3-VL-32B GGUF (aggressive LLM, full-precision vision) is the natural V2 upgrade to recover that accuracy at similar VRAM. Gated on condition 2.
 2. Qwen3-VL community GGUF repositories mature enough to provide stable, well-documented mixed-precision builds (likely 6+ months post-release).
 3. Phase 9 QLoRA fine-tuning experiments suggest mixed-precision training would yield meaningful gains.
 

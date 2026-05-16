@@ -100,7 +100,7 @@ synthetic-data-render-500: (synthetic-data-patients "500" "42")
         --input synthetic_data/output/render \
         --bucket intake-form-ai-pipeline-documents
 
-# Phase 3.5 DocILE business-document corpus: download labeled-trainval -> rasterize +
+# Phase 3.5 DocILE business-document corpus: download annotated-trainval -> rasterize +
 # sidecar -> S3 upload under synthetic/business/docile/.
 #
 # Default `limit=0` processes the full ~6.6K-document corpus
