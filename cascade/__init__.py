@@ -7,9 +7,10 @@ Shipped:
   - ``cascade.providers._base`` — ``CascadeProvider`` Protocol + ``ProviderResult``
   - ``cascade.eval_cache`` — replay-cache machinery (default-on, ``EVAL_LIVE`` bypass)
   - ``cascade.providers.tier1_paddleocr_local`` — Tier 1, local PaddleOCR-VL
+  - ``cascade.providers.tier2_qwen_7b_local`` — Tier 2, local Qwen 2.5 VL 7B
+    via Ollama (schema-constrained prompted extraction)
 
 Pending Phase 4 PRs:
-  - ``cascade.providers.tier2_qwen_7b_local`` — Tier 2, local Qwen 2.5 VL 7B
   - ``cascade.providers.tier3_qwen_32b_local`` — Tier 3, local Qwen 2.5 VL 32B
     (+ Q8_0-vs-Q6_K dual-quant sanity test)
 

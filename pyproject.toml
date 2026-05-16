@@ -53,6 +53,16 @@ dependencies = [
 # the PNG encoding from the rendered bitmap (pypdfium2 hands off via .to_pil()).
 # Used at 200 DPI to keep DocILE bbox coords round-trip cleanly with the
 # upstream metadata's `page_sizes_at_200dpi`.
+#
+# ollama is the Tier 2 (Phase 4 PR (c-V1)) Qwen 2.5 VL 7B client. Unlike Tier
+# 1's paddlepaddle-gpu (non-PyPI 3.x index, hence undeclared + manual install),
+# the `ollama` client is a trivial pure-Python HTTP wrapper on PyPI — safe to
+# declare and pin. The provider still lazy-imports it inside the client loader
+# (mirrors Tier 1's structure; module stays importable if the dep is absent).
+# >=0.4 floor: client-side structured-output `format=<json-schema>` support
+# (the Tier 2 schema-constrained decoding strategy) landed in the 0.4 line.
+# CI exercises Tier 2 via cached eval-fixtures only; the live Ollama call is
+# gated behind EVAL_LIVE + @pytest.mark.slow and never runs in CI.
 [dependency-groups]
 dev = [
     "pytest>=8.0",
@@ -65,6 +75,7 @@ dev = [
     "moto>=5.0",
     "pypdfium2>=4.30",
     "pillow>=10.0",
+    "ollama>=0.4",
 ]
 
 # Treat the repo as an application, not a library: uv won't try to build/install
