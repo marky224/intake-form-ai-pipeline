@@ -86,7 +86,7 @@ Fifteen choices made deliberately. Each is marked **(V1)** if it applies to the 
 
 ### Why three tiers
 
-The pipeline uses three tiers of extraction with progressively more capable models. In V1 the tiers are all local on consumer GPUs: PaddleOCR-VL on the RTX 4060 Ti (sub-second per page, layout parser plus an alias-table-driven layout-to-fields post-processor) → Qwen 2.5 VL **7B** on the RTX 4080 (vision-capable prompted extraction, ~16 GB FP16) → Qwen 2.5 VL **32B** on combined VRAM (frontier-tier reasoning, Q8_0 quant with ~4 GB CPU spill). Confidence-borderline fields escalate; ~90% are expected to clear Tier 1.
+The pipeline uses three tiers of extraction with progressively more capable models. In V1 the tiers are all local on consumer GPUs: PaddleOCR-VL on the RTX 4060 Ti (sub-second per page, layout parser plus an alias-table-driven layout-to-fields post-processor) → Qwen 2.5 VL **7B** on the RTX 4080 (vision-capable prompted extraction, ~16 GB FP16) → Qwen 2.5 VL **32B** on combined VRAM (frontier-tier reasoning, registry Q4_K_M ~21 GB). Confidence-borderline fields escalate; ~90% are expected to clear Tier 1.
 
 V1's cascade cost is **$0/1K** — electricity on always-on dev hardware is sunk cost. The cost-routing engineering payoff appears in V2, where the cascade gains BAA-cloud tiers in the middle (Textract Queries) and at the top (Bedrock Claude Sonnet 4.6 as a Tier 3b frontier fallback). V2 lands at ~$9.50/1K, beating single-model Bedrock Sonnet (~$300/1K at typical field densities) by ~32×. V1's measured escalation rates are the empirical input for the V2 cost projection — the local build's eval harness produces the numbers that make V2's cost story credible.
 
@@ -120,13 +120,13 @@ Local rendering via HTML+Playwright was chosen over LaTeX, ReportLab, and LibreO
 
 The headline F1-over-time chart depends on this volume. Without synthetic generation at scale, batched eval isn't tractable for a portfolio project budget.
 
-### Why Q8_0 with multi-GPU split (and CPU spill) for Tier 3
+### Why registry Q4_K_M for Tier 3 (a documented consumer-hardware trade-off)
 
-The local hardware is two consumer GPUs sharing PCIe — RTX 4080 (16 GB) plus RTX 4060 Ti (16 GB), no NVLink. Combined 32 GB VRAM with PCIe-only inter-GPU communication. Qwen 2.5 VL 32B at Q8_0 weighs ~36.3 GB; it doesn't fully fit, but ~4 GB of CPU spill is acceptable when the goal is fixture-generation accuracy over interactive iteration speed. The cascade's batch workflow tolerates the velocity hit — Phase 6 fixture generation against the V1 build partition runs overnight either way.
+The local hardware is two consumer GPUs sharing PCIe — RTX 4080 (16 GB) plus RTX 4060 Ti (16 GB), no NVLink, ~31.2 GB combined *usable* VRAM. The architecture originally specced a higher-precision path: Q8_0 imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` repo via a custom Ollama Modelfile, with a Phase 4 dual-quant sanity test against Q6_K to pick the locked default empirically (the Ollama registry ships only Q4_K_M / Q8_0 / FP16 for this model — no Q6_K — so the higher-precision quants needed a custom import).
 
-Q8_0 is imported from the `Mungert/Qwen2.5-VL-32B-Instruct-GGUF` Hugging Face repository via custom Ollama Modelfile rather than the official Ollama registry, which only ships Q4_K_M, Q8_0, and FP16 for Qwen 2.5 VL. Q4_K_M (the registry default, ~20.1 GB, validated working May 5, 2026 with 7% CPU spill) is retained as a fast-iteration fallback option — not as the locked Tier 3 default.
+That path proved infeasible on this hardware, and the honest engineering outcome is the more interesting story. Mungert **Q8_0** (~35 GB) exceeds 31.2 GB and spills to multi-minute-per-document latency. Mungert **Q6_K** *fits* (loads 100% on GPU at ~29 GB) but fails every vision inference with an open llama.cpp limitation — `seq_add()` (the context-shift primitive) is unimplemented for M-RoPE models like Qwen2.5-VL ([ggml-org/llama.cpp#19915](https://github.com/ggml-org/llama.cpp/issues/19915)) — and this is intrinsic to the custom-GGUF import path regardless of context size. The Ollama **registry `qwen2.5vl:32b` (Q4_K_M, ~21 GB)** is the only configuration that runs correctly: ~52 s/doc, clean schema-constrained JSON, 16–19 fields/doc. V1 ships it.
 
-Phase 4 begins with a 20-doc dual-quant sanity test pitting Q8_0 against Q6_K (custom Modelfile from the same Hugging Face repo, ~28.7 GB, no CPU spill expected). If F1 is within ±0.02, Q6_K wins by saving the spill. If F1 differs measurably, Q8_0 stays locked. The full contingency tree (including Q4_K_M and InternVL3.5-8B fallback paths) is documented in `docs/local-development.md`.
+The cost of that trade-off is measured, not hand-waved. A 20-document cross-vertical validation (6 CMS-1500 + 14 DocILE, deliberately coarse field-level scorer) puts registry Q4_K_M at **F1 ≈ 0.77** (recall 0.91). Per the locked contingency tree that lands in the "document the gap publicly and ship" band — uniform aggressive quantization (LLM *and* vision encoder at 4-bit) on consumer VRAM costs measurable accuracy versus a mixed-precision build, exactly as the literature predicts. The V2 upgrade path (a stable mixed-precision Qwen3-VL-32B GGUF — aggressive LLM, full-precision vision) is documented in `docs/production-roadmap.md`; the full empirical decision and contingency tree live in `docs/local-development.md`.
 
 V2 reaches the same local Qwen 2.5 VL 32B from a deployed Lambda via a Cloudflare Tunnel bridge — the production cascade keeps Tier 3 local rather than swapping in a managed-cloud Tier 3. Managed-cloud Tier 3 hosts (Together AI's 72B, Novita's hosted inference, etc.) were considered and rejected: they'd add ~$15/1K to the cascade cost without a material F1 lift over Qwen 32B local, and routing PHI through a non-BAA managed inference provider would force a routing swap the V2 architecture avoids by design.
 
@@ -225,10 +225,10 @@ The schema layer (`intake_schemas.py`, `RATIONALE.md`, `alias_table_seed.json`),
 ### V1 cascade demo (lands Phase 7-V1)
 
 ```bash
-# Tier 3 model (~20 GB Q4_K_M from registry for fast iteration; locked
-# default for fixture generation is Q8_0 imported via custom Modelfile —
-# see docs/local-development.md).
-ollama pull qwen2.5vl:32b-q4_K_M
+# Tier 3 model (registry Qwen 2.5 VL 32B, Q4_K_M ~21 GB — the locked V1
+# default; the higher-precision Mungert import was infeasible on consumer
+# VRAM, see docs/local-development.md "Why registry Q4_K_M").
+ollama pull qwen2.5vl:32b
 
 # Tier 2 model (Qwen 2.5 VL 7B, new in V1 post-pivot; replaces V2's planned
 # AWS Textract). ~16 GB FP16 fits one GPU comfortably.
@@ -244,7 +244,7 @@ just demo          # lands Phase 7-V1 — runs cascade against fixture documents
 
 Once Phase 7-V1 lands, `just demo` runs the cascade against fixture documents using cached responses (or live local inference when `EVAL_LIVE=true` is set). No cloud calls, no AWS credentials needed in V1. The default lock for the Phase 7-V1 demo shape is a Streamlit/Gradio app; alternatives (CLI + screenshot artifacts; no demo, eval-report only) are decided at Phase 7-V1 entry.
 
-The quickstart pulls Q4_K_M for fast first-run inference (~20 GB, fits cleanly on combined VRAM with no CPU spill). The locked default for fixture generation is **Q8_0 imported via custom Ollama Modelfile from the Mungert HuggingFace repository** — see `docs/local-development.md` for the import workflow and the rationale behind running with ~4 GB CPU spill.
+The quickstart pulls the registry **`qwen2.5vl:32b` (Q4_K_M, ~21 GB)** — the locked V1 Tier 3 default, used for both demo and fixture generation. The higher-precision Mungert Q8_0/Q6_K import the architecture originally specced proved infeasible on consumer VRAM (VRAM overflow / an open llama.cpp M-RoPE limitation); see `docs/local-development.md` "Why registry Q4_K_M" for the full empirical trade-off and the measured F1.
 
 ### V2 cloud demo (deferred)
 
@@ -334,4 +334,4 @@ The supplementary documentation in `docs/` goes deeper on specific topics. Each 
 - **`docs/hipaa-architecture.md`** — V2 BAA boundary deep-dive, healthcare-specific routing rules, the synthetic-to-real-PHI swap path (V1 is no-op for HIPAA — synthetic data only)
 - **`docs/eval-methodology.md`** — F1 computation details, cached-fixture strategy, train/dev/test partition discipline, leakage mitigations, latency metric definitions, progressive alias-table partition for F1-over-time
 - **`docs/production-roadmap.md`** — V2 cloud rebuild plan + deferred questions (Spanish-language support, multi-tenant SaaS, throughput optimization, vLLM scale-up path, fine-tuned local Tier 2 model, Qwen3-VL-32B mixed-precision candidate)
-- **`docs/local-development.md`** — GPU setup, Ollama configuration, multi-GPU model split details, Q8_0 import workflow, Synthea workflow, DocILE workflow, Tier 1 PaddleOCR-VL setup
+- **`docs/local-development.md`** — GPU setup, Ollama configuration, multi-GPU model split details, Tier 3 registry-Q4_K_M setup + the Mungert-import trade-off, Synthea workflow, DocILE workflow, Tier 1 PaddleOCR-VL setup
