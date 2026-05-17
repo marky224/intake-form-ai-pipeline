@@ -98,7 +98,7 @@ A single Aurora cluster with three schemas (`demo`, `eval`, `staging`) avoids mu
 
 The cost of auto-pause is the 30-90 second cold start when a visitor arrives. Mitigated by the wake-on-request landing page, which gives them something to read while Aurora warms.
 
-V1 uses SQLite + `sqlite-vec` instead. The schema is much smaller (just `eval_results`, `corrections`, and the alias table + embeddings) and SQLite is operationally trivial for a single-machine local build. V2 migrates by replaying the SQLite contents into the Aurora `staging` schema; the migration story is straightforward because the V1 schema is intentionally Aurora-compatible.
+V1 uses SQLite + `sqlite-vec` instead. The schema is much smaller (normalized `runs` + `field_attempts` + `review_queue`, with `corrections` + `embeddings` reserved for the Phase 8 RAG loop) and SQLite is operationally trivial for a single-machine local build. V2 migrates by replaying the SQLite contents into the Aurora `staging` schema; the migration story is straightforward because the V1 schema is intentionally Aurora-compatible.
 
 ### Why pgvector for embeddings (V2; V1 uses sqlite-vec)
 
