@@ -1,8 +1,10 @@
 """Tier 2 Qwen 2.5 VL 7B local provider.
 
-Pinned model: **``qwen2.5vl:7b``** pulled from the Ollama registry (stable
-Q8_0 build — no custom Modelfile needed at 7B, unlike Tier 3's 32B Mungert
-import). Served by a local ``ollama serve`` on ``127.0.0.1:11434``.
+Pinned model: **``qwen2.5vl:7b``** pulled from the Ollama registry. Tier 3
+likewise uses a registry pull (``qwen2.5vl:32b``, Q4_K_M) — the originally
+planned Mungert custom-Modelfile import proved infeasible on the build box
+(see ``tier3_qwen_32b_local`` docstring). Served by a local ``ollama serve``
+on ``127.0.0.1:11434``.
 
 **Device pin:** RTX 4080 (GPU 0). GPU 1 (RTX 4060 Ti) runs Tier 1
 PaddleOCR-VL. The tier-batched eval pattern means Tier 2 and Tier 3 don't
@@ -18,9 +20,18 @@ alias-table post-processor here — extraction is schema-driven, so the same
 provider works for both ``HealthcareIntakeForm`` (CMS-1500) and
 ``BusinessDocumentForm`` (DocILE) with no per-vertical wiring.
 
+**Shared core:** Tier 2 and Tier 3 (``tier3_qwen_32b_local``) are the same
+model family (Qwen 2.5 VL, 7B → 32B). All prompt-building, response-schema
+construction, JSON parsing, and the confidence heuristic live in
+``cascade.providers._qwen_vl`` and are shared verbatim — this module is just
+the 7B constants + a thin Protocol-conforming class + the ``_invoke_model`` /
+``_load_ollama_client`` test seams. Escalation 7B → 32B is "more
+parameters," not "different model."
+
 **Cost:** $0.00/call (local inference).
 
-Four design decisions, locked for V1 (Phase 4 PR (c-V1), 2026-05-16):
+Four design decisions, locked for V1 (Phase 4 PR (c-V1), 2026-05-16;
+implemented in ``_qwen_vl`` from PR (d-V1), 2026-05-16):
 
 1. **Per-field confidence is a deterministic heuristic, not model self-report.**
    The inner type of ``ExtractedField[T]`` decides it statically: a
@@ -44,7 +55,7 @@ Four design decisions, locked for V1 (Phase 4 PR (c-V1), 2026-05-16):
    is handed a JSON schema derived from ``form_cls`` (``format`` accepts a
    plain schema dict on the installed client). This nearly eliminates the
    malformed-JSON failure mode — the single biggest robustness lever for a
-   7B model. ``_parse_response`` still tolerates extra/missing/null keys so
+   7B model. ``parse_response`` still tolerates extra/missing/null keys so
    a non-conforming response degrades to confidently-blank rather than
    crashing the form (same drop-bad-fields discipline as Tier 1).
 
@@ -78,23 +89,33 @@ workflow on the build machine reaches Ollama.
 from __future__ import annotations
 
 import hashlib
-import json
-import re
 import time
-import typing
-from datetime import UTC, date, datetime
-from typing import Any, Literal, get_args, get_origin, get_type_hints
-
-from pydantic import BaseModel, ValidationError
+from typing import Any
 
 from cascade import eval_cache
+from cascade.providers import _qwen_vl
 from cascade.providers._base import ProviderResult, T
-from intake_schemas import (
-    ExtractedField,
-    FieldMeta,
-    FormMetadata,
-    TierId,
+from cascade.providers._qwen_vl import (  # re-exported for the tier's test file
+    CLEAN_VALUE_CONFIDENCE,
+    FORMAT_COERCED_CONFIDENCE,
+    OLLAMA_HOST,
+    OLLAMA_KEEP_ALIVE,
+    OLLAMA_TEMPERATURE,
 )
+from intake_schemas import TierId
+
+__all__ = [
+    "CLEAN_VALUE_CONFIDENCE",
+    "FORMAT_COERCED_CONFIDENCE",
+    "OLLAMA_HOST",
+    "OLLAMA_KEEP_ALIVE",
+    "OLLAMA_TEMPERATURE",
+    "PIPELINE_VERSION",
+    "PROVIDER_NAME",
+    "QWEN_MODEL_TAG",
+    "TIER",
+    "Tier2Qwen7bLocal",
+]
 
 #: Stable provider identifier. Used as the eval-cache subdirectory name
 #: (``tests/fixtures/eval-cache/tier2_qwen_7b_local/<sha>.json``).
@@ -107,393 +128,47 @@ TIER: TierId = 2
 #: Bumping this string is what re-pins the checkpoint.
 QWEN_MODEL_TAG = "qwen2.5vl:7b"
 
-#: Ollama server. The default local endpoint; no cloud surface in V1.
-OLLAMA_HOST = "http://127.0.0.1:11434"
-
-#: Asks Ollama to hold the model resident for an hour so it doesn't unload
-#: between consecutive docs in an eval batch. Accepted verbatim by the
-#: ``ollama`` client's ``keep_alive`` kwarg.
-OLLAMA_KEEP_ALIVE = "1h"
-
-#: Decoding temperature. 0.0 = greedy; extraction is a transcription task,
-#: not a generation task — determinism beats diversity here.
-OLLAMA_TEMPERATURE = 0.0
-
 #: Pipeline version stamped onto stub ``FormMetadata``. Phase 5's orchestrator
 #: overrides this with the live pipeline version; the stub keeps the form
 #: instantiable since FormMetadata.pipeline_version is required.
 PIPELINE_VERSION = f"tier2-qwen2.5-vl-7b@{TIER}"
 
-#: Confidence for a string-like field used verbatim (no coercion). See the
-#: module docstring, decision 1.
-CLEAN_VALUE_CONFIDENCE = 1.0
-
-#: Confidence for a non-string scalar that had to be format-coerced from the
-#: model's string output (date / int / float / bool).
-FORMAT_COERCED_CONFIDENCE = 0.5
-
-#: JSON-Schema ``type`` keyword per Python scalar. Every property is also
-#: union'd with ``"null"`` so the model can confidently decline a field.
-_JSON_SCALAR_TYPE: dict[type, str] = {
-    str: "string",
-    bool: "boolean",
-    int: "integer",
-    float: "number",
-    date: "string",  # ISO 8601 date string; coerced to date by Pydantic.
-}
-
-
-def _strip_annotated(annotation: Any) -> Any:
-    """Return ``X`` from ``Annotated[X, ...]``; passthrough otherwise."""
-    if get_origin(annotation) is typing.Annotated:
-        return get_args(annotation)[0]
-    return annotation
-
-
-def _inner_type(annotation: Any) -> Any:
-    """Extract ``X`` from an ``Annotated[ExtractedField[X], FieldMeta(...)]`` hint.
-
-    ``ExtractedField`` is a Pydantic v2 generic model: ``ExtractedField[str]``
-    is a concrete synthetic subclass, so ``typing.get_args`` returns ``()``
-    and the parametrization lives in ``__pydantic_generic_metadata__``
-    instead. Fall back to ``typing.get_args`` for any non-Pydantic generic.
-    Returns ``None`` if no type argument is recoverable.
-    """
-    base = _strip_annotated(annotation)
-    pgm = getattr(base, "__pydantic_generic_metadata__", None)
-    if pgm and pgm.get("args"):
-        return pgm["args"][0]
-    args = get_args(base)
-    return args[0] if args else None
-
-
-def _scalar_kind(inner: Any) -> Literal["string_like", "coerced"] | None:
-    """Classify a field's inner type for prompting + confidence.
-
-    - ``"string_like"`` → ``str`` or ``Literal[...]`` of strings. Used
-      verbatim; ``confidence=1.0`` when it validates.
-    - ``"coerced"`` → ``bool`` / ``int`` / ``float`` / ``date``. The model
-      emits a string we hand to Pydantic to coerce; ``confidence=0.5``.
-    - ``None`` → not a promptable scalar (``SignatureCapture``,
-      ``list[...]``, nested ``BaseModel``). Left unattempted.
-    """
-    if inner is str:
-        return "string_like"
-    if get_origin(inner) is Literal:
-        return "string_like" if all(isinstance(a, str) for a in get_args(inner)) else None
-    # ``bool`` is a subclass of ``int`` — check it first.
-    if inner is bool or inner is int or inner is float or inner is date:
-        return "coerced"
-    return None
-
-
-def _json_schema_type(inner: Any) -> str:
-    """JSON-Schema scalar ``type`` string for a string-like / coerced inner type."""
-    if get_origin(inner) is Literal:
-        return "string"
-    return _JSON_SCALAR_TYPE.get(inner, "string")
-
-
-def _extractable_fields(form_cls: type[T]) -> dict[str, tuple[Any, FieldMeta]]:
-    """Map ``field_name -> (inner_type, FieldMeta)`` for promptable scalar fields.
-
-    Walks ``form_cls``'s annotations (MRO-resolved so subclass overrides
-    win — same resolution ``get_field_metadata`` uses), keeps only fields
-    whose ``ExtractedField`` inner type is a promptable scalar, and pairs
-    each with its ``FieldMeta`` (for the canonical name + human description
-    the prompt is built from). Insertion order follows declaration order so
-    the prompt + schema are deterministic across runs.
-    """
-    hints = get_type_hints(form_cls, include_extras=True)
-    out: dict[str, tuple[Any, FieldMeta]] = {}
-    for field_name, hint in hints.items():
-        meta = next(
-            (m for m in getattr(hint, "__metadata__", ()) if isinstance(m, FieldMeta)),
-            None,
-        )
-        if meta is None:
-            continue
-        inner = _inner_type(hint)
-        if inner is None or _scalar_kind(inner) is None:
-            continue
-        out[field_name] = (inner, meta)
-    return out
-
-
-def _type_hint_text(inner: Any) -> str:
-    """Human-readable type label for the prompt's field list."""
-    if get_origin(inner) is Literal:
-        return "one of " + " | ".join(repr(a) for a in get_args(inner))
-    return {
-        str: "string",
-        bool: "boolean (true/false)",
-        int: "integer",
-        float: "number",
-        date: "date in ISO 8601 (YYYY-MM-DD)",
-    }.get(inner, "string")
-
-
-def _build_extraction_prompt(form_cls: type[T]) -> str:
-    """Build the text prompt enumerating every promptable field.
-
-    Pure function of ``form_cls`` — no model state, no I/O. Both
-    ``HealthcareIntakeForm`` and ``BusinessDocumentForm`` flow through this
-    unchanged (schema-driven, no per-vertical alias machinery — that's Tier
-    1's concern, not Tier 2's).
-    """
-    fields = _extractable_fields(form_cls)
-    lines = [
-        "You are a precise document-extraction engine. Read the attached "
-        "single-page form image and extract the following fields. Return a "
-        "single JSON object whose keys are EXACTLY the field names listed "
-        "below.",
-        "",
-        "Rules:",
-        "- Transcribe values exactly as printed on the form. Do not infer, "
-        "normalize, or invent values.",
-        "- If a field is not present, not filled in, or not legible, return "
-        "null for that field. Returning null is correct and expected for "
-        "absent fields — do not guess.",
-        "- For date fields, output ISO 8601 (YYYY-MM-DD).",
-        "- Return ONLY the JSON object, no prose, no markdown fences.",
-        "",
-        "Fields:",
-    ]
-    for field_name, (inner, meta) in fields.items():
-        lines.append(f'- "{field_name}" ({_type_hint_text(inner)}): {meta.description}')
-    return "\n".join(lines)
-
-
-def _build_response_schema(form_cls: type[T]) -> dict[str, Any]:
-    """Build the JSON schema handed to Ollama ``chat(format=...)``.
-
-    A flat object: one nullable property per promptable field, all required
-    (so the model emits every key — an explicit ``null`` is the
-    confidently-blank signal), ``additionalProperties: false`` so the model
-    can't wander off-schema.
-    """
-    fields = _extractable_fields(form_cls)
-    properties: dict[str, Any] = {
-        name: {"type": [_json_schema_type(inner), "null"]}
-        for name, (inner, _meta) in fields.items()
-    }
-    return {
-        "type": "object",
-        "properties": properties,
-        "required": list(properties),
-        "additionalProperties": False,
-    }
-
-
-def _extract_json_object(content: str) -> dict[str, Any]:
-    """Parse the model's response text into a dict. Tolerant.
-
-    Schema-constrained decoding makes ``content`` a clean JSON object in the
-    normal case. The fallbacks cover a degraded server / unconstrained
-    response: strip ``json`` markdown fences, then scrape the first
-    balanced ``{...}`` span. Returns ``{}`` if nothing parses — the caller
-    turns that into an all-confidently-blank form rather than crashing.
-    """
-    if not isinstance(content, str) or not content.strip():
-        return {}
-    try:
-        parsed = json.loads(content)
-        return parsed if isinstance(parsed, dict) else {}
-    except json.JSONDecodeError:
-        pass
-
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
-    if fenced:
-        try:
-            parsed = json.loads(fenced.group(1))
-            return parsed if isinstance(parsed, dict) else {}
-        except json.JSONDecodeError:
-            pass
-
-    start = content.find("{")
-    if start < 0:
-        return {}
-    depth = 0
-    for i in range(start, len(content)):
-        if content[i] == "{":
-            depth += 1
-        elif content[i] == "}":
-            depth -= 1
-            if depth == 0:
-                try:
-                    parsed = json.loads(content[start : i + 1])
-                    return parsed if isinstance(parsed, dict) else {}
-                except json.JSONDecodeError:
-                    return {}
-    return {}
-
-
-def _response_content(raw: dict[str, Any]) -> str:
-    """Pull the assistant message text out of an Ollama ``chat`` response dict.
-
-    The cached fixture is ``ChatResponse.model_dump(mode="json")`` — the
-    text lives at ``message.content``. Defensive: a malformed/legacy shape
-    returns ``""`` and the parser produces an all-blank form.
-    """
-    message = raw.get("message")
-    if isinstance(message, dict):
-        content = message.get("content")
-        if isinstance(content, str):
-            return content
-    return ""
-
-
-def _blank_field() -> ExtractedField[Any]:
-    """A confidently-blank field: model attempted it, found nothing usable.
-
-    ``tier_used=2`` with ``value=None`` is the "attempted, blank" signal
-    ``compute_form_confidence`` keys off (vs. ``tier_used=None`` =
-    "never attempted").
-    """
-    return ExtractedField(value=None, confidence=0.0, tier_used=TIER, bounding_box=None)
-
-
-def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
-    """Parse an Ollama response dict into a populated ``form_cls`` instance.
-
-    Pure function — no I/O, no model state. The cached-replay path and the
-    live path both run through this so behavior is identical.
-
-    For every promptable scalar field:
-      - Model returned a usable value → ``ExtractedField`` with the
-        deterministic heuristic confidence (1.0 string-like / 0.5 coerced;
-        see module docstring decision 1) and ``bounding_box=None``.
-      - Model returned null / missing / a value Pydantic rejects → stamped
-        confidently-blank (``tier_used=2``, ``value=None``).
-    Non-scalar fields are left at their default (unattempted,
-    ``tier_used=None``).
-
-    The form is built once with all candidate values; on a
-    ``ValidationError`` the offending fields are demoted to confidently-blank
-    and the form is rebuilt — same drop-rather-than-crash discipline Tier 1
-    uses for column-shift / format mispairs.
-    """
-    extractable = _extractable_fields(form_cls)
-    parsed = _extract_json_object(_response_content(raw))
-
-    overrides: dict[str, ExtractedField[Any]] = {}
-    # Confidence chosen by static inner type so it's reproducible from the
-    # cached fixture alone (no runtime value-comparison heuristics).
-    confidence_by_field: dict[str, float] = {}
-
-    for field_name, (inner, _meta) in extractable.items():
-        value = parsed.get(field_name)
-        if isinstance(value, str):
-            value = value.strip() or None
-        if value is None:
-            overrides[field_name] = _blank_field()
-            continue
-        kind = _scalar_kind(inner)
-        conf = CLEAN_VALUE_CONFIDENCE if kind == "string_like" else FORMAT_COERCED_CONFIDENCE
-        confidence_by_field[field_name] = conf
-        overrides[field_name] = ExtractedField(
-            value=value,
-            confidence=conf,
-            tier_used=TIER,
-            raw_text=str(value),
-            bounding_box=None,
-        )
-
-    try:
-        return form_cls(metadata=_stub_metadata(form_cls), **overrides)
-    except ValidationError as e:
-        bad = {err["loc"][0] for err in e.errors() if err["loc"]}
-        # A value the schema rejected (bad Literal, unparseable date, …) was
-        # still *attempted* — demote to confidently-blank, don't drop to
-        # unattempted. That's the Tier 2 contract (differs from Tier 1).
-        for name in bad:
-            if name in extractable:
-                overrides[name] = _blank_field()
-        try:
-            return form_cls(metadata=_stub_metadata(form_cls), **overrides)
-        except ValidationError:
-            # Pathological: a blank-stamp itself can't validate. Fall back
-            # to an all-blank form so the cascade never crashes on Tier 2.
-            all_blank = {name: _blank_field() for name in extractable}
-            return form_cls(metadata=_stub_metadata(form_cls), **all_blank)
-
-
-def _stub_metadata(form_cls: type) -> FormMetadata:
-    """Placeholder ``FormMetadata`` for a single provider call.
-
-    The provider doesn't know the upstream ``source_document_id``; Phase 5's
-    orchestrator replaces this when assembling the cascade output. The stub
-    just keeps the Pydantic instance valid.
-    """
-    return FormMetadata(
-        form_type=form_cls.__name__,
-        source_document_id="<pending-orchestrator>",
-        extraction_timestamp=datetime.now(UTC),
-        pipeline_version=PIPELINE_VERSION,
-    )
-
 
 def _load_ollama_client() -> Any:
-    """Lazy ``ollama`` import; construct a client pinned to the local host.
+    """Lazy ``ollama`` import pinned to the local host. Memoized by the class.
 
-    Called once per provider instance (memoized in ``Tier2Qwen7bLocal``).
-    Raises ``ImportError`` with an install hint when ``ollama`` is missing —
-    the cached-replay path never reaches this code, so CI doesn't need a
-    running Ollama server.
-
-    Tests stub via ``monkeypatch.setattr`` on this module attribute.
+    Thin wrapper over ``_qwen_vl.load_ollama_client`` so the tier's test file
+    keeps its ``monkeypatch.setattr(tier2_qwen_7b_local, "_load_ollama_client")``
+    seam and the ImportError can point at the Tier 2 setup docs. The
+    cached-replay path never reaches this code, so CI doesn't need a running
+    Ollama server.
     """
     try:
-        from ollama import Client  # type: ignore[import-not-found]
+        return _qwen_vl.load_ollama_client(OLLAMA_HOST)
     except ImportError as e:
         raise ImportError(
             "Tier 2 live inference requires the `ollama` client and a running "
             "`ollama serve`. See docs/local-development.md `Local Tier 2 model "
             "setup (Qwen 2.5 VL 7B)`. Cached-replay tests do not require this."
         ) from e
-    return Client(host=OLLAMA_HOST)
 
 
 def _invoke_model(client: Any, png: bytes, form_cls: type[T]) -> dict[str, Any]:
     """Run one Qwen 2.5 VL 7B chat completion. Tests stub via ``monkeypatch``.
 
-    The image is passed via the message's ``images=[<raw png bytes>]`` key —
-    the ``ollama`` client b64-encodes ``bytes`` itself. This is the *real*
-    Ollama API shape; ``architecture-locked.md`` describes the call
-    conceptually in OpenAI ``content:[{type:image}]`` form, which is NOT how
-    the Python client passes images (verified against the installed client
-    before this was written — same "check the real upstream API" discipline
-    as the Tier 1 PaddleOCR-VL lesson).
-
-    Returns ``ChatResponse.model_dump(mode="json")`` — a fully
-    JSON-serializable dict (no raw ``bytes``: the image is not echoed back in
-    the response) that round-trips through the eval cache and is re-parsed by
-    ``_parse_response`` on a cache hit.
+    Thin wrapper over ``_qwen_vl.invoke_model`` pinning the 7B tag; see that
+    function for the real Ollama API shape (``messages[].images=[png]``,
+    ``format=<schema>``, ``keep_alive``).
     """
-    prompt = _build_extraction_prompt(form_cls)
-    schema = _build_response_schema(form_cls)
-    response = client.chat(
-        model=QWEN_MODEL_TAG,
-        messages=[{"role": "user", "content": prompt, "images": [png]}],
-        format=schema,
-        options={"temperature": OLLAMA_TEMPERATURE},
-        keep_alive=OLLAMA_KEEP_ALIVE,
-    )
-    # ChatResponse is a pydantic model on the modern client; older shapes are
-    # already dicts. Normalize to a JSON-serializable dict either way.
-    if isinstance(response, BaseModel):
-        return response.model_dump(mode="json")
-    if hasattr(response, "model_dump"):
-        return response.model_dump(mode="json")
-    return dict(response)
+    return _qwen_vl.invoke_model(client, png, form_cls, model_tag=QWEN_MODEL_TAG)
 
 
 class Tier2Qwen7bLocal:
     """Conforms to ``cascade.providers._base.CascadeProvider``.
 
     Thin shell: state is just the lazily-constructed Ollama client. All
-    prompt-building and parsing lives in module-level pure functions so the
-    cached-replay path and the live path share one parser.
+    prompt-building and parsing lives in ``cascade.providers._qwen_vl`` so
+    the cached-replay path and the live path share one parser with Tier 3.
     """
 
     name: str = PROVIDER_NAME
@@ -515,7 +190,7 @@ class Tier2Qwen7bLocal:
         for ``sha256(png)``, parse the cached payload and return with
         ``latency_ms=0.0``. Otherwise call live, persist the response, and
         return real telemetry. Control flow is structurally identical to
-        ``Tier1PaddleOcrLocal.extract``.
+        ``Tier1PaddleOcrLocal.extract`` and ``Tier3Qwen32bLocal.extract``.
 
         ``image_sha256`` is recomputed from ``png`` here (not pulled from a
         sidecar) so a caller bug pairing the wrong PNG with a stale hash
@@ -527,7 +202,9 @@ class Tier2Qwen7bLocal:
             cached = eval_cache.load_cached(PROVIDER_NAME, image_sha256)
             if cached is not None:
                 return ProviderResult(
-                    form=_parse_response(cached, form_cls),
+                    form=_qwen_vl.parse_response(
+                        cached, form_cls, tier=TIER, pipeline_version=PIPELINE_VERSION
+                    ),
                     latency_ms=0.0,
                     cost_usd=0.0,
                     raw_response=cached,
@@ -540,7 +217,9 @@ class Tier2Qwen7bLocal:
 
         eval_cache.save_cached(PROVIDER_NAME, image_sha256, raw_response)
         return ProviderResult(
-            form=_parse_response(raw_response, form_cls),
+            form=_qwen_vl.parse_response(
+                raw_response, form_cls, tier=TIER, pipeline_version=PIPELINE_VERSION
+            ),
             latency_ms=latency_ms,
             cost_usd=0.0,
             raw_response=raw_response,

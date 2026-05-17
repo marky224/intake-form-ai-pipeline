@@ -32,13 +32,15 @@ From the repo root with `DOCILE_ACCESS_TOKEN` exported (the `just`
 recipe auto-loads `.env`):
 
 ```bash
-just synthetic-data-docile-build              # full labeled-trainval (~1.6 GB on S3)
+just synthetic-data-docile-build              # full annotated-trainval (~1.1 GB zip)
 just synthetic-data-docile-build --limit 5    # 5-doc smoke
 ```
 
 ## Scope (locked)
 
-- **Splits downloaded:** `labeled-trainval` only (combined train+val zip).
+- **Splits downloaded:** `annotated-trainval` only (combined train+val zip;
+  renamed upstream from `labeled-trainval` post the pinned 2024-05-15 script
+  commit — the old name now 404s `NoSuchKey` with a valid token).
   The `test`/`synthetic`/`unlabeled` archives are explicitly rejected by
   `download.py` per the half-now-half-later corpus-partitioning lock in
   `cost-model.md` — the `test` split is reserved for the post-launch
