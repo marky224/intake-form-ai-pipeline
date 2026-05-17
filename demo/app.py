@@ -108,7 +108,28 @@ def _render_fields(run: DemoRun) -> None:
         }
         for r in run.fields
     ]
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    # Explicit column_config so confidence renders as a labeled 0-1 progress
+    # bar (the bare numeric column collapses to an unreadable sliver under
+    # use_container_width); fixed widths keep the other columns legible too.
+    st.dataframe(
+        rows,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "field": st.column_config.TextColumn("Field", width="medium"),
+            "value": st.column_config.TextColumn("Extracted value", width="large"),
+            "confidence": st.column_config.ProgressColumn(
+                "Confidence",
+                help=f"Tier-2→3 gate is {ESCALATION_GATE:.2f}",
+                format="%.3f",
+                min_value=0.0,
+                max_value=1.0,
+                width="medium",
+            ),
+            "tier": st.column_config.TextColumn("Tier", width="small"),
+            "status": st.column_config.TextColumn("Status", width="small"),
+        },
+    )
 
 
 def _render_review_queue(run: DemoRun) -> None:
