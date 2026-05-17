@@ -24,12 +24,12 @@ Stage 2 is the fallback for documents that score below N at Stage 1 (~20% of inp
 
 ### V1 persistence
 
-SQLite at `data/v1.db`, single file, gitignored. Schema (subject to change at Phase 5-V1 entry):
+SQLite at `data/v1.db`, single file, gitignored. Schema (locked at Phase 5-V1 entry, `cascade/store.py`). Normalized rather than a single flat `eval_results` table: the orchestrator writes only what it can actually produce at run time, and Phase 6 / Phase 8 join in by `doc_id` instead of sharing one table's write path. `ground_truth` and `batch_id` are deliberately absent from the orchestrator's write surface — they are Phase 6 eval-harness concepts the orchestrator has no value for at run time; the eval harness joins truth in externally by `doc_id`.
 
-- `eval_results` — one row per (doc_id, batch_id, tier). Columns: extracted_value, ground_truth, tier_used, confidence, escalation_history (JSON), latency_ms.
-- `corrections` — one row per reviewer correction. Columns: doc_id, field_name, original_value, corrected_value, tier_that_produced_original, session_id, created_at.
-- `alias_table` — current alias seed, queryable by `(canonical_name, vertical)`. Reloaded from `alias_table_seed.json` on orchestrator startup.
-- `embeddings` — ColQwen 2.5 multivector embeddings via `sqlite-vec` extension. One row per indexed document, vector column stored as BLOB. Loaded at startup, queried by the correction feedback loop in Phase 8-V1.
+- `runs` — one row per document processed. Columns: doc_id (PK), vertical, router_stage, router_score, final_tier, final_confidence, status (`extracted` | `review_queue`), total_latency_ms, created_at.
+- `field_attempts` — one row per `(doc_id, field_name, tier)`. Columns: value, confidence, escalation_reason, latency_ms. A faithful persistent mirror of the in-memory `ExtractedField.escalation_history` trail — the granularity Phase 6's F1-over-time and Phase 8's correction loop both query.
+- `review_queue` — one row per Tier-3-exhausted document. Columns: doc_id (PK), error_history (JSON — full per-tier failure trail), created_at. No cloud Sonnet above Tier 3 in V1.
+- `corrections` / `embeddings` — **reserved for Phase 8** (reviewer corrections + ColQwen 2.5 vectors). Created by `init_db` so Phase 8 only adds writes, never a schema migration. `corrections` columns: doc_id, field_name, original_value, corrected_value, tier_that_produced_original, session_id, created_at. `embeddings.vector` is a plain `BLOB` placeholder; Phase 8 swaps it for a `sqlite-vec` `vec0` virtual table. The alias seed stays a file (`alias_table_seed.json`) loaded into the router's distinctive vocabulary at startup — not a DB table in V1.
 
 V2 migrates by replaying SQLite contents into the Aurora `staging` schema, then promoting to `demo` / `eval` as appropriate. The V1 schema is intentionally Aurora-compatible — type names map cleanly.
 
