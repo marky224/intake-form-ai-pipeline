@@ -42,11 +42,13 @@ Estimated work to extend: ~10 hours (~5 hours adding Spanish aliases for existin
 
 ## Bedrock model import for QLoRA-trained adapters
 
-Phase 9 of the portfolio build is a QLoRA fine-tuning experiment on Llama 3.1 13B over accumulated corrections, run on the local 32 GB combined VRAM during fine-tuning sessions. The resulting adapter is a portfolio artifact demonstrating the full feedback loop, not a productized model.
+Phase 9 of the portfolio build is a QLoRA fine-tuning experiment over accumulated corrections, run on the local GPU. Two corrections to the original plan, made at Phase 9 entry: (1) the base model is **Qwen2.5-7B-Instruct**, not "Llama 3.1 13B" — Llama 3.1 ships only 8B/70B/405B (there is no 13B), and Qwen2.5 keeps model-family coherence with the Qwen 2.5 VL cascade tiers; 4-bit QLoRA on a 7B fits a single 15.6 GB GPU for the short single-field sequences, so combined VRAM is not the constraint at this size. (2) The fine-tuned model is a **text post-corrector** applied *after* the cascade (the `corrections` corpus is text — `field, original, corrected` — with no image, so a text LLM cannot replace a *vision* Tier 2/3); it is scored through the existing harness metric and never alters the frozen cascade, replay-cache fixtures, or the two-stage F1 artifact. The resulting adapter is a portfolio artifact demonstrating the full feedback loop, not a productized model.
+
+The committed corpus is 6 CMS-1500, all `test` split — the manifest is the leakage guard, so the experiment honestly yields **0 non-leaky training pairs** at V1 committed scale and the eval reports an **identity baseline (delta 0.000)**. That is the correct, publishable result: the reproducible pipeline + harness ship, and a real F1 delta requires the deferred local 500-doc corpus populating `train` (a `FINETUNE_LIVE` run on the GPU box). A "QLoRA on a small portfolio-scale correction corpus does not move the needle" finding is itself a credible result, not a failure.
 
 Open question: in a production deployment, would the trained adapter be imported into Bedrock via Custom Model Import, or kept as a local-only inference artifact? Custom Model Import has cost implications (storage + per-token pricing on imported models) that may or may not justify the operational simplicity over self-hosted inference.
 
-Defer until Phase 9 outcomes are measured. If the adapter produces meaningful F1 gains on real corrections, Bedrock import becomes a real consideration. If the adapter's gains are marginal (likely, given the small correction corpus a portfolio demo can accumulate), document as future work and don't pursue.
+Defer until Phase 9 outcomes are measured (V2-gated). The committed identity-baseline result already indicates the gains are marginal at portfolio scale — consistent with the original "likely marginal, given the small correction corpus a portfolio demo can accumulate" expectation — so Bedrock import stays documented-as-future-work and is not pursued in V1.
 
 ## Snowflake destination for production data warehouse
 
