@@ -166,6 +166,18 @@ correct:
 embed:
     EVAL_LIVE=true uv run python -m rag embed
 
+# Phase 9 QLoRA experiment (text post-corrector). data + eval are cached/$0/
+# no-GPU; train is GPU-box-only (peft/bitsandbytes/trl + a CUDA device).
+finetune-data:
+    uv run python -m finetune data
+
+finetune-eval:
+    uv run python -m finetune eval
+
+# GPU box only. FINETUNE_LIVE gates the heavy stack (mirrors eval-live).
+finetune-train:
+    FINETUNE_LIVE=true uv run python -m finetune train
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
