@@ -63,6 +63,12 @@ dependencies = [
 # (the Tier 2 schema-constrained decoding strategy) landed in the 0.4 line.
 # CI exercises Tier 2 via cached eval-fixtures only; the live Ollama call is
 # gated behind EVAL_LIVE + @pytest.mark.slow and never runs in CI.
+#
+# streamlit is the Phase 7-V1 local demo's UI (`just demo`). The demo's
+# cascade-run + two-stage-F1 logic lives in `demo/data.py` and is unit-tested
+# WITHOUT importing streamlit (CI never imports streamlit); `demo/app.py` is
+# the thin Streamlit view layer, run only locally on `openclaw-pc`. The demo
+# drives the cascade through the default cached-replay path ($0, no GPU).
 [dependency-groups]
 dev = [
     "pytest>=8.0",
@@ -76,6 +82,7 @@ dev = [
     "pypdfium2>=4.30",
     "pillow>=10.0",
     "ollama>=0.4",
+    "streamlit>=1.40",
 ]
 
 # Treat the repo as an application, not a library: uv won't try to build/install
