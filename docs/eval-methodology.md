@@ -32,7 +32,7 @@ Latency is wall-clock time from cascade entry to last-tier response, recorded pe
 
 ## Cached fixtures vs live mode
 
-The eval harness defaults to cached fixtures. `evals/fixtures/` contains versioned per-tier responses for every document in the test partition. `evals/fixtures_manifest.json` records the version, the date the fixture was generated, and the model versions used for each provider call.
+The eval harness defaults to cached fixtures. Rather than a parallel fixture store, it reuses the cascade's existing per-tier replay cache at `tests/fixtures/eval-cache/<provider>/<image_sha256>.json` (already populated for every committed document across all tiers + the router). `evals/fixtures_manifest.json` is a thin manifest pinning the alias-seed version, the per-provider model identities, and the document id list to that cache — it deliberately carries no per-run timestamp (the replay fixtures were generated in Phase 4, not per eval run, and it is a committed file).
 
 This default exists for two different reasons in V1 vs V2. In V2, a single full eval batch through the live cascade costs roughly $5–10 at current pricing (500–1000 docs at the ~$9.50/1K cascade rate; local-tier inference is essentially free, so the V2 live spend is the cloud-tier portion only) — fine for explicit Phase 6 fixture-generation runs, ruinous if it accumulates accidentally across every CI run. In V1 the spend is $0 across the board, but live mode still drives the Ollama models through full inference per document — slow wall-clock time (~30 s/doc for a deep Tier 3 escalation) compared to cached replay (~1 ms/doc). Cached mode reads fixtures from disk at full speed and produces deterministic F1 numbers; live mode produces slightly non-deterministic F1 because LLM responses have noise.
 
@@ -112,7 +112,7 @@ Three alternatives were considered and rejected.
 
 ### Reproducibility
 
-The partition is deterministic given a frozen seed. `alias_table_seed.json`'s top-level `version` field (currently `"1.0.0"`) is recorded in every entry of `evals/fixtures_manifest.json`. F1-over-time runs against a given fixture set are directly comparable only to runs against the same seed version — comparing across seed versions requires regenerating the chart from scratch.
+The partition is deterministic given a frozen seed. `alias_table_seed.json`'s top-level `version` field (currently `"1.0.0"`) is recorded in `evals/fixtures_manifest.json` and in `evals/manifest.json` (the partition-validation CI test asserts the two agree, so a seed bump that isn't propagated fails the build). F1-over-time runs against a given fixture set are directly comparable only to runs against the same seed version — comparing across seed versions requires regenerating the chart from scratch.
 
 When seed v2.0.0 ships (e.g., from Phase 8 correction feedback adding new aliases, or from a deliberate reordering of existing aliases in light of new evidence), the F1-over-time chart can be regenerated against the new seed for that version's self-improvement curve. The v1.0.0 chart is not backward-extended. The README documents whichever version produced the live chart.
 
