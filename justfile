@@ -131,6 +131,22 @@ synthetic-data-docile-build limit="0":
         --bucket intake-form-ai-pipeline-documents \
         --prefix synthetic/business/docile
 
+# Phase 6 eval harness: progressive-batch sweep over the test split,
+# cached replay ($0, deterministic), persists to data/v1.db, regenerates
+# docs/assets/f1-over-time.svg + evals/fixtures_manifest.json.
+eval:
+    uv run python -m evals run
+
+# Same sweep against the live on-GPU models (Ollama + PaddleOCR-VL must be
+# up on this box). Regenerates fixtures from fresh inference.
+eval-live:
+    EVAL_LIVE=true uv run python -m evals run
+
+# Regenerate only the committed F1-over-time SVG + fixtures manifest from a
+# fresh cached Tier-1 sweep (run this if the chart drift guard fails CI).
+chart:
+    uv run python -m evals chart
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
