@@ -592,6 +592,7 @@ name = "intake-form-ai-pipeline"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "numpy" },
     { name = "pydantic" },
 ]
 
@@ -612,7 +613,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pydantic", specifier = ">=2.6" }]
+requires-dist = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pydantic", specifier = ">=2.6" },
+]
 
 [package.metadata.requires-dev]
 dev = [

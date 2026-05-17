@@ -116,11 +116,21 @@ The partition is deterministic given a frozen seed. `alias_table_seed.json`'s to
 
 When seed v2.0.0 ships (e.g., from Phase 8 correction feedback adding new aliases, or from a deliberate reordering of existing aliases in light of new evidence), the F1-over-time chart can be regenerated against the new seed for that version's self-improvement curve. The v1.0.0 chart is not backward-extended. The README documents whichever version produced the live chart.
 
-### Phase 8 implication
+### Phase 8 implication (shipped)
 
-The correction feedback loop in Phase 8 will introduce new aliases from reviewer corrections. These aliases are appended to the *end* of the relevant record's `aliases` list per the convention documented in `build_alias_seed.py`. They represent the latest-discovered variants and naturally belong in the highest-numbered batches. This preserves the historical batch shape: aliases that existed in seed v1.0.0 stay in their original positions, and the new ones extend the curve at the high end.
+The Phase 8 correction feedback loop introduces new aliases from reviewer corrections. As shipped, those aliases are **not** written into `alias_table_seed.json` — the seed is frozen at v1.0.0 (it is what the F1-over-time chart is plotted from), and an in-place edit would silently alter the chart. Instead a reviewer correction appends the missed phrasing to a gitignored runtime overlay (`data/corrections_aliases.json`, same runtime-state convention as `data/v1.db`). The two alias consumers — the Tier 1 layout-to-fields post-processor and the Stage 1 router vocabulary — union the overlay on top of the seed at load time, so live corrections take effect immediately for subsequent extractions.
 
-If a Phase 8 correction reveals that a specific variant is significantly more common than originally believed and should be promoted to an earlier position, that is a v2.0.0 seed bump rather than an in-place edit to v1.0.0. The version bump is the explicit signal to regenerate the F1-over-time chart from scratch.
+The progressive-partition sweep explicitly **suppresses** the overlay (`rag.aliases.suppress_overlay`, entered by `evals.alias_partition.active_alias_batch`): the F1-over-time chart is the *offline analogue* of the loop and must reflect the v1.0.0 seed alone, so runtime corrections never leak into it. The live loop and the offline analogue therefore share one mechanism (alias growth → Tier 1 + router) while the measured artifact stays honest — this is the "seeded vs. live, identical mechanism" claim made concrete in code.
+
+A genuine reseed — promoting a variant to an earlier position, or folding accumulated overlay corrections into the canonical seed — remains a deliberate **v2.0.0 seed bump**, not an in-place edit to v1.0.0, and the version bump is still the explicit signal to regenerate the chart from scratch (per the `build_alias_seed.py` position convention).
+
+### Phase 8 storage + scope deviations (recorded honestly)
+
+Two deliberate deviations from the originally-locked Phase 8 design, documented rather than silently followed:
+
+1. **Embedding storage.** `architecture-locked.md` named `sqlite-vec`. ColQwen 2.5 is a *late-interaction multivector* retriever (one matrix of per-patch token vectors per document, scored by ColBERT MaxSim); `sqlite-vec`'s `vec0` is single-vector KNN and cannot express late interaction. Honoring the literal lock would force a lossy mean-pool that defeats the point of choosing a late-interaction model, while adding a dependency that buys nothing at the V1 corpus scale (6–500 documents) where the exact NumPy MaxSim scan is microseconds. V1 instead packs the multivector into the **reserved `embeddings.vector` BLOB column** (Phase 5 reserved it for exactly this — so Phase 8 is reads/writes, **no schema migration**) and ranks with brute-force MaxSim. V2's pgvector path is unaffected.
+
+2. **Retrieval scope.** The README describes the production mechanism in which the retrieved corrected document is injected as a few-shot example into the Tier 2 + Tier 3 prompts. V1 builds and *surfaces* the late-interaction retrieval (the demo shows each parked document's nearest corrected neighbors) but does **not** wire that injection into the cascade providers: changing the providers' prompts would invalidate the committed replay-cache fixtures and the frozen two-stage F1 artifact, which Phase 8 must leave untouched. The alias-overlay half of the loop is the part that genuinely affects V1 extraction; the few-shot-injection half is V2's deployed pipeline.
 
 ## Operational notes
 

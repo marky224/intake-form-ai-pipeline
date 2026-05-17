@@ -153,6 +153,19 @@ chart:
 demo:
     uv run streamlit run demo/app.py
 
+# Phase 8 (V1) correction-feedback loop: seeded-reviewer replay over the
+# parked CMS-1500 (cached/$0, no GPU). Logs corrections, learns new alias
+# phrasings into a throwaway overlay, re-embeds (no-op without ColQwen
+# fixtures). Never touches data/v1.db or data/corrections_aliases.json.
+correct:
+    uv run python -m rag correct
+
+# Regenerate the committed ColQwen 2.5 .npy embedding fixtures from live
+# inference (GPU box only — colpali-engine + a CUDA device required).
+# Mirrors `eval-live`: EVAL_LIVE bypasses the cache and rewrites fixtures.
+embed:
+    EVAL_LIVE=true uv run python -m rag embed
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform

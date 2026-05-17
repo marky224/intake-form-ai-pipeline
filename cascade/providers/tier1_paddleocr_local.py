@@ -129,8 +129,15 @@ def _load_alias_table_raw() -> list[dict[str, Any]]:
     Cached for the lifetime of the process — the seed file is checked in
     and immutable at runtime. Tests that need a different seed
     ``monkeypatch`` ``ALIAS_TABLE_PATH`` and call ``_load_alias_table_raw.cache_clear()``.
+
+    The live correction overlay (``rag.aliases``) is unioned on top of the
+    frozen seed. It is empty during the progressive-partition sweep
+    (suppressed) so the portfolio F1 chart only ever reflects the seed.
     """
-    return json.loads(ALIAS_TABLE_PATH.read_text(encoding="utf-8"))["fields"]
+    from rag.aliases import overlay_records
+
+    seed_fields = json.loads(ALIAS_TABLE_PATH.read_text(encoding="utf-8"))["fields"]
+    return seed_fields + overlay_records()
 
 
 def _alias_map_for_form(form_cls: type[T]) -> dict[str, list[str]]:

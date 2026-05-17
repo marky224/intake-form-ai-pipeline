@@ -44,6 +44,7 @@ from typing import Any
 
 from cascade import router
 from cascade.providers import tier1_paddleocr_local as tier1_mod
+from rag.aliases import suppress_overlay
 
 #: The canonical, full seed. Repo root next to this package.
 ALIAS_SEED_PATH = Path(__file__).resolve().parent.parent / "alias_table_seed.json"
@@ -111,8 +112,14 @@ def active_alias_batch(
             json.dump(partitioned, fh)
         router.ALIAS_TABLE_PATH = tmp_path
         tier1_mod.ALIAS_TABLE_PATH = tmp_path
-        _clear_caches()
-        yield batch_n
+        # Suppress the live correction overlay for the whole block: the
+        # frozen F1 chart is the offline analogue of the loop and must
+        # reflect the v1.0.0 seed alone. Suppression lifts before the
+        # finally's cache clear so post-sweep extraction sees the overlay
+        # again.
+        with suppress_overlay():
+            _clear_caches()
+            yield batch_n
     finally:
         router.ALIAS_TABLE_PATH = orig_router
         tier1_mod.ALIAS_TABLE_PATH = orig_tier1

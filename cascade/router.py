@@ -124,7 +124,13 @@ def build_distinctive_vocabulary() -> dict[str, float]:
     startup, reused across documents" behavior; tests that monkeypatch
     ``ALIAS_TABLE_PATH`` call ``build_distinctive_vocabulary.cache_clear()``.
     """
+    # Seed (frozen v1.0.0) + the live correction overlay. The overlay is
+    # empty during the progressive-partition sweep (suppressed) so the
+    # frozen F1 chart never sees runtime corrections — see rag.aliases.
+    from rag.aliases import overlay_records
+
     fields = json.loads(ALIAS_TABLE_PATH.read_text(encoding="utf-8"))["fields"]
+    fields = fields + overlay_records()
 
     excluded: set[str] = set()
     healthcare_counts: Counter[str] = Counter()
