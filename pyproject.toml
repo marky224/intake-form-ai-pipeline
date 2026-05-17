@@ -20,6 +20,13 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.6",
+    # numpy backs the Phase 8 RAG layer: multivector embedding (de)serialization
+    # in rag/store.py and the brute-force late-interaction MaxSim in
+    # rag/retrieve.py — both on the default cached/$0 path, so numpy must be a
+    # real (not lazy) runtime dep that `uv sync --frozen` installs in CI. The
+    # heavy retrieval model (ColQwen via colpali-engine) stays undeclared +
+    # lazy-imported like paddlepaddle-gpu — only the small array math is here.
+    "numpy>=1.26",
 ]
 
 # Tier 1 (Phase 4 PR (a+b)) needs `paddlepaddle-gpu` + `paddleocr` for live

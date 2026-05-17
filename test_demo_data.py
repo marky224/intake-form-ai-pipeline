@@ -14,15 +14,20 @@ import sys
 from cascade.orchestrator import RunRecord
 from demo.data import (
     ESCALATION_GATE,
+    CorrectionOutcome,
+    CorrectionReplay,
     DemoDoc,
     DemoRun,
     FieldRow,
     TwoStageF1,
     f1_chart_svg,
     list_demo_docs,
+    replay_review_queue_corrections,
     run_document,
+    submit_correction,
     two_stage_f1,
 )
+from rag import aliases as rag_aliases
 
 
 def test_no_streamlit_dependency_in_data_layer() -> None:
@@ -107,3 +112,56 @@ def test_f1_chart_svg_is_the_committed_artifact() -> None:
     svg = f1_chart_svg()
     assert svg.lstrip().startswith("<svg")
     assert "F1 over progressive alias-table batches" in svg
+
+
+# ---- Phase 8: correction feedback loop ----------------------------------
+
+
+def test_replay_runs_cached_and_logs_corrections() -> None:
+    """The seeded-reviewer replay runs end-to-end ($0, cached) and logs at
+    least one correction — Phase 5 guarantees a coerced-scalar doc parks."""
+    rp = replay_review_queue_corrections()
+    assert isinstance(rp, CorrectionReplay)
+    assert rp.docs, "Phase 5 reality: at least one CMS-1500 parks for review"
+    assert rp.corrections_applied >= 1
+    for d in rp.docs:
+        assert d.in_review_queue
+        assert all(isinstance(c, CorrectionOutcome) for c in d.corrections)
+    # No GPU / no ColQwen fixtures in CI → embedding refresh degrades to 0,
+    # it must not raise.
+    assert rp.embeddings_refreshed == 0
+    assert rp.aliases_learned >= 0
+
+
+def test_replay_never_touches_persistent_state(tmp_path, monkeypatch) -> None:
+    """The demo must not write data/v1.db or the real alias overlay."""
+    sentinel = tmp_path / "must-not-exist.json"
+    monkeypatch.setattr(rag_aliases, "OVERLAY_PATH", sentinel)
+    replay_review_queue_corrections()
+    assert not sentinel.exists()
+
+
+def test_submit_correction_single_field() -> None:
+    parked = next(
+        (
+            run_document(d.doc_id)
+            for d in list_demo_docs()
+            if run_document(d.doc_id).in_review_queue
+        ),
+        None,
+    )
+    assert parked is not None
+    field = parked.review_drivers[0]
+    out = submit_correction(parked.record.doc_id, field, "CORRECTED", label_phrasing=None)
+    assert isinstance(out, CorrectionOutcome)
+    assert out.field_name == field
+    assert out.corrected_value == "CORRECTED"
+
+
+def test_submit_correction_unknown_doc_raises() -> None:
+    try:
+        submit_correction("nope", "first_name", "x")
+    except KeyError:
+        pass
+    else:  # pragma: no cover
+        raise AssertionError("expected KeyError for an uncommitted doc_id")

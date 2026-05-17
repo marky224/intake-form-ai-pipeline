@@ -39,11 +39,14 @@ import streamlit as st  # noqa: E402
 from demo.data import (  # noqa: E402
     ESCALATION_GATE,
     GATE_TIER1_TO_TIER2,
+    CorrectionReplay,
     DemoRun,
     TwoStageF1,
     f1_chart_svg,
     list_demo_docs,
+    replay_review_queue_corrections,
     run_document,
+    submit_correction,
     two_stage_f1,
 )
 
@@ -66,6 +69,11 @@ def _two_stage() -> TwoStageF1:
 @st.cache_data
 def _chart_svg() -> str:
     return f1_chart_svg()
+
+
+@st.cache_resource(show_spinner="Replaying the review queue (cached)…")
+def _replay() -> CorrectionReplay:
+    return replay_review_queue_corrections()
 
 
 def _render_run_summary(run: DemoRun) -> None:
@@ -156,6 +164,80 @@ def _render_review_queue(run: DemoRun) -> None:
             st.json(run.record.error_history)
 
 
+def _render_correction_loop(run: DemoRun) -> None:
+    st.subheader("Phase 8 — reviewer correction feedback loop")
+    st.markdown(
+        "A correction on a parked field does three things: it is logged to "
+        "the `corrections` table, the on-form label the cascade missed is "
+        "appended to a **live alias overlay** (the seed v1.0.0 + F1 chart "
+        "stay frozen — this is the runtime extension, the *same* alias path "
+        "the progressive-partition sweep simulates offline), and the "
+        "document is re-embedded into the ColQwen retrieval corpus. "
+        "Everything here runs into a throwaway DB + overlay — the demo never "
+        "mutates persistent state."
+    )
+
+    if run.in_review_queue and run.review_drivers:
+        with st.form("submit_correction"):
+            st.markdown("**Submit one correction** (interactive, this parked document)")
+            field = st.selectbox("Field to correct", options=run.review_drivers)
+            corrected = st.text_input("Corrected value")
+            label = st.text_input(
+                "On-form label the cascade missed (optional)",
+                help="Supplying the printed label closes the alias half of "
+                "the loop — it is learned only if not already recognized.",
+            )
+            if st.form_submit_button("Submit correction") and corrected.strip():
+                outcome = submit_correction(
+                    run.record.doc_id, field, corrected.strip(), label.strip() or None
+                )
+                st.success(
+                    f"Logged correction #{outcome.correction_id} for "
+                    f"`{outcome.field_name}`: {outcome.original_value!r} → "
+                    f"{outcome.corrected_value!r}."
+                )
+                if outcome.alias_learned:
+                    st.info(f"New alias learned: **{outcome.learned_alias}**")
+                elif label.strip():
+                    st.caption(
+                        "That phrasing was already a recognized alias — nothing "
+                        "added (the loop never fabricates a phantom alias)."
+                    )
+
+    st.markdown("**Or replay the whole review queue** (seeded-reviewer, cached/$0)")
+    rp = _replay()
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Parked docs", len(rp.docs))
+    c2.metric("Corrections logged", rp.corrections_applied)
+    c3.metric("New aliases learned", rp.aliases_learned)
+    c4.metric(
+        "Embeddings refreshed",
+        rp.embeddings_refreshed,
+        help="0 without ColQwen .npy fixtures — CI/no-GPU degrades cleanly.",
+    )
+    for d in rp.docs:
+        with st.expander(f"{d.label} — {len(d.corrections)} correction(s)"):
+            st.dataframe(
+                [
+                    {
+                        "field": c.field_name,
+                        "original": c.original_value or "—",
+                        "corrected": c.corrected_value,
+                        "tier": c.tier_that_produced_original or "—",
+                        "alias learned": "✓" if c.alias_learned else "",
+                    }
+                    for c in d.corrections
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+            if d.neighbors:
+                st.caption(
+                    "Nearest corrected documents (ColQwen MaxSim): "
+                    + ", ".join(f"`{n.doc_id[:8]}` ({n.score:.2f})" for n in d.neighbors)
+                )
+
+
 def _render_two_stage(ts: TwoStageF1) -> None:
     st.subheader("F1 over time — the two-stage story")
     st.markdown(
@@ -231,6 +313,8 @@ def main() -> None:
 
     _render_fields(run)
     _render_review_queue(run)
+    st.divider()
+    _render_correction_loop(run)
     st.divider()
     _render_two_stage(_two_stage())
 
