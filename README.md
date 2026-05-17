@@ -152,9 +152,9 @@ The vocabulary list seeds from `alias_table_seed.json` — terms that only appea
 
 ### Why cached fixtures by default, opt-in live mode for eval
 
-The eval harness defaults to cached fixtures: per-tier, per-document responses captured once and replayed on subsequent runs. Live mode (`EVAL_LIVE=true`) hits the actual providers — which in V1 means running the local Ollama models against the eval set (slow but free), and in V2 means paid cloud calls (Textract + Bedrock). Default-cached saves wall-clock time in V1 and build-budget dollars in V2; the opt-in switch keeps the live path tested.
+The eval harness defaults to cached fixtures: the cascade's existing per-tier replay cache at `tests/fixtures/eval-cache/`, captured once and replayed on subsequent runs (no parallel fixture store). Live mode (`EVAL_LIVE=true`) hits the actual providers — which in V1 means running the local Ollama models against the eval set (slow but free), and in V2 means paid cloud calls (Textract + Bedrock). Default-cached saves wall-clock time in V1 and build-budget dollars in V2; the opt-in switch keeps the live path tested.
 
-Fixtures are versioned per tier and per document, with `evals/fixtures_manifest.json` recording the model versions used. When a provider's model version changes upstream — a new Ollama model build in V1, or an AWS-managed model upgrade in V2 — the manifest mismatch surfaces in CI and a refresh is triggered explicitly.
+`evals/fixtures_manifest.json` is a thin manifest pinning the alias-seed version, the per-provider model identities, and the document id list to that cache. The committed F1-over-time SVG has a CI drift guard: it must equal the chart re-rendered from a fresh cached Tier-1 sweep, so a stale chart fails the build and `just chart` regenerates it.
 
 This separates two questions that often get conflated. "Does the eval logic work?" is answered by cached fixtures with no I/O cost. "Does the cascade still produce the same outputs against current provider versions?" is answered by `EVAL_LIVE=true` runs gated behind the env var. Both questions matter; running them together every time is wasteful.
 
