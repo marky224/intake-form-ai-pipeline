@@ -24,7 +24,7 @@ A Phase 6 finding worth stating plainly: **end-to-end cascade F1 is invariant to
 
 ## Demo
 
-**V1 (active).** The Phase 7-V1 demo is a local Streamlit/Gradio app run via `just demo` on the build machine. The cascade runs end-to-end against fixture documents, showing per-tier escalations, per-field confidence, and the F1-over-time chart. A short Loom walkthrough lands at Phase 10. No deployed URL in V1.
+**V1 (active).** The Phase 7-V1 demo is a local Streamlit app run via `just demo` on the build machine. The cascade runs end-to-end against the committed CMS-1500 fixtures (cached replay — $0, no GPU), showing per-tier escalations, per-field confidence, the human-in-the-loop review queue, and the two-stage F1-over-time chart. See "[V1 cascade demo](#v1-cascade-demo)" below for the screenshot and the honest two-stage / review-queue framing. A short Loom walkthrough lands at Phase 10. No deployed URL in V1.
 
 **V2 (deferred).** The deployed demo at `ai-intake.markandrewmarquez.com` is V2 work. The architectural target is unchanged from the pre-pivot plan: a CloudFront-fronted landing bucket with OAC, AWS WAF v2 (per-IP rate limit + UA block list + three AWS-managed rule groups), the AWS-managed `SecurityHeadersPolicy` for HSTS / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` / `X-XSS-Protection` on every response, and v2 CloudWatch Logs Delivery for access logs landing in S3 for Athena querying. A wake-on-request flow gives Aurora Serverless v2 (~30-90 s cold start) cover with a project pitch and live F1-over-time chart, then auto-redirects to a React review UI with three pre-loaded documents. Live cost telemetry on every page — most V2 sessions cost less than $0.05. The cloud edge is fully described in `docs/architecture-deep-dive.md`; the deployment lands when V2 begins.
 
@@ -224,7 +224,22 @@ just synthetic-data-docile-build 5 # 5-doc DocILE smoke (V1 follow-up: same loca
 
 The schema layer (`intake_schemas.py`, `RATIONALE.md`, `alias_table_seed.json`), the Synthea + Playwright rendering pipeline (`synthetic_data/synthea/`, `synthetic_data/render/`), and the DocILE ingestion module (`synthetic_data/docile/`) are all live. CI runs `Lint (ruff + black)` + `Test (pytest)` + `Secret scan (gitleaks)` + `IaC scan (checkov)` on every PR.
 
-### V1 cascade demo (lands Phase 7-V1)
+### V1 cascade demo
+
+The Phase 7-V1 demo is a local **Streamlit** app. It runs the real three-tier cascade on the six committed CMS-1500 fixtures through the cached-replay path — **$0, deterministic, nothing on the GPU** (no Ollama, no PaddleOCR process needed for the default path):
+
+```bash
+just demo          # Streamlit app on localhost:8501 — cached replay, $0
+```
+
+![V1 local demo](docs/assets/demo-screenshot.png)
+
+The app surfaces, per document: the rendered CMS-1500, the routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table (fields below the locked 0.80 gate highlighted), the human-in-the-loop **review queue** panel, and the **F1-over-time** chart. Two findings are presented honestly rather than smoothed over:
+
+- **The F1-over-time chart is two-stage.** The headline curve is *Tier-1-stage* F1 — it climbs from ≈0.22 to ≈0.32 as the progressive alias table fills in known phrasings (the self-improvement signal). End-to-end *cascade* F1 is shown alongside it, **flat at ≈0.78** — that is the *robustness* stat (strong Tier 2/3 escalation already compensates for what the alias table later learns), not a climbing curve in disguise. `docs/eval-methodology.md` "Two-stage measurement" has the full framing.
+- **The review queue is populated by design.** The locked Tier-2/3 confidence heuristic scores a coerced date/int/float/bool field at 0.5, under the 0.80 gate, so any CMS-1500 with such a field necessarily reaches a human after Tier 3. The demo presents this as the intended human-in-the-loop surface (Phase 8 wires reviewer corrections back into the alias table), not a failure to hide.
+
+To drive the **live local models** instead of cached replay, pull the model weights and prefix `EVAL_LIVE=true`:
 
 ```bash
 # Tier 3 model (registry Qwen 2.5 VL 32B, Q4_K_M ~21 GB — the locked V1
@@ -241,12 +256,10 @@ ollama pull qwen2.5vl:7b
 # install (not via uv sync; PaddlePaddle 3.x isn't on PyPI).
 
 cp .env.example .env
-just demo          # lands Phase 7-V1 — runs cascade against fixture documents
+EVAL_LIVE=true just demo   # same app, live on-GPU inference
 ```
 
-Once Phase 7-V1 lands, `just demo` runs the cascade against fixture documents using cached responses (or live local inference when `EVAL_LIVE=true` is set). No cloud calls, no AWS credentials needed in V1. The default lock for the Phase 7-V1 demo shape is a Streamlit/Gradio app; alternatives (CLI + screenshot artifacts; no demo, eval-report only) are decided at Phase 7-V1 entry.
-
-The quickstart pulls the registry **`qwen2.5vl:32b` (Q4_K_M, ~21 GB)** — the locked V1 Tier 3 default, used for both demo and fixture generation. The higher-precision Mungert Q8_0/Q6_K import the architecture originally specced proved infeasible on consumer VRAM (VRAM overflow / an open llama.cpp M-RoPE limitation); see `docs/local-development.md` "Why registry Q4_K_M" for the full empirical trade-off and the measured F1.
+No cloud calls, no AWS credentials in V1 either way. The registry **`qwen2.5vl:32b` (Q4_K_M, ~21 GB)** is the locked V1 Tier 3 default, used for both demo and fixture generation; the higher-precision Mungert Q8_0/Q6_K import the architecture originally specced proved infeasible on consumer VRAM (VRAM overflow / an open llama.cpp M-RoPE limitation) — see `docs/local-development.md` "Why registry Q4_K_M" for the full empirical trade-off and the measured F1.
 
 ### V2 cloud demo (deferred)
 

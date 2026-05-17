@@ -147,6 +147,12 @@ eval-live:
 chart:
     uv run python -m evals chart
 
+# Phase 7-V1 local demo: Streamlit app on openclaw-pc. Runs the real cascade
+# on the committed CMS-1500 fixtures through the cached-replay path ($0, no
+# GPU, no Ollama/Paddle). Prefix `EVAL_LIVE=true` to drive the live models.
+demo:
+    uv run streamlit run demo/app.py
+
 # Terraform fmt + validate locally for both stacks (mirrors CI; no AWS creds needed)
 tf-check:
     terraform fmt -check -recursive infra/terraform
