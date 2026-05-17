@@ -1,0 +1,18 @@
+{
+  "doc_ids": [
+    "46ee9d82-b52c-856d-069b-5064ff052225-4b9353cf",
+    "4f083ce3-f12b-bb4b-7353-e17f0cd55b0a-47df2b3a",
+    "5ff83c72-4f21-80a1-8f5d-d246f1e47259-73169850",
+    "aa616abe-1761-0c9a-7959-07544679dafd-e0d8a677",
+    "aee7bbe1-0c45-c028-1e62-1f4cdb30c273-1eb445a6",
+    "ba419d35-0dfe-8af7-347c-eebf02485a56-a43a8e50"
+  ],
+  "providers": {
+    "router_stage2_qwen_7b": "qwen2.5vl:7b (Ollama)",
+    "tier1_paddleocr_local": "PaddleOCR-VL-1.5",
+    "tier2_qwen_7b_local": "qwen2.5vl:7b (Ollama)",
+    "tier3_qwen_32b_local": "qwen2.5vl:32b Q4_K_M (Ollama registry)"
+  },
+  "replay_cache": "tests/fixtures/eval-cache/",
+  "seed_version": "1.0.0"
+}

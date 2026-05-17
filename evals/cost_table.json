@@ -1,0 +1,10 @@
+{
+  "_note": "V1 is all-local \u2014 every provider rate is $0. The column exists for V2 schema continuity; the V2 cost table replaces these with cloud-tier rates.",
+  "currency": "USD",
+  "rates_per_1k_docs": {
+    "router_stage2_qwen_7b": 0.0,
+    "tier1_paddleocr_local": 0.0,
+    "tier2_qwen_7b_local": 0.0,
+    "tier3_qwen_32b_local": 0.0
+  }
+}

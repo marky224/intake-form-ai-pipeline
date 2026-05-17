@@ -1,0 +1,42 @@
+{
+  "entries": [
+    {
+      "doc_id": "46ee9d82-b52c-856d-069b-5064ff052225-4b9353cf",
+      "image_sha256": "96277483d54fce285587bb97a1d78b7b7251eee2b277104376f1fe2cfb6ad491",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4f083ce3-f12b-bb4b-7353-e17f0cd55b0a-47df2b3a",
+      "image_sha256": "dd8da35db4e0cd5654745c0803e08e7b1fa8ad48537767ad9a40f1f90cde4015",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5ff83c72-4f21-80a1-8f5d-d246f1e47259-73169850",
+      "image_sha256": "b76d321ba2b6642a6044782a4e218281c3cf736c450b7bdae22099e99f2448fe",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aa616abe-1761-0c9a-7959-07544679dafd-e0d8a677",
+      "image_sha256": "dcc1902f3113455ef84d50a18b39d4a9ecd92165021cd52b41c72e563a3734aa",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aee7bbe1-0c45-c028-1e62-1f4cdb30c273-1eb445a6",
+      "image_sha256": "84728031d1c332cbd68389221d9e3505e0b7b26ba79496d977a561da766c870e",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba419d35-0dfe-8af7-347c-eebf02485a56-a43a8e50",
+      "image_sha256": "47b0676a4f97b304d21c0e7750d29034b67228a1453846b76f443cc241070f0c",
+      "split": "test",
+      "vertical": "healthcare"
+    }
+  ],
+  "partition_key": "patient-level \u2014 derived on load (CMS-1500 patient UUID / DocILE doc id); not serialized (gitleaks false-positive)",
+  "seed_version": "1.0.0"
+}

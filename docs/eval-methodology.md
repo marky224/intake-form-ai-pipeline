@@ -60,7 +60,18 @@ CI runs a partition-validation test that asserts no patient ID and no DocILE doc
 
 ## Progressive alias-table partition for F1-over-time
 
-The F1-over-time chart is the README's headline visual and the most semantically loaded artifact in the repo. It demonstrates the cascade's self-improvement loop: as the alias table grows, fewer fields require escalation, so F1 climbs and cost falls in tandem.
+The F1-over-time chart is the README's headline visual and the most semantically loaded artifact in the repo. It demonstrates the cascade's self-improvement loop: as the alias table grows, fewer fields require escalation.
+
+### Two-stage measurement (Phase 6 finding — supersedes the naive model)
+
+The pre-build mental model was "fewer recognized phrasings → more escalations → lower *end-to-end* F1; more phrasings → higher end-to-end F1." Phase 6 measurement on the committed corpus showed that model is wrong for a cascade with strong escalation tiers, and the honest result is documented here rather than the chart being engineered to fit the original story.
+
+F1 is measured at **two stages** per alias batch:
+
+- **Tier-1 stage** — the pre-escalation form (Tier 1 extract → route → re-parse). This is the layer the alias table directly governs. Its F1 climbs as alias coverage grows, then asymptotes — the desired shape, and **this is the plotted headline curve**.
+- **Cascade stage** — the end-to-end assembled form after escalation. This F1 is **invariant to alias coverage** (flat ≈0.78 on the 6 CMS-1500): the Qwen Tier 2/3 tiers are alias-independent and recover whatever the alias layer missed. It is persisted as a *cascade-robustness* statistic, not the headline curve.
+
+The defensible self-improvement claim is therefore: the alias loop measurably reduces escalation load (Tier-1 hit rate climbs), and end-to-end accuracy is robust to alias coverage because the cascade compensates. In V1 the secondary signal is escalation rate; in V2 that same reduction reads directly as cost-per-document. The naive "end-to-end F1 climbs" framing is *not* claimed. On the 6-document committed corpus the Tier-1 curve is modest and early-saturating; the fuller curve emerges on the deferred local 500-document corpus.
 
 In production with real reviewers, the loop runs continuously — corrections write back to the alias table, and subsequent batches benefit. In this portfolio demo there are no live reviewers, so the corrections feeding the loop are seeded from the schema-design alias work rather than reviewer-generated. The mechanism is identical; only the source of corrections differs. This is documented honestly in the README rather than dressed up as live reviewer data.
 
