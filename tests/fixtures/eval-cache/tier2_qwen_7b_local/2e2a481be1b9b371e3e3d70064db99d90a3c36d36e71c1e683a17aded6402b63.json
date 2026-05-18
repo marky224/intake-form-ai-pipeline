@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:18:10.267400814Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 317,
+  "eval_duration": 5493831988,
+  "load_duration": 100285135,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Jamison\",\n  \"middle_name\": \"785\",\n  \"last_name\": \"Kshlerin\",\n  \"address_street\": \"108 Tremblay Well\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02210\",\n  \"date_of_birth\": \"1942-06-28\",\n  \"phone\": \"555-115-5796\",\n  \"email\": null,\n  \"date_signed\": \"2021-01-10\",\n  \"patient_id\": \"d03fa130-7dc\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-D03FA130\",\n  \"insurance_group_number\": \"0\",\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Kshlerin58, Jamison785\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1942-06-28\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Pneumonia (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590832386,
+  "total_duration": 8500983197
+}

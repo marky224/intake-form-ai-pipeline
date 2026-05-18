@@ -20,7 +20,7 @@
       },
       "cms1500_box": "3",
       "name": "patient_birth_date",
-      "value": "08/01/2010 \u00a0 M"
+      "value": "08/07/2010 \u00a0 M"
     },
     {
       "bbox": {
@@ -86,7 +86,7 @@
       },
       "cms1500_box": "14",
       "name": "date_of_current_illness",
-      "value": "09/07/2025"
+      "value": "09/13/2025"
     },
     {
       "bbox": {
@@ -119,11 +119,11 @@
       },
       "cms1500_box": "12-date",
       "name": "date_signed",
-      "value": "09/07/2025"
+      "value": "09/13/2025"
     }
   ],
   "image": "aee7bbe1-0c45-c028-1e62-1f4cdb30c273-1eb445a6.png",
-  "image_sha256": "84728031d1c332cbd68389221d9e3505e0b7b26ba79496d977a561da766c870e",
+  "image_sha256": "53041c6ae7f05cb61fd493c959d81734223e87a6b91d52b281513ee0a2f17a66",
   "page": {
     "height_px": 1100,
     "number": 1,

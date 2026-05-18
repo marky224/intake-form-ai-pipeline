@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:18:26.389049838Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 289,
+  "eval_duration": 5008016775,
+  "load_duration": 97009092,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Sheldon\",\n  \"middle_name\": \"401\",\n  \"last_name\": \"Stoltenberg\",\n  \"address_street\": \"889 Roberts Gardens Apt 3\",\n  \"address_apt\": \"3\",\n  \"address_city\": \"Fairhaven\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"2001-10-02\",\n  \"phone\": \"555-317-2061\",\n  \"email\": null,\n  \"date_signed\": \"2023-12-26\",\n  \"patient_id\": \"d25dea9-e42\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-D25DEAA9\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589875382,
+  "total_duration": 8042707184
+}

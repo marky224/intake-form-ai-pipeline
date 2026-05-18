@@ -141,6 +141,20 @@ eval:
 eval-live:
     EVAL_LIVE=true uv run python -m evals run
 
+# Regenerate the committed evals/manifest.json from the full local corpus
+# (gitignored synthetic_data/output/render/), patient-stratified
+# train/dev/test. Local-only — run after `just synthetic-data-render-500`.
+build-manifest:
+    uv run python -m evals build-manifest
+
+# One-time live regen of the committed eval-cache fixtures for every
+# test-split doc across all 4 replay namespaces (tier1/2/3 + router
+# stage 2). GPU box only (PaddleOCR-VL + Ollama Qwen 7B/32B). ~2 h.
+# Resumable — re-run to fill gaps after a partial pass. Run this, then
+# `just chart` (cached) regenerates the SVG CI reproduces.
+regen-fixtures:
+    EVAL_LIVE=true uv run python -m scripts.regen_eval_fixtures
+
 # Regenerate only the committed F1-over-time SVG + fixtures manifest from a
 # fresh cached Tier-1 sweep (run this if the chart drift guard fails CI).
 chart:

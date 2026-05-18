@@ -133,11 +133,11 @@ PY
 git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 ```
 
-`EVAL_LIVE=true` bypasses the cache, runs live inference against the 6 CMS-1500 validation PNGs in `tests/fixtures/eval-validation/cms1500/`, and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run.
+`EVAL_LIVE=true` bypasses the cache, runs live inference against the 92 CMS-1500 validation PNGs in `tests/fixtures/eval-validation/cms1500/` (the patient-stratified `test` split of the 584-doc local corpus), and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run. To regenerate all four replay namespaces (tier 1/2/3 + router stage 2) from scratch, use `just regen-fixtures` (resumable; ~2 h on the GPU box), then `just chart`.
 
 ### Validation set
 
-The checked-in validation corpus is CMS-1500 only (6 PNGs rendered from the Synthea fixtures). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
+The checked-in validation corpus is CMS-1500 only (92 PNGs — the patient-stratified `test` split of the 584-doc Synthea→CMS-1500 local corpus; Synthea/MIT, redistributable). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
 
 ## Synthea workflow
 

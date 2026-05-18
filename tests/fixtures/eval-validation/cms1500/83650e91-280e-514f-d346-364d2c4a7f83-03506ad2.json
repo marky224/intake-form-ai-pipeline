@@ -1,0 +1,139 @@
+{
+  "fields": [
+    {
+      "bbox": {
+        "x1": 328.41,
+        "x2": 624.41,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "2",
+      "name": "patient_name",
+      "value": "Renner328, Zachery872"
+    },
+    {
+      "bbox": {
+        "x1": 638.41,
+        "x2": 816.0,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "3",
+      "name": "patient_birth_date",
+      "value": "06/28/1942 \u00a0 M"
+    },
+    {
+      "bbox": {
+        "x1": 349.59,
+        "x2": 651.2,
+        "y1": 105.62,
+        "y2": 122.62
+      },
+      "cms1500_box": "5",
+      "name": "patient_address_line",
+      "value": "761 Hartmann Parade Apt 42"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 223.73,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5b",
+      "name": "patient_city",
+      "value": "Boston"
+    },
+    {
+      "bbox": {
+        "x1": 237.73,
+        "x2": 332.61,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5c",
+      "name": "patient_state",
+      "value": "MA"
+    },
+    {
+      "bbox": {
+        "x1": 346.61,
+        "x2": 536.36,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5d",
+      "name": "patient_postal_code",
+      "value": "02131"
+    },
+    {
+      "bbox": {
+        "x1": 550.36,
+        "x2": 816.0,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5e",
+      "name": "patient_phone",
+      "value": "555-860-5704"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 418.0,
+        "y1": 206.69,
+        "y2": 223.69
+      },
+      "cms1500_box": "14",
+      "name": "date_of_current_illness",
+      "value": "11/07/2021"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 816.0,
+        "y1": 240.38,
+        "y2": 257.38
+      },
+      "cms1500_box": "21",
+      "name": "diagnosis",
+      "value": "Acute ST segment elevation myocardial infarction (disorder)"
+    },
+    {
+      "bbox": {
+        "x1": 37.0,
+        "x2": 813.0,
+        "y1": 323.56,
+        "y2": 360.56
+      },
+      "cms1500_box": "12",
+      "name": "signature",
+      "value": "Zachery872 Renner328"
+    },
+    {
+      "bbox": {
+        "x1": 619.5,
+        "x2": 807.0,
+        "y1": 397.75,
+        "y2": 414.75
+      },
+      "cms1500_box": "12-date",
+      "name": "date_signed",
+      "value": "11/07/2021"
+    }
+  ],
+  "image": "83650e91-280e-514f-d346-364d2c4a7f83-03506ad2.png",
+  "image_sha256": "c2b67f2d188789335e7622f43b02684c926ad71c4319e5c496bec5ed2d0fdb12",
+  "page": {
+    "height_px": 1100,
+    "number": 1,
+    "width_px": 850
+  },
+  "schema_version": 1,
+  "signature": {
+    "font": "Sacramento",
+    "mode": "handwritten",
+    "rotation_deg": -1.291
+  },
+  "source_id": "83650e91-280e-514f-d346-364d2c4a7f83"
+}

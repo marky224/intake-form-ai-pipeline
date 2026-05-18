@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:07:59.409646737Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 304,
+  "eval_duration": 5269888897,
+  "load_duration": 99186547,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Borer986\",\n  \"middle_name\": \"Dong972\",\n  \"last_name\": \"Borer986\",\n  \"address_street\": \"688 Yundt Camp Suite 41\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Northbridge\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1967-05-29\",\n  \"phone\": \"555-540-3863\",\n  \"email\": null,\n  \"date_signed\": \"2025-07-28\",\n  \"patient_id\": \"06fe0fa1-aba\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-06FE0FA1\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 596062219,
+  "total_duration": 8286907355
+}

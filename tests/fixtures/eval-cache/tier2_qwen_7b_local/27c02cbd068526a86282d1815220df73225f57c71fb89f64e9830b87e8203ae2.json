@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:10:19.582298007Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 295,
+  "eval_duration": 5109747706,
+  "load_duration": 83858056,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Hae\",\n  \"middle_name\": \"300\",\n  \"last_name\": \"O'Hara\",\n  \"address_street\": \"208 Lehner Trafficway\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Winchester\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01890\",\n  \"date_of_birth\": \"1916-08-03\",\n  \"phone\": \"555-539-7276\",\n  \"email\": null,\n  \"date_signed\": \"1988-07-20\",\n  \"patient_id\": \"3c5bcecc-284\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-3C5BCECC\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"End-stage renal disease (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590783163,
+  "total_duration": 8056211775
+}

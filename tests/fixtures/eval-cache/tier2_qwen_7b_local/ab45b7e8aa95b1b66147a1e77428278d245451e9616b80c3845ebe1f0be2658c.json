@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:08:57.122322921Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 301,
+  "eval_duration": 5210465573,
+  "load_duration": 87586856,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Yong\",\n  \"middle_name\": \"583\",\n  \"last_name\": \"Zulauf\",\n  \"address_street\": \"808 Erdman Branch Unit 48\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Woburn\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01801\",\n  \"date_of_birth\": \"2008-06-08\",\n  \"phone\": \"555-194-6015\",\n  \"email\": null,\n  \"date_signed\": \"2011-08-17\",\n  \"patient_id\": \"27181dd6-98f\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-27181DD6\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Sudden cardiac death (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 593856839,
+  "total_duration": 8182927190
+}

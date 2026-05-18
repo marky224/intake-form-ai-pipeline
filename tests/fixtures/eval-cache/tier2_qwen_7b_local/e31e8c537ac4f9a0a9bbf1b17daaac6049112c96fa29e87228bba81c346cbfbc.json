@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:16:47.444296184Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 298,
+  "eval_duration": 5159540937,
+  "load_duration": 87671041,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Cletus\",\n  \"middle_name\": \"494\",\n  \"last_name\": \"Denesik\",\n  \"address_street\": \"221 Wisozk Street Apt 53\",\n  \"address_apt\": \"53\",\n  \"address_city\": \"Barnstable\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02675\",\n  \"date_of_birth\": \"1992-04-19\",\n  \"phone\": \"555-480-4226\",\n  \"email\": null,\n  \"date_signed\": \"2023-07-02\",\n  \"patient_id\": \"ac25c3c2-ef4\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-AC25C3C2\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589658932,
+  "total_duration": 8116988945
+}

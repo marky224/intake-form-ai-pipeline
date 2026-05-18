@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:33:55.019961528Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 326,
+  "eval_duration": 111489111179,
+  "load_duration": 127132705,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Eugenio846\",\n  \"middle_name\": \"Hand679\",\n  \"last_name\": \"Hand679\",\n  \"address_street\": \"390 Welch Trail\",\n  \"address_apt\": \"Apt 84\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02115\",\n  \"date_of_birth\": \"1942-06-28\",\n  \"phone\": \"555-339-2092\",\n  \"email\": null,\n  \"date_signed\": \"2021-05-16\",\n  \"patient_id\": \"6e2dd26a-832\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-6E2DD26A\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Hand679, Eugenio846\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1942-06-28\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"End-stage renal disease (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4052881963,
+  "total_duration": 117099865952
+}

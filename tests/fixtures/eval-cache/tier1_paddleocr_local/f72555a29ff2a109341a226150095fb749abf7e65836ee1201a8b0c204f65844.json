@@ -1,0 +1,60 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        60,
+        824,
+        294
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSURED&#x27;S 1.0. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-2474B3FF</td><td>Turner526, Seth414</td><td>05/11/1944 M</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>612 Fisher Street</td><td>Self</td></tr><tr><td>5B. CITY</td><td>3C. STATE</td><td>50. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Boston</td><td>MA</td><td>02115</td><td>555-495-1740</td></tr><tr><td>18A. EMPLOYMENT</td><td>18B. AUTO ACCIDENT</td><td>18C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"3\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (JUP)</td><td>15. OTHER DATE</td></tr><tr><td colspan=\"3\">08/19/1954</td><td></td></tr><tr><td colspan=\"3\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td></td></tr><tr><td colspan=\"3\">Sudden cardiac death (disorder)</td><td></td></tr><tr><td>25. FEDERAL TAX 1.0. NUMBER</td><td colspan=\"2\">26. PATIENT&#x27;S ACCOUNT NO.</td><td>27. ACCEPT ASSIGMENT</td></tr><tr><td>12-3456789</td><td colspan=\"2\">2474b3ff-db6</td><td>YES</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        31,
+        310,
+        819,
+        422
+      ],
+      "block_content": "<table><tr><td colspan=\"3\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"3\">Seth 414 Turner 526</td></tr><tr><td colspan=\"3\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td colspan=\"2\">DATE 08/19/1954</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

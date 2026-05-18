@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:11:24.869669278Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 300,
+  "eval_duration": 5199115647,
+  "load_duration": 114277800,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Heredia\",\n  \"middle_name\": \"716\",\n  \"last_name\": \"Pilar\",\n  \"address_street\": \"434 Toy Arcade Unit 61\",\n  \"address_apt\": \"61\",\n  \"address_city\": \"Rutland\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01543\",\n  \"date_of_birth\": \"1999-05-13\",\n  \"phone\": \"555-630-6862\",\n  \"email\": null,\n  \"date_signed\": \"2025-10-17\",\n  \"patient_id\": \"4bf9098f-a62\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-4BF9098F\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Sinusitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591888578,
+  "total_duration": 8236407861
+}

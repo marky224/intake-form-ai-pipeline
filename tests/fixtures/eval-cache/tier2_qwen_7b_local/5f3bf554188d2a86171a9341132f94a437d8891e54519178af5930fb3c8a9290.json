@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:10:44.185691269Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 305,
+  "eval_duration": 5284582143,
+  "load_duration": 99768880,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Gretchen\",\n  \"middle_name\": \"912\",\n  \"last_name\": \"Renner\",\n  \"address_street\": \"910 Balistreri Divide Unit 65\",\n  \"address_apt\": \"\",\n  \"address_city\": \"North Amherst\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01059\",\n  \"date_of_birth\": \"2006-01-25\",\n  \"phone\": \"555-561-9999\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-01\",\n  \"patient_id\": \"429c0ce7-01f\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-429C0CE7\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Acute infective cystitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591176343,
+  "total_duration": 8265596584
+}

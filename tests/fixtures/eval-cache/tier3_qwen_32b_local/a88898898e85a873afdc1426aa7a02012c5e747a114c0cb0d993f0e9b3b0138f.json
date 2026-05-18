@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:11:49.990075379Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 329,
+  "eval_duration": 118130726948,
+  "load_duration": 194890956,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Dwana281\",\n  \"middle_name\": null,\n  \"last_name\": \"Bruen238\",\n  \"address_street\": \"864 Wisozk Skyway\",\n  \"address_apt\": \"Suite 4\",\n  \"address_city\": \"Lowell\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01851\",\n  \"date_of_birth\": \"1986-06-27\",\n  \"phone\": \"555-797-6470\",\n  \"email\": null,\n  \"date_signed\": \"2026-03-27\",\n  \"patient_id\": \"982750f4-569\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-982750F4\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Bruen238, Dwana281\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1986-06-27\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Contraception care (regime/therapy)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4088511478,
+  "total_duration": 123891847922
+}

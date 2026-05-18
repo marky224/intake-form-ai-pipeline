@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        28,
+        59,
+        823,
+        466
+      ],
+      "block_content": "<table><tr><td>1.</td><td>INSURANCE PLAN</td><td>1A. INSURED&#x27;S I.O. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td colspan=\"2\">Other</td><td>SYN-2C35B5F8</td><td>Homenick806, Maryanna659</td><td>01/07/1922 F</td></tr><tr><td>4.</td><td colspan=\"2\">INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>913 Miller Date</td><td colspan=\"2\">Self</td></tr><tr><td>50.</td><td>CITY</td><td>Xc. STATE</td><td>50. ZIP CODE</td><td>SE. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td colspan=\"2\">Chesterfield</td><td>MA</td><td>00000</td><td>555-190-1176</td></tr><tr><td>10A.</td><td>EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>10C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td colspan=\"2\">No</td><td>No</td><td></td><td></td></tr><tr><td>14.</td><td colspan=\"2\">DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (JMP)</td><td>15. OTHER DATE</td><td></td></tr><tr><td colspan=\"2\">09/26/1953</td><td></td><td></td><td></td></tr><tr><td>21.</td><td colspan=\"2\">DIAGNOSIS OR NATURE OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td></td><td></td></tr><tr><td colspan=\"3\">Fracture of vertebral column with spinal cord injury (disorder)</td><td></td><td></td></tr><tr><td>25.</td><td>FEDERAL TAX I.D. NUMBER</td><td>26. PATIENT&#x27;S ACCOUNT NO.</td><td colspan=\"2\">27. ACCEPT ASSIGNMENT</td></tr><tr><td colspan=\"2\">12-3456789</td><td>2c35b5f8-b22</td><td colspan=\"2\">YES</td></tr><tr><td>12.</td><td colspan=\"2\">Patient&#x27;s or Authorized Person&#x27;s Signature</td><td></td><td></td></tr><tr><td>Maryanna659</td><td>Homenick806</td><td></td><td></td><td></td></tr><tr><td colspan=\"5\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td colspan=\"2\">SIGNED</td><td></td><td></td><td>DATE 09/26/1953</td></tr><tr><td>31.</td><td colspan=\"4\">Signature of Physician or Supplier Including Degrees or Credentials</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

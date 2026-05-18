@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        28,
+        62,
+        823,
+        467
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN\nOther</td><td>1A. INSURED&#x27;S I.O. NUMBER\nSYN-148DSF62</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)\nBogisich202, Madlyn383</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX\n06/04/1992\nF</td></tr><tr><td>4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)\nSAME</td><td></td><td>5. PATIENT&#x27;S ADDRESS (STREET)\n628 Kunde Forge</td><td>6. RELATIONSHIP TO INSURED\nSelf</td></tr><tr><td>5B. CITY\nSwampscott</td><td>2C. STATE\nMA</td><td>50. ZIP CODE\n01907</td><td>3E. TELEPHONE (INCLUDE AREA CODE)\n555-716-9275</td></tr><tr><td>18A. EMPLOYMENT\nNo</td><td>18B. AUTO ACCIDENT\nNo</td><td>18C. OTHER ACCIDENT\nNo</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>14. DATE OF CURRENT ILLNESS, INSURY, OR PREGNANCY (LJMP)\n04/11/2026</td><td></td><td>15. OTHER DATE</td><td></td></tr><tr><td>21. DIAGNOSIS OR NATURE OF ILLNESS OR INSURY (RELATE A-L TO SERVICE LINE BELOW)\nViral sinusitis (disorder)</td><td></td><td></td><td></td></tr><tr><td>25. FEDERAL TAX I.O. NUMBER\n12-3456789</td><td>26. PATIENT&#x27;S ACCOUNT NO.\n148d5f62-405</td><td>27. ACCEPT ASSIGNMENT\nYES</td><td></td></tr><tr><td>12. Patient&#x27;s or Authorized Person&#x27;s Signature\nMadlyn383 Bogisich202</td><td></td><td></td><td></td></tr><tr><td>I authorise the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself\nor to the party who accepts assignment below.\nSIGNED</td><td></td><td></td><td>DATE\n04/11/2026</td></tr><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials\nSynthetic Provider\nMD</td><td></td><td></td><td></td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        508
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

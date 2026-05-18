@@ -10,8 +10,8 @@ now covers only the 7B tier's own surface:
    ``EVAL_LIVE`` bypass + sha256 cache-key correctness.
 3. **``_invoke_model`` seam** — the real ollama client shape, 7B tag.
 4. **``_load_ollama_client`` seam** — helpful ImportError when ollama missing.
-5. **Validation set** — the 6 checked-in CMS-1500 cached fixtures must
-   parse cleanly with at least one *populated* field each (acceptance gate).
+5. **Validation set** — the 92-doc CMS-1500 `test`-split cached fixtures
+   must parse cleanly with at least one *populated* field each.
 """
 
 from __future__ import annotations
@@ -223,9 +223,9 @@ def test_invoke_model_passes_image_and_schema_via_real_ollama_shape(monkeypatch)
 def test_live_inference_smoke(isolated_cache_root, eval_live_on):
     """Skipped unless `ollama` is importable AND EVAL_LIVE=true.
 
-    Real live validation runs as the PR deliverable against the 6-doc set;
-    this just confirms the client constructs without blowing up. CI never
-    sets EVAL_LIVE so this stays skipped.
+    Real live validation runs via `just regen-fixtures` against the 92-doc
+    CMS-1500 test split; this just confirms the client constructs without
+    blowing up. CI never sets EVAL_LIVE so this stays skipped.
     """
     try:
         import ollama  # noqa: F401
@@ -244,7 +244,7 @@ def test_load_ollama_client_raises_helpful_error_when_ollama_missing(monkeypatch
 
 
 # ---------------------------------------------------------------------------
-# 5. Validation set: end-to-end cached replay against the 6 CMS-1500 docs
+# 5. Validation set: end-to-end cached replay against the 92-doc CMS-1500 test split
 # ---------------------------------------------------------------------------
 
 # CMS-1500-only by the same constraint as Tier 1: DocILE pages are
@@ -260,8 +260,11 @@ def _validation_pngs() -> list[pathlib.Path]:
 
 
 def test_validation_corpus_present():
+    """Broad test split: 92 = the deterministic ``test`` partition of the
+    locked-seed 584-doc corpus. Canonical invariant in
+    ``test_evals_manifest.py::test_validation_dir_is_exactly_the_test_split``."""
     pngs = _validation_pngs()
-    assert len(pngs) == 6, f"Expected 6 validation PNGs, found {len(pngs)}"
+    assert len(pngs) == 92, f"Expected 92 validation PNGs, found {len(pngs)}"
 
 
 @pytest.mark.parametrize("png_path", _validation_pngs(), ids=lambda p: p.name)

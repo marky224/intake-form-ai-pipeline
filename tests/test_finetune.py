@@ -68,7 +68,7 @@ def test_evaluate_identity_baseline_is_zero_delta_cached() -> None:
     """No adapter (CI) → corrected == baseline, delta 0.000, $0, no GPU."""
     r = evaluate.evaluate()
     assert isinstance(r, evaluate.EvalResult)
-    assert r.doc_count == 6
+    assert r.doc_count == 92  # broad test split (was the legacy 6-doc slice)
     assert r.adapter_present is False
     assert r.baseline_f1 == r.corrected_f1
     assert r.delta_f1 == 0.0

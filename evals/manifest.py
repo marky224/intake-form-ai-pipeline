@@ -44,6 +44,16 @@ CMS1500_VALIDATION_DIR = (
     Path(__file__).resolve().parent.parent / "tests" / "fixtures" / "eval-validation" / "cms1500"
 )
 
+#: The gitignored full local healthcare corpus (``just synthetic-data-
+#: render-500`` output). ``build_corpus_manifest`` walks its sidecars to
+#: regenerate the committed 584-entry stratified ``manifest.json``. This is
+#: a LOCAL regeneration input (not in CI) — CI validates the committed
+#: manifest via ``load_manifest`` + the stratification drift guard, never
+#: by rebuilding from this dir. Only the ``test``-split subset is staged
+#: into ``CMS1500_VALIDATION_DIR`` and committed (``run_eval`` reads only
+#: the ``test`` split; train/dev PNG bytes are never read by CI).
+CORPUS_RENDER_DIR = Path(__file__).resolve().parent.parent / "synthetic_data" / "output" / "render"
+
 
 @dataclass(frozen=True)
 class ManifestEntry:
@@ -123,6 +133,47 @@ def build_cms1500_manifest(
                 split="test",
                 image_sha256=meta["image_sha256"],
             )
+        )
+    return entries
+
+
+def build_corpus_manifest(
+    render_dir: Path | str = CORPUS_RENDER_DIR,
+) -> list[ManifestEntry]:
+    """The full local healthcare corpus → patient-stratified entries.
+
+    Walks every ``<doc_id>.json`` sidecar in the gitignored render dir
+    (``just synthetic-data-render-500`` output, 1:1 patient:document) and
+    assigns each to ``train``/``dev``/``test`` via :func:`assign_split` on
+    the patient key. This is the *local regeneration tool* behind the
+    committed broad ``manifest.json``: ``render_dir`` is not present in CI,
+    so CI validates the committed file (``load_manifest`` + the
+    stratification drift guard), never rebuilds it here.
+
+    Stable across regenerations: ``assign_split`` hashes the patient key,
+    and the ``<patient-uuid>-<sha8>`` doc id derives from patient content
+    (not the PNG bytes, which are Chromium-render-dependent), so the
+    partition is reproducible even though the pixels are not.
+    """
+    render_dir = Path(render_dir)
+    entries: list[ManifestEntry] = []
+    for sidecar in sorted(render_dir.glob("*.json")):
+        meta = json.loads(sidecar.read_text(encoding="utf-8"))
+        doc_id = sidecar.stem
+        partition_key = derive_partition_key(doc_id, "healthcare")
+        entries.append(
+            ManifestEntry(
+                doc_id=doc_id,
+                partition_key=partition_key,
+                vertical="healthcare",
+                split=assign_split(partition_key),
+                image_sha256=meta["image_sha256"],
+            )
+        )
+    if not entries:
+        raise ValueError(
+            f"no sidecars under {render_dir} — run `just synthetic-data-render-500` "
+            f"first (the broad corpus is gitignored and built locally)"
         )
     return entries
 

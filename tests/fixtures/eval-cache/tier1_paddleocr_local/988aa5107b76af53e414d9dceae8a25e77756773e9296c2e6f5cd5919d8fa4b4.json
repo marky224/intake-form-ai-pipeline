@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        40,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        28,
+        60,
+        823,
+        476
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSUREd&#x27;S I.O. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-55133401</td><td>Blanda868, Joseph309</td><td>12/18/1969</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td>SAME</td><td></td><td>746 Treutel Ferry</td><td>Self</td></tr><tr><td>58. CITY</td><td>SC. STATE</td><td>50. ZIP CODE</td><td>SE. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Lynn</td><td>MA</td><td>01907</td><td>555-473-7780</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>10C. OTHER ACCIDENT</td><td>11. INSUREd&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"2\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td>15. OTHER DATE</td><td></td></tr><tr><td colspan=\"4\">01/22/2026</td></tr><tr><td colspan=\"4\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td>25. FEDERAL TAX I.O. NUMBER</td><td>26. PATIENT&#x27;S ACCOUNT NO.</td><td colspan=\"2\">27. ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td>55133401-cd5</td><td colspan=\"2\">YES</td></tr><tr><td colspan=\"4\">12. PATIENT&#x27;S OR AUTHORIZED PERSON&#x27;S SIGNATURE</td></tr><tr><td colspan=\"4\">Joseph309 Blanda868</td></tr><tr><td colspan=\"4\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td></td><td></td><td>DATE 01/22/2026</td></tr><tr><td colspan=\"4\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"4\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

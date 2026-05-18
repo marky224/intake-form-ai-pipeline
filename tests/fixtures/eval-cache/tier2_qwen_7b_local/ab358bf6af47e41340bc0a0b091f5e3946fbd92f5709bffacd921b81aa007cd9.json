@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:14:43.342980917Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 316,
+  "eval_duration": 5474329482,
+  "load_duration": 104801588,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Abram\",\n  \"middle_name\": \"53\",\n  \"last_name\": \"Gerlach\",\n  \"address_street\": \"768 Renner Rest Unit 51\",\n  \"address_apt\": \"51\",\n  \"address_city\": \"Gardner\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01440\",\n  \"date_of_birth\": \"2010-11-01\",\n  \"phone\": \"555-365-3761\",\n  \"email\": null,\n  \"date_signed\": \"2025-12-08\",\n  \"patient_id\": \"8b8f1e13-b68\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-8B8F1E13\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Gerlach374, Abram53\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"12/08/2025\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589295597,
+  "total_duration": 8450096447
+}

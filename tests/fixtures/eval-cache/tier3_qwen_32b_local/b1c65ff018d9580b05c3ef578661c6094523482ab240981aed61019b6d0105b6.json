@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:16:37.446004632Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 316,
+  "eval_duration": 108758466014,
+  "load_duration": 141143918,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Irving123\",\n  \"middle_name\": null,\n  \"last_name\": \"Bernhard322\",\n  \"address_street\": \"384 Mraz Orchard\",\n  \"address_apt\": null,\n  \"address_city\": \"Dennis\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02638\",\n  \"date_of_birth\": \"1985-07-30\",\n  \"phone\": \"555-490-6395\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-11\",\n  \"patient_id\": \"4cba36e9-f2b\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-4CBA36E9\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Bernhard322, Irving123\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1985-07-30\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Injury of neck (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4091858337,
+  "total_duration": 114452224295
+}

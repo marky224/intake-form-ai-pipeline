@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        28,
+        66,
+        823,
+        443
+      ],
+      "block_content": "<table><tr><td>Other</td><td>SYN-982750F4</td><td>Bruen238, Dwana281</td><td>06/27/1986</td><td>F</td></tr><tr><td colspan=\"2\">4.INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"2\">5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td>SAME</td><td colspan=\"3\">864 Wisozk Skyway Suite 4</td><td>Self</td></tr><tr><td>58. CITY Lowell</td><td>SC. STATE MA</td><td>50. ZIP CODE 01851</td><td colspan=\"2\">5E. TELEPHONE (INCLUDE AREA CODE) 555-797-6470</td></tr><tr><td>18A. EMPLOYMENT No</td><td>388. AUTO ACCIDENT No</td><td>INC. OTHER ACCIDENT No</td><td colspan=\"2\">11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td colspan=\"2\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LJP) 03/27/2026</td><td colspan=\"3\">15. OTHER DATE</td></tr><tr><td colspan=\"5\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-TO SERVICE LINE BELOW) Contraception care (regime/therapy)</td></tr><tr><td>25. FEDE RAL TAX I.O. NUMBER 12-3456789</td><td>20. PATIENT&#x27;S ACCOUNT NO. 982750F4-569</td><td colspan=\"3\">YES</td></tr><tr><td colspan=\"5\">12. Patient&#x27;s or Authorized Person&#x27;s Signature Dwana281Bruen238</td></tr><tr><td colspan=\"5\">I authorise the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td colspan=\"4\">SIGNED</td><td>DATE 03/27/2026</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

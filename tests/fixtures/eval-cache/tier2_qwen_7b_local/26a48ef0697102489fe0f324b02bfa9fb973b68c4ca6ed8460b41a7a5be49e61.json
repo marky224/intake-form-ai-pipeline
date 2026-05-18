@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:19:40.79515258Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 303,
+  "eval_duration": 5246284014,
+  "load_duration": 92936756,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Darlene\",\n  \"middle_name\": \"91\",\n  \"last_name\": \"Mayer\",\n  \"address_street\": \"907 Hills Route Apt 10\",\n  \"address_apt\": \"Apt 10\",\n  \"address_city\": \"Worcester\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01606\",\n  \"date_of_birth\": \"1974-11-01\",\n  \"phone\": \"555-196-4285\",\n  \"email\": null,\n  \"date_signed\": \"2026-02-06\",\n  \"patient_id\": \"f1bb1b85-8e1\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-F1BB1B85\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589025503,
+  "total_duration": 8281028056
+}

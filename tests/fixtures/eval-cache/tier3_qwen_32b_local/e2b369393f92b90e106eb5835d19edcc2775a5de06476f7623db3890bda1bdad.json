@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T17:59:22.919962407Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 308,
+  "eval_duration": 103927999349,
+  "load_duration": 133487998,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Mickey576\",\n  \"middle_name\": null,\n  \"last_name\": \"Klocko335\",\n  \"address_street\": \"251 Senger Boulevard\",\n  \"address_apt\": null,\n  \"address_city\": \"Andover\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01810\",\n  \"date_of_birth\": \"1993-08-19\",\n  \"phone\": \"555-189-8398\",\n  \"email\": null,\n  \"date_signed\": \"2024-10-31\",\n  \"patient_id\": \"3caaac5c-b20\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-3CAAAC5C\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Klocko335, Mickey576\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1993-08-19\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4038858488,
+  "total_duration": 109545665880
+}

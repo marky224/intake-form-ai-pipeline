@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:16:39.318511331Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 303,
+  "eval_duration": 5247760855,
+  "load_duration": 93884306,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Jona\",\n  \"middle_name\": \"712\",\n  \"last_name\": \"Bode78\",\n  \"address_street\": \"997 Grant Row Unit 85\",\n  \"address_apt\": \"85\",\n  \"address_city\": \"Peabody\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01960\",\n  \"date_of_birth\": \"1958-06-30\",\n  \"phone\": \"555-784-7169\",\n  \"email\": null,\n  \"date_signed\": \"2026-02-16\",\n  \"patient_id\": \"aa616abe-176\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-AA616ABE\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": null,\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Malignant neoplasm of breast (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590378094,
+  "total_duration": 8211643800
+}

@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:17:20.531822371Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 310,
+  "eval_duration": 5369795006,
+  "load_duration": 120885613,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Hans\",\n  \"middle_name\": \"694\",\n  \"last_name\": \"Bogisich202\",\n  \"address_street\": \"384 Breitenberg Center Suite 99\",\n  \"address_apt\": \"99\",\n  \"address_city\": \"Springfield\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01108\",\n  \"date_of_birth\": \"1986-07-09\",\n  \"phone\": \"555-250-3803\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-26\",\n  \"patient_id\": \"b329ef8d-a18\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-B329EF8D\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Bogisich202, Hans694\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589526686,
+  "total_duration": 8350185706
+}

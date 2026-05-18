@@ -8,10 +8,12 @@ import pytest
 
 from evals.alias_partition import load_seed
 from evals.manifest import (
+    CMS1500_VALIDATION_DIR,
     MANIFEST_PATH,
     ManifestEntry,
     assign_split,
-    build_cms1500_manifest,
+    build_corpus_manifest,
+    derive_partition_key,
     load_manifest,
     patient_key_from_doc_id,
     validate_partition,
@@ -69,13 +71,49 @@ def test_committed_manifest_seed_version_matches_alias_seed():
     assert seed_version == ALIAS_SEED["version"]
 
 
-def test_committed_manifest_matches_validation_corpus():
-    """The committed manifest is exactly the on-disk CMS-1500 corpus."""
+def test_committed_manifest_split_is_reproducible_stratification():
+    """Stratification drift guard: every committed entry's split must equal
+    ``assign_split`` of its derived patient key. ``manifest.json`` is the
+    584-doc broad corpus (train/dev/test); the partition is a pure function
+    of the patient key, so it is exactly reproducible without the gitignored
+    render dir — a hand-edit that moves a doc between splits fails here."""
     _, entries = load_manifest()
-    rebuilt = build_cms1500_manifest()
-    assert sorted(e.doc_id for e in entries) == sorted(e.doc_id for e in rebuilt)
-    assert all(e.split == "test" for e in entries)
-    assert all(e.vertical == "healthcare" for e in entries)
+    assert len(entries) > 6, "expected the broad corpus, not the legacy 6-doc slice"
+    for e in entries:
+        assert e.vertical == "healthcare"
+        assert e.split == assign_split(derive_partition_key(e.doc_id, e.vertical))
+    # All three buckets are populated (sanity that stratification ran).
+    assert {e.split for e in entries} == {"train", "dev", "test"}
+
+
+def test_validation_dir_is_exactly_the_test_split():
+    """Lean-commit invariant: only the ``test``-split docs are staged into
+    the committed validation dir (``run_eval`` iterates only ``test``;
+    train/dev PNG bytes are deliberately never committed). Each staged doc
+    is a (PNG, sidecar) pair."""
+    _, entries = load_manifest()
+    test_ids = {e.doc_id for e in entries if e.split == "test"}
+    staged_png = {p.stem for p in CMS1500_VALIDATION_DIR.glob("*.png")}
+    staged_json = {p.stem for p in CMS1500_VALIDATION_DIR.glob("*.json")}
+    assert staged_png == test_ids
+    assert staged_json == test_ids
+
+
+def test_build_corpus_manifest_stratifies(tmp_path):
+    """``build_corpus_manifest`` walks render-dir sidecars and assigns each
+    a deterministic split (the local regen tool behind the committed file)."""
+    import json as _json
+
+    for i in range(3):
+        doc_id = f"patient-{i}-deadbeef"
+        (tmp_path / f"{doc_id}.json").write_text(
+            _json.dumps({"image_sha256": f"{i:064d}"}), encoding="utf-8"
+        )
+    built = build_corpus_manifest(render_dir=tmp_path)
+    assert len(built) == 3
+    for b in built:
+        assert b.vertical == "healthcare"
+        assert b.split == assign_split(derive_partition_key(b.doc_id, "healthcare"))
 
 
 def test_fixtures_manifest_doc_ids_match_manifest():

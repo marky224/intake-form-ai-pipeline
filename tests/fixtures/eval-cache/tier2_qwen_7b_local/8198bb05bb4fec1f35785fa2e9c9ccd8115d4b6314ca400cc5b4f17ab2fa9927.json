@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:11:00.376041709Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 293,
+  "eval_duration": 5082081922,
+  "load_duration": 81960996,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Issac\",\n  \"middle_name\": \"619\",\n  \"last_name\": \"Upton\",\n  \"address_street\": \"296 Dickens Light\",\n  \"address_apt\": \"00000\",\n  \"address_city\": \"Charlemont\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1995-04-06\",\n  \"phone\": \"555-192-3923\",\n  \"email\": null,\n  \"date_signed\": \"2023-06-15\",\n  \"patient_id\": \"440cfb11-d96\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-440CFB11\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591020133,
+  "total_duration": 8049991704
+}

@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T17:55:38.119665525Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 325,
+  "eval_duration": 112729626761,
+  "load_duration": 207591452,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Brianai39\",\n  \"middle_name\": null,\n  \"last_name\": \"Grimesi65\",\n  \"address_street\": \"713 Reinger Hollow\",\n  \"address_apt\": \"Apt 24\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02108\",\n  \"date_of_birth\": \"2002-05-12\",\n  \"phone\": \"555-455-5625\",\n  \"email\": null,\n  \"date_signed\": \"2025-10-18\",\n  \"patient_id\": \"3b969c93-07c\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-3B969C93\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Grimesi65, Brianai39\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"2002-05-12\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Contraception care (regime/therapy)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4036218209,
+  "total_duration": 118405086872
+}

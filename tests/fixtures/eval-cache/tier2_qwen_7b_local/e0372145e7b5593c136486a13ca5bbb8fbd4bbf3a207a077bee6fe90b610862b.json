@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:07:42.983335464Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 297,
+  "eval_duration": 5223325464,
+  "load_duration": 5177337282,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Ramona\",\n  \"middle_name\": \"980\",\n  \"last_name\": \"Johns\",\n  \"address_street\": \"618 Beatty Mission Apt 0\",\n  \"address_apt\": \"0\",\n  \"address_city\": \"Oxford\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01540\",\n  \"date_of_birth\": \"1957-04-04\",\n  \"phone\": \"555-451-8687\",\n  \"email\": null,\n  \"date_signed\": \"2025-08-21\",\n  \"patient_id\": \"032000cf-30b\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-032000CF\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Johns824\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 2441579166,
+  "total_duration": 13363861107
+}

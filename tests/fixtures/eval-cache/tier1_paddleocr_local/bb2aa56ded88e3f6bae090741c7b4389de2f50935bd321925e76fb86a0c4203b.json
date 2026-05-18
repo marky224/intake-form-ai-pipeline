@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        40,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        63,
+        823,
+        462
+      ],
+      "block_content": "<table><tr><td>1.INSURANCE PLAN</td><td>1A.INSURED&#x27;S I.O.NUMBER</td><td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td><td>3.PATIENT&#x27;S BIRTH DATE / SEX</td><td></td></tr><tr><td>Other</td><td>SYN-EED50A92</td><td>Haley279, Juan88</td><td>07/05/1988</td><td>M</td><td></td></tr><tr><td colspan=\"4\">4.INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>6.RELATIONSHIP TO INSURED</td><td></td></tr><tr><td>SAME</td><td></td><td>57.PATIENT&#x27;S ADDRESS (STREET)</td><td></td><td></td><td></td></tr><tr><td></td><td></td><td>577 King Overpass Unit 39</td><td></td><td>Self</td><td></td></tr><tr><td>MB. CITY</td><td></td><td>50.ZIP CODE</td><td></td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td><td></td></tr><tr><td>Lowell</td><td>MA</td><td>01852</td><td></td><td>555-441-9455</td><td></td></tr><tr><td>18A.EMPLOYMENT</td><td>18B.AUTO ACCIDENT</td><td>18C.OTHER ACCIDENT</td><td></td><td>11.INSURED&#x27;S POLICY / GROUP / FECA NO.</td><td></td></tr><tr><td>No</td><td>No</td><td>No</td><td></td><td></td><td></td></tr><tr><td colspan=\"3\">14.DATE OF CURRENT ILLNESS, INJURY, OR PREMIANCY (JMP)</td><td>15.OTHER DATE</td><td></td><td></td></tr><tr><td colspan=\"6\">12/02/2025</td></tr><tr><td colspan=\"6\">21.DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td colspan=\"6\">Patient referral for dental care (procedure)</td></tr><tr><td>25.FEDERAL TAX I.O.NUMBER</td><td>20.PATIENT&#x27;S ACCOUNT NO.</td><td></td><td></td><td>27.ACCEPT ASSIGMENT</td><td></td></tr><tr><td>12-3456789</td><td>eed50a92-98c</td><td></td><td>YES</td><td></td><td></td></tr><tr><td colspan=\"6\"></td></tr><tr><td colspan=\"6\">12.Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"6\">Juan88 Haley279</td></tr><tr><td colspan=\"6\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td></td><td></td><td></td><td>DATE</td><td></td></tr><tr><td></td><td></td><td></td><td></td><td>12/02/2025</td><td></td></tr><tr><td colspan=\"6\"></td></tr><tr><td colspan=\"6\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        508
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

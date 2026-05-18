@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:09:21.862923994Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 307,
+  "eval_duration": 5318597311,
+  "load_duration": 117222310,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Cristin\",\n  \"middle_name\": \"88\",\n  \"last_name\": \"Maggio\",\n  \"address_street\": \"685 Rutherford Fork Apt 32\",\n  \"address_apt\": \"32\",\n  \"address_city\": \"Cambridge\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02141\",\n  \"date_of_birth\": \"1961-05-16\",\n  \"phone\": \"555-951-6165\",\n  \"email\": null,\n  \"date_signed\": \"2015-12-29\",\n  \"patient_id\": \"2c588417-753\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-2C588417\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": null,\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Overlapping malignant neoplasm of colon (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591866706,
+  "total_duration": 8332221225
+}

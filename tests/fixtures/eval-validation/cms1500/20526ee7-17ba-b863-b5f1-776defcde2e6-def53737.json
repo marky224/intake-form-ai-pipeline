@@ -1,0 +1,139 @@
+{
+  "fields": [
+    {
+      "bbox": {
+        "x1": 328.41,
+        "x2": 624.41,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "2",
+      "name": "patient_name",
+      "value": "Hane680, Sabra779"
+    },
+    {
+      "bbox": {
+        "x1": 638.41,
+        "x2": 816.0,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "3",
+      "name": "patient_birth_date",
+      "value": "06/15/1972 \u00a0 F"
+    },
+    {
+      "bbox": {
+        "x1": 349.59,
+        "x2": 651.2,
+        "y1": 105.62,
+        "y2": 122.62
+      },
+      "cms1500_box": "5",
+      "name": "patient_address_line",
+      "value": "329 Wintheiser Viaduct Apt 34"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 223.73,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5b",
+      "name": "patient_city",
+      "value": "Bourne"
+    },
+    {
+      "bbox": {
+        "x1": 237.73,
+        "x2": 332.61,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5c",
+      "name": "patient_state",
+      "value": "MA"
+    },
+    {
+      "bbox": {
+        "x1": 346.61,
+        "x2": 536.36,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5d",
+      "name": "patient_postal_code",
+      "value": "02532"
+    },
+    {
+      "bbox": {
+        "x1": 550.36,
+        "x2": 816.0,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5e",
+      "name": "patient_phone",
+      "value": "555-205-7011"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 418.0,
+        "y1": 206.69,
+        "y2": 223.69
+      },
+      "cms1500_box": "14",
+      "name": "date_of_current_illness",
+      "value": "07/17/2025"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 816.0,
+        "y1": 240.38,
+        "y2": 257.38
+      },
+      "cms1500_box": "21",
+      "name": "diagnosis",
+      "value": "Patient referral for dental care (procedure)"
+    },
+    {
+      "bbox": {
+        "x1": 37.0,
+        "x2": 813.0,
+        "y1": 323.56,
+        "y2": 360.56
+      },
+      "cms1500_box": "12",
+      "name": "signature",
+      "value": "Sabra779 Hane680"
+    },
+    {
+      "bbox": {
+        "x1": 619.5,
+        "x2": 807.0,
+        "y1": 397.75,
+        "y2": 414.75
+      },
+      "cms1500_box": "12-date",
+      "name": "date_signed",
+      "value": "07/17/2025"
+    }
+  ],
+  "image": "20526ee7-17ba-b863-b5f1-776defcde2e6-def53737.png",
+  "image_sha256": "91f61831633a4d78313c67be8222e78d4e80e459161c6782b3c62371421aab29",
+  "page": {
+    "height_px": 1100,
+    "number": 1,
+    "width_px": 850
+  },
+  "schema_version": 1,
+  "signature": {
+    "font": "Sacramento",
+    "mode": "handwritten",
+    "rotation_deg": 0.619
+  },
+  "source_id": "20526ee7-17ba-b863-b5f1-776defcde2e6"
+}

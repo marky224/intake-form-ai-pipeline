@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:15:49.497692208Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 318,
+  "eval_duration": 5512483591,
+  "load_duration": 104071849,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Marisol\",\n  \"middle_name\": \"B\",\n  \"last_name\": \"Marin\",\n  \"address_street\": \"328 Lakin Junction Suite 69\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Gloucester\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01930\",\n  \"date_of_birth\": \"1987-11-19\",\n  \"phone\": \"555-495-6470\",\n  \"email\": null,\n  \"date_signed\": \"2023-10-31\",\n  \"patient_id\": \"99d263f7-e9f\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-99D263F7\",\n  \"insurance_group_number\": \"99d263f7-e9f\",\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Marisol435 MarinB55\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Sterilization requested (situation)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590785832,
+  "total_duration": 8482344860
+}

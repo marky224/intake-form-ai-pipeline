@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:23:53.343447808Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 322,
+  "eval_duration": 115074855447,
+  "load_duration": 143817953,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Stuart\",\n  \"middle_name\": \"913\",\n  \"last_name\": \"Price929\",\n  \"address_street\": \"107 Leannon Passage\",\n  \"address_apt\": \"Apt 66\",\n  \"address_city\": \"Worcester\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"0160B\",\n  \"date_of_birth\": \"2003-12-25\",\n  \"phone\": \"555-640-7091\",\n  \"email\": null,\n  \"date_signed\": \"2026-03-12\",\n  \"patient_id\": \"a56f7570-fa4\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-A56F7570\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Price929, Stuart913\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"2003-12-25\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4055641956,
+  "total_duration": 120727915223
+}

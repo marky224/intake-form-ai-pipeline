@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:03:44.505930231Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 321,
+  "eval_duration": 114870991037,
+  "load_duration": 128282538,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Ludivina\",\n  \"middle_name\": \"884\",\n  \"last_name\": \"Medhurst46\",\n  \"address_street\": \"977 Wuckert Village\",\n  \"address_apt\": null,\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02111\",\n  \"date_of_birth\": \"1993-09-08\",\n  \"phone\": \"555-548-1667\",\n  \"email\": null,\n  \"date_signed\": \"2026-05-11\",\n  \"patient_id\": \"8f65985d-f09\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-8F65985D\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Ludivina884 Medhurst46\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1993-09-08\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4115759997,
+  "total_duration": 120617708531
+}

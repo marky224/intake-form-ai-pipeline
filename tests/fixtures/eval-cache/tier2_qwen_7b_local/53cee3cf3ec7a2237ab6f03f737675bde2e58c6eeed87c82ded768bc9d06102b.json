@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:14:09.630471686Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 303,
+  "eval_duration": 5246925313,
+  "load_duration": 96522759,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Angelika\",\n  \"middle_name\": \"194\",\n  \"last_name\": \"Heathcote\",\n  \"address_street\": \"810 Howell Dale Apt 27\",\n  \"address_apt\": \"27\",\n  \"address_city\": \"Randolph\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02368\",\n  \"date_of_birth\": \"1965-11-05\",\n  \"phone\": \"555-888-6299\",\n  \"email\": null,\n  \"date_signed\": \"2017-01-13\",\n  \"patient_id\": \"83cf6620-7be\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-83CF6620\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Ischemic heart disease (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590785291,
+  "total_duration": 8228203964
+}

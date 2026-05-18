@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:22:18.977292412Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 8,
+  "eval_duration": 121224270,
+  "load_duration": 100554158,
+  "logprobs": null,
+  "message": {
+    "content": "{\"vertical\": \"healthcare\"}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1286,
+  "prompt_eval_duration": 384058997,
+  "total_duration": 2710116607
+}

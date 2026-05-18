@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        28,
+        62,
+        823,
+        476
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSURED&#x27;S 1.0. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-FS8A6077</td><td>Durgan499, Lurline371</td><td>06/21/1979 F</td></tr><tr><td>4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td>SAME</td><td colspan=\"2\">421 Grimes Camp</td><td>Self</td></tr><tr><td>58. CITY</td><td>SC. STATE</td><td>50. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Northbridge</td><td>MA</td><td>00000</td><td>555-337-2349</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>10C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td>14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td></td><td>15. OTHER DATE</td><td></td></tr><tr><td colspan=\"4\">04/20/2026</td></tr><tr><td colspan=\"4\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td colspan=\"4\">Acute viral pharyngitis (disorder)</td></tr><tr><td>25. FEDE RAL TAX 1.0. NUMBER</td><td>20. PATIENT&#x27;S ACCOUNT NO.</td><td colspan=\"2\">27. ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td>f58a6077-761</td><td colspan=\"2\">YES</td></tr><tr><td colspan=\"4\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"4\">Lurline371 Durgan499</td></tr><tr><td colspan=\"4\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td></td><td colspan=\"2\">DATE 04/20/2026</td></tr><tr><td colspan=\"4\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"4\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

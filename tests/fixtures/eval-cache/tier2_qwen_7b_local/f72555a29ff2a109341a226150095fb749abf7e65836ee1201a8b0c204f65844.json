@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:08:40.561103639Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 291,
+  "eval_duration": 5039731781,
+  "load_duration": 95136552,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Seth\",\n  \"middle_name\": \"414\",\n  \"last_name\": \"Turner\",\n  \"address_street\": \"612 Fisher Street\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02115\",\n  \"date_of_birth\": \"1944-05-11\",\n  \"phone\": \"555-495-1740\",\n  \"email\": null,\n  \"date_signed\": \"1954-08-19\",\n  \"patient_id\": \"2474b3ff-db6\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-2474B3FF\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Sudden cardiac death (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590674225,
+  "total_duration": 8032228023
+}

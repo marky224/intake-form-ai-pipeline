@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:39:47.064634839Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 334,
+  "eval_duration": 113814533615,
+  "load_duration": 163559657,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Efrain317\",\n  \"middle_name\": null,\n  \"last_name\": \"Hodkiewicz467\",\n  \"address_street\": \"646 Bogisich Trafficway\",\n  \"address_apt\": \"Suite 92\",\n  \"address_city\": \"Pepperell\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01463\",\n  \"date_of_birth\": \"1989-01-09\",\n  \"phone\": \"555-591-9220\",\n  \"email\": null,\n  \"date_signed\": \"2026-05-08\",\n  \"patient_id\": \"740ee37e-42f\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-740EE37E\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Hodkiewicz467, Efrain317\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1989-01-09\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Gingivitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 3962568398,
+  "total_duration": 119389265533
+}

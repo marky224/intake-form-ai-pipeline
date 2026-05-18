@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:45:13.980690788Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 310,
+  "eval_duration": 105991568662,
+  "load_duration": 168872798,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Letty\",\n  \"middle_name\": \"680\",\n  \"last_name\": \"Predovic534\",\n  \"address_street\": \"607 Wuckert Quay\",\n  \"address_apt\": null,\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02215\",\n  \"date_of_birth\": \"1998-06-14\",\n  \"phone\": \"555-693-5550\",\n  \"email\": null,\n  \"date_signed\": \"2025-05-25\",\n  \"patient_id\": \"cf22cde5-48e\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-CF22ZDE5\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Predovic534, Letty680\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Contraception care (regime/therapy)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4035138257,
+  "total_duration": 111660369094
+}

@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:18:18.340576935Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 293,
+  "eval_duration": 5072122578,
+  "load_duration": 90866000,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Ivan\",\n  \"middle_name\": \"258\",\n  \"last_name\": \"Goodwin327\",\n  \"address_street\": \"640 Prosacco Street Suite 54\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02152\",\n  \"date_of_birth\": \"2025-12-27\",\n  \"phone\": \"555-308-3746\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-04\",\n  \"patient_id\": \"d15b23ed-02d\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-D15B23ED\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590141071,
+  "total_duration": 8067208243
+}

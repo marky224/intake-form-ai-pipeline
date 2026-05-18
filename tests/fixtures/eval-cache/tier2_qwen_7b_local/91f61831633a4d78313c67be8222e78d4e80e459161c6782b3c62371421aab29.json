@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:08:32.522875489Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 309,
+  "eval_duration": 5351644195,
+  "load_duration": 97943960,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Sabra\",\n  \"middle_name\": \"779\",\n  \"last_name\": \"Hane680\",\n  \"address_street\": \"329 Wintheiser Viaduct Apt 34\",\n  \"address_apt\": \"34\",\n  \"address_city\": \"Bourne\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02532\",\n  \"date_of_birth\": \"1972-06-15\",\n  \"phone\": \"555-205-7011\",\n  \"email\": null,\n  \"date_signed\": \"2025-07-17\",\n  \"patient_id\": \"20526ee7-17b\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-20526EE7\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 592862935,
+  "total_duration": 8344640723
+}

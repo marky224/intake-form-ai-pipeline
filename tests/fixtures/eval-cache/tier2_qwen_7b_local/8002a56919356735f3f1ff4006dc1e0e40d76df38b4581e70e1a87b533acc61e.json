@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:19:48.859240982Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 295,
+  "eval_duration": 5109388867,
+  "load_duration": 93044711,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": null,\n  \"middle_name\": null,\n  \"last_name\": \"McLaughlin530\",\n  \"address_street\": \"1090 Crist Spur Suite 38\",\n  \"address_apt\": \"38\",\n  \"address_city\": \"Cambridge\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02140\",\n  \"date_of_birth\": \"2006-03-31\",\n  \"phone\": \"555-240-2097\",\n  \"email\": null,\n  \"date_signed\": \"2025-11-21\",\n  \"patient_id\": \"f32a088b-988\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-F32A088B\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": null,\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590420569,
+  "total_duration": 8057042933
+}

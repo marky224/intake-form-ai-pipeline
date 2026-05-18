@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:17:51.388760475Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 317,
+  "eval_duration": 112514547276,
+  "load_duration": 168658846,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Kurt\",\n  \"middle_name\": \"412\",\n  \"last_name\": \"Legros616\",\n  \"address_street\": \"376 Satterfield Route\",\n  \"address_apt\": null,\n  \"address_city\": \"North Adams\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01247\",\n  \"date_of_birth\": \"1970-05-08\",\n  \"phone\": \"555-342-3747\",\n  \"email\": null,\n  \"date_signed\": \"2025-08-01\",\n  \"patient_id\": \"a060ad2b-a93\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-A060AD2B\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Legros616, Kurt412\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1970-05-08\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Gingivitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4148253339,
+  "total_duration": 118397187490
+}

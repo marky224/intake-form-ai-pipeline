@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:20:13.408659802Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 305,
+  "eval_duration": 5283800299,
+  "load_duration": 93596586,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Nathan\",\n  \"middle_name\": \"164\",\n  \"last_name\": \"Ernsr583\",\n  \"address_street\": \"1043 Kemner Burg Suite 94\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Framingham\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01701\",\n  \"date_of_birth\": \"1962-11-08\",\n  \"phone\": \"555-862-6981\",\n  \"email\": null,\n  \"date_signed\": \"2022-05-12\",\n  \"patient_id\": \"f99a18f9-548\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-F99A18F9\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Overdose (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 594477414,
+  "total_duration": 8265034927
+}
