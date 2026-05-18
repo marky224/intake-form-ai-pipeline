@@ -80,17 +80,17 @@ synthetic-data-patients count="10" seed="42":
 # Chains the three steps end-to-end:
 #   1. Synthea Docker (via synthetic-data-patients 500 42) — ~3-5 min, ~1-2 GB on disk
 #   2. Playwright/Chromium render (one reused browser) — ~10 min, ~25 MB local output
-#   3. boto3 upload to intake-form-ai-pipeline-documents — ~1-2 min, 1000 objects
+#   3. local-store copy into synthetic_data/output/store — sub-second, 1000 files
 #
-# Re-running is safe: content-addressable S3 keys (<sha256>.{png,json}) land at the
-# same paths across runs. See synthetic_data/render/upload.py module docstring for
-# the S3 versioning footnote.
+# V1 is local-first: no S3, no AWS credentials. Re-running is safe —
+# content-addressable paths (<sha256>.{png,json}) land at the same store
+# location across runs, so a partial-failure retry resumes cleanly.
+# (V2 restores the S3 uploader; see synthetic_data/render/upload.py docstring.)
 #
 # Pre-reqs: Docker, Playwright + Chromium (see docs/local-development.md "Synthea
-# workflow"), and AWS credentials resolvable via the boto3 default chain
-# (~/.aws/credentials / env vars / instance profile). No keys are passed on the CLI.
+# workflow"). No AWS.
 #
-# Full Phase 3 healthcare corpus: Synthea 500 patients -> CMS-1500 render -> S3 upload.
+# Full Phase 3 healthcare corpus: Synthea 500 patients -> CMS-1500 render -> local store.
 [unix]
 synthetic-data-render-500: (synthetic-data-patients "500" "42")
     uv run python -m synthetic_data.render.batch \
@@ -98,13 +98,13 @@ synthetic-data-render-500: (synthetic-data-patients "500" "42")
         --output synthetic_data/output/render
     uv run python -m synthetic_data.render.upload \
         --input synthetic_data/output/render \
-        --bucket intake-form-ai-pipeline-documents
+        --store-root synthetic_data/output/store
 
 # Phase 3.5 DocILE business-document corpus: download annotated-trainval -> rasterize +
-# sidecar -> S3 upload under synthetic/business/docile/.
+# sidecar -> local-store copy under synthetic/business/docile/.
 #
 # Default `limit=0` processes the full ~6.6K-document corpus
-# (~33K page PNGs, ~1.6 GB on S3, ~30-60 min wallclock). For smoke runs pass
+# (~33K page PNGs, ~1.6 GB on disk, ~30-60 min wallclock). For smoke runs pass
 # a non-zero cap, e.g. `just synthetic-data-docile-build 5` for 5 documents.
 # `limit` counts documents, not pages — multi-page docs contribute >1 PNG each.
 #
@@ -112,12 +112,11 @@ synthetic-data-render-500: (synthetic-data-patients "500" "42")
 #   * `DOCILE_ACCESS_TOKEN` in `.env` (obtained via docile.rossum.ai, gitignored,
 #     auto-loaded into the recipe environment via `set dotenv-load := true` above).
 #   * Pillow + pypdfium2 (installed by `uv sync`; no system Poppler/Cairo needed).
-#   * AWS credentials resolvable via the boto3 default chain
-#     (~/.aws/credentials / env vars / instance profile). No keys on the CLI.
+#   * No AWS — V1 is local-first.
 #
 # Re-runs are safe: download skips if annotations/ is already populated,
-# rasterize overwrites in place, and uploads land at content-addressable keys
-# (<sha256>.{png,json}) so retries after a partial failure resume cleanly.
+# rasterize overwrites in place, and the store copy lands at content-addressable
+# paths (<sha256>.{png,json}) so retries after a partial failure resume cleanly.
 [unix]
 synthetic-data-docile-build limit="0":
     uv run python -m synthetic_data.docile.download \
@@ -128,7 +127,7 @@ synthetic-data-docile-build limit="0":
         --limit {{limit}}
     uv run python -m synthetic_data.render.upload \
         --input synthetic_data/output/docile/render \
-        --bucket intake-form-ai-pipeline-documents \
+        --store-root synthetic_data/output/store \
         --prefix synthetic/business/docile
 
 # Phase 6 eval harness: progressive-batch sweep over the test split,

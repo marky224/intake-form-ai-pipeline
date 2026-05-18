@@ -14,19 +14,17 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import boto3
 import pytest
-from moto import mock_aws
 
 from synthetic_data.docile._make_pdf_fixture import make_blank_pdf
 from synthetic_data.docile.ingest import (
-    DEFAULT_S3_PREFIX_DOCILE,
+    DEFAULT_STORE_PREFIX_DOCILE,
     ingest_dataset,
     ingest_document,
     main,
 )
 from synthetic_data.docile.parse import load_document
-from synthetic_data.render.upload import upload_render_dir
+from synthetic_data.render.upload import store_render_dir
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "docile"
 ANNOTATIONS_DIR = FIXTURE_DIR / "annotations"
@@ -205,9 +203,9 @@ def test_ingest_dataset_raises_when_pdf_missing(dataset_root: Path, tmp_path: Pa
         ingest_dataset(dataset_root, render_dir)
 
 
-def test_default_docile_s3_prefix() -> None:
-    """Locked DocILE bucket prefix."""
-    assert DEFAULT_S3_PREFIX_DOCILE == "synthetic/business/docile"
+def test_default_docile_store_prefix() -> None:
+    """Locked DocILE store prefix."""
+    assert DEFAULT_STORE_PREFIX_DOCILE == "synthetic/business/docile"
 
 
 def test_main_returns_2_when_dataset_root_missing(
@@ -267,42 +265,33 @@ def test_main_happy_path_logs_doc_count(
 
 
 # ---------------------------------------------------------------------------
-# Slow integration test — ingest one fixture doc end-to-end via moto.
+# Slow integration test — ingest one fixture doc end-to-end into the store.
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.slow
-def test_ingest_then_upload_one_fixture_end_to_end(dataset_root: Path, tmp_path: Path) -> None:
-    """One DocILE doc → ingest → upload via moto, verify S3 state + metadata.
+def test_ingest_then_store_one_fixture_end_to_end(dataset_root: Path, tmp_path: Path) -> None:
+    """One DocILE doc → ingest → store, verify on-disk state + audit trail.
 
-    The DocILE path reuses the existing ``synthetic_data.render.upload``
-    module unchanged, so what we're really verifying here is the
-    contract between the DocILE sidecar builder (this PR) and the
-    refactored ``_load_sidecar`` (this PR's other half): every field
-    the uploader requires (schema_version, image_sha256, source_id)
-    is present in our sidecar.
+    The DocILE path reuses ``synthetic_data.render.upload`` unchanged in
+    shape, so what we're really verifying is the contract between the
+    DocILE sidecar builder and ``_load_sidecar``: every field the store
+    writer requires (schema_version, image_sha256, source_id) is present
+    in our sidecar, and the per-page ``source_id`` round-trips.
     """
     render_dir = tmp_path / "render"
+    store_root = tmp_path / "store"
     processed = ingest_dataset(dataset_root, render_dir, splits=("val",))
     assert processed == 1
 
-    bucket = "intake-form-ai-pipeline-documents-test"
-    with mock_aws():
-        client = boto3.client("s3", region_name="us-east-1")
-        client.create_bucket(Bucket=bucket)
-        results = upload_render_dir(
-            render_dir,
-            bucket,
-            DEFAULT_S3_PREFIX_DOCILE,
-            s3_client=client,
-        )
+    results = store_render_dir(render_dir, store_root, DEFAULT_STORE_PREFIX_DOCILE)
 
-        assert len(results) == 1
-        r = results[0]
-        assert r.source_id == f"{DOC_ID_MINIMAL}-p1"
-        assert r.png_key.startswith(f"{DEFAULT_S3_PREFIX_DOCILE}/")
-        assert r.png_key.endswith(".png")
+    assert len(results) == 1
+    r = results[0]
+    assert r.source_id == f"{DOC_ID_MINIMAL}-p1"
+    assert r.png_path.parent == store_root / DEFAULT_STORE_PREFIX_DOCILE
+    assert r.png_path.suffix == ".png"
+    assert r.png_path.is_file()
 
-        head = client.head_object(Bucket=bucket, Key=r.png_key)
-        assert head["ContentType"] == "image/png"
-        assert head["Metadata"]["source-id"] == r.source_id
+    stored_sidecar = json.loads(r.sidecar_path.read_text(encoding="utf-8"))
+    assert stored_sidecar["source_id"] == r.source_id

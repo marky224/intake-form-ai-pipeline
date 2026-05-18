@@ -141,7 +141,7 @@ The checked-in validation corpus is CMS-1500 only (6 PNGs rendered from the Synt
 
 ## Synthea workflow
 
-The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the uploader pushes the pairs to S3 under content-addressable keys. Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
+The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the store writer copies the pairs into a local content-addressable directory tree. V1 is local-first — no S3, no AWS (V2 restores the S3 uploader; same content-addressable scheme). Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
 
 ### Pre-requisites
 
@@ -161,7 +161,7 @@ The healthcare half of the synthetic corpus is generated end-to-end via three ch
                       libatk1.0-0 libatk-bridge2.0-0 libnss3
   ```
 
-- **AWS credentials** for the upload step, resolvable via the standard boto3 chain (`~/.aws/credentials`, env vars, or instance profile). The CLI never reads keys from arguments.
+- **No AWS** — V1 writes to a local filesystem store; there is no upload step, no credentials.
 
 ### One-shot full corpus (Phase 3 closeout)
 
@@ -171,7 +171,7 @@ The full 500-patient corpus is one recipe:
 just synthetic-data-render-500
 ```
 
-This chains `just synthetic-data-patients 500 42` → `python -m synthetic_data.render.batch` → `python -m synthetic_data.render.upload`. End-to-end takes ~15-20 minutes (Synthea ~3-5 min, render ~10 min, upload ~1-2 min) and produces 1000 S3 objects (500 PNG + 500 JSON, ~25 MB total) under `s3://intake-form-ai-pipeline-documents/synthetic/healthcare/cms1500/`. Local disk usage peaks at ~1-2 GB during the run; the `synthetic_data/output/` tree is gitignored and can be deleted after upload.
+This chains `just synthetic-data-patients 500 42` → `python -m synthetic_data.render.batch` → `python -m synthetic_data.render.upload`. End-to-end takes ~13-15 minutes (Synthea ~3-5 min, render ~10 min, store copy sub-second) and produces 1000 files (500 PNG + 500 JSON, ~25 MB total) under `synthetic_data/output/store/synthetic/healthcare/cms1500/`. The whole `synthetic_data/output/` tree is gitignored and can be deleted and regenerated at will.
 
 ### Step-by-step (smaller runs, debugging)
 
@@ -188,42 +188,42 @@ uv run python -m synthetic_data.render.batch \
     --output synthetic_data/output/render
 # Output: synthetic_data/output/render/<patient-id>-<sha8>.{png,json}
 
-# 3. Upload: push the pairs to S3 under content-addressable keys.
+# 3. Store: copy the pairs into the local content-addressable store.
 uv run python -m synthetic_data.render.upload \
     --input synthetic_data/output/render \
-    --bucket intake-form-ai-pipeline-documents
-# S3 keys: synthetic/healthcare/cms1500/<image_sha256>.{png,json}
+    --store-root synthetic_data/output/store
+# Store paths: synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.{png,json}
 ```
 
-`synthetic-data-patients` accepts a count and seed (`just synthetic-data-patients 500 1337`). The render and upload CLIs always process whatever's in the input directory — there's no built-in limit flag on upload, and `--limit N` on `render.batch` renders the first N patients in sorted-by-filename order.
+`synthetic-data-patients` accepts a count and seed (`just synthetic-data-patients 500 1337`). The render and store CLIs always process whatever's in the input directory — there's no built-in limit flag on the store step, and `--limit N` on `render.batch` renders the first N patients in sorted-by-filename order.
 
-### S3 key shape and idempotency
+### Store path shape and idempotency
 
-The uploader derives each object's key from the PNG's `image_sha256` (already computed by the renderer and recorded in the sidecar — the uploader does not re-hash). PNG and sidecar share the hash and differ only in extension:
+The store writer derives each file's path from the PNG's `image_sha256` (already computed by the renderer and recorded in the sidecar — it does not re-hash). PNG and sidecar share the hash and differ only in extension:
 
 ```text
-synthetic/healthcare/cms1500/<image_sha256>.png
-synthetic/healthcare/cms1500/<image_sha256>.json
+synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.png
+synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.json
 ```
 
-Each object carries `x-amz-meta-source-id` so a HEAD on either key surfaces the source record (a Synthea `patient_id` for healthcare uploads, a DocILE `<doc_id>-p<page>` slug for the business-documents vertical) without fetching the sidecar body. Re-runs land at the same keys (the renderer is deterministic for a given Chromium version), so partial-failure retries resume cleanly without external bookkeeping. The documents bucket is versioned, which records a new object version per PutObject regardless of content equality — that's a footnote, not a benefit; content-addressable keys are about keeping the key namespace clean across re-runs, not about storage dedup.
+The source record (a Synthea `patient_id` for healthcare, a DocILE `<doc_id>-p<page>` slug for business documents) lives in the stored sidecar's `source_id` field — co-located on the local filesystem, so no separate object-metadata stamp is needed (the S3 path's `x-amz-meta-source-id` HEAD optimization was moot once the sidecar is local). Re-runs land at the same paths (the renderer is deterministic for a given Chromium version) and overwrite the identical bytes in place, so partial-failure retries resume cleanly without external bookkeeping.
 
-Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping the pinned Playwright minor version shifts PNG bytes → new hashes → new objects (the old keys become orphans). Acceptable because the corpus is regenerable.
+Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping the pinned Playwright minor version shifts PNG bytes → new hashes → new files (the old ones become orphans until a manual sweep). Acceptable because the corpus is regenerable.
 
 ## DocILE workflow
 
-The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The full KILE annotation set is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` (36 KILE fields, shipped Phase 4 / PR #46) consumes those annotations.
+The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and copy the (PNG, sidecar JSON) pairs into the local store under `synthetic/business/docile/` (V1 local-first; V2 restores the S3 path). The full KILE annotation set is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` (36 KILE fields, shipped Phase 4 / PR #46) consumes those annotations.
 
 ### Pre-requisites
 
 - **`DOCILE_ACCESS_TOKEN` in `.env`** — register at [docile.rossum.ai](https://docile.rossum.ai) to obtain the token (an S3 share-link path segment). The token lives in `.env` (gitignored, NOT mirrored in `.env.example` per token-surface privacy) and is auto-loaded into the recipe environment via `set dotenv-load := true` in the justfile.
 - **pypdfium2 + Pillow** — pure-wheel Python deps, installed by `uv sync`. No system Poppler / Cairo install required (pypdfium2 bundles the PDFium native binary).
-- **AWS credentials** for the upload step, resolvable via the standard boto3 chain — same as the Synthea workflow.
+- **No AWS** — V1 writes to the local filesystem store, same as the Synthea workflow.
 
 ### Scope (locked)
 
 - **Splits downloaded:** `annotated-trainval` only (combined train + val; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 vendored-script commit — see the `download.py` `BUILD_DATASET` note). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "annotated-trainval"` raises immediately.
-- **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the 55-field KILE taxonomy against `BusinessDocumentForm`.
+- **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the KILE taxonomy against `BusinessDocumentForm` (36 implemented fields, from the upstream `KILE_FIELDTYPES`).
 - **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
 
 ### One-shot full corpus (Phase 3.5 closeout)
@@ -232,11 +232,11 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 just synthetic-data-docile-build
 ```
 
-End-to-end ~30-60 minutes wallclock (the bulk is the 1.6 GB ZIP download from `docile-dataset-rossum.s3.eu-west-1.amazonaws.com`). Produces ~33,000 page PNGs + ~33,000 sidecar JSONs (~66,000 S3 objects, ~1.6 GB total) under `s3://intake-form-ai-pipeline-documents/synthetic/business/docile/`. Local disk peaks at ~2 GB during the run; `synthetic_data/output/docile/` is gitignored.
+End-to-end ~30-60 minutes wallclock (the bulk is the 1.6 GB ZIP download from `docile-dataset-rossum.s3.eu-west-1.amazonaws.com` — the dataset host, unrelated to the project's own V2 S3). Produces ~33,000 page PNGs + ~33,000 sidecar JSONs (~66,000 files, ~1.6 GB total) under `synthetic_data/output/store/synthetic/business/docile/`. Local disk peaks at ~3.6 GB during the run (download + render dir + store); `synthetic_data/output/` is gitignored.
 
 ### Smoke run (5-10 documents)
 
-For the first end-to-end against the real bucket, cap document count:
+For the first end-to-end run, cap document count:
 
 ```bash
 just synthetic-data-docile-build 5     # 5 documents from the train split
@@ -252,30 +252,30 @@ just synthetic-data-docile-build 5     # 5 documents from the train split
 uv run python -m synthetic_data.docile.download \
     --dest synthetic_data/output/docile
 
-# 2. Ingest: parse + rasterize + build sidecar per page. No S3 surface.
+# 2. Ingest: parse + rasterize + build sidecar per page. No store surface.
 #    Output: synthetic_data/output/docile/render/<doc_id>-p<N>.{png,json}
 uv run python -m synthetic_data.docile.ingest \
     --dataset-root synthetic_data/output/docile \
     --render-dir synthetic_data/output/docile/render \
     --limit 5
 
-# 3. Upload: push pairs to S3 under content-addressable keys.
+# 3. Store: copy pairs into the local content-addressable store.
 uv run python -m synthetic_data.render.upload \
     --input synthetic_data/output/docile/render \
-    --bucket intake-form-ai-pipeline-documents \
+    --store-root synthetic_data/output/store \
     --prefix synthetic/business/docile
 ```
 
-### S3 key shape
+### Store path shape
 
 Identical to the healthcare path; only the prefix differs:
 
 ```text
-synthetic/business/docile/<image_sha256>.png
-synthetic/business/docile/<image_sha256>.json
+synthetic_data/output/store/synthetic/business/docile/<image_sha256>.png
+synthetic_data/output/store/synthetic/business/docile/<image_sha256>.json
 ```
 
-Each object's `x-amz-meta-source-id` is `<doc_id>-p<page_number>` (1-indexed page), letting a HEAD recover both the DocILE document id and the specific page without fetching the sidecar body.
+The stored sidecar's `source_id` is `<doc_id>-p<page_number>` (1-indexed page), recovering both the DocILE document id and the specific page — read straight from the co-located sidecar (no object-metadata stamp needed on a local filesystem).
 
 ### Notes on the vendored download script
 

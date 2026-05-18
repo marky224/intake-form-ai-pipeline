@@ -49,10 +49,10 @@ dependencies = [
 # that rasterizes each form to PNG. Playwright tests are marked `slow` and
 # skipped in CI (CI does not install the Chromium binary).
 #
-# boto3 + moto are the synthetic-data uploader's deps (Phase 3 PR (c)).
-# boto3 drives the real S3 PutObject calls in `synthetic_data/render/upload.py`;
-# moto's `mock_aws` swaps the boto3 endpoint for an in-process fake so the
-# upload tests run in CI without AWS credentials or network access.
+# (boto3 + moto were the Phase 3 PR (c) S3 uploader's deps. The V1
+# local-first pivot refactored `synthetic_data/render/upload.py` to a
+# local filesystem store — no AWS, no boto3/moto. The S3 implementation
+# is the V2 target; boto3/moto return when V2 restores the uploader.)
 #
 # pypdfium2 + Pillow are the Phase 3.5 DocILE PDF -> PNG rasterizer's deps.
 # pypdfium2 is a pure-wheel binding for PDFium (Chrome's PDF engine) — bundles
@@ -84,8 +84,6 @@ dev = [
     "pre-commit>=4.0",
     "jinja2>=3.1",
     "playwright>=1.40",
-    "boto3>=1.34",
-    "moto>=5.0",
     "pypdfium2>=4.30",
     "pillow>=10.0",
     "ollama>=0.4",

@@ -2,21 +2,22 @@
 
 Ties together the parse + rasterize + sidecar steps into a single
 function that prepares a render directory of (PNG, sidecar) pairs.
-Does NOT upload — the caller invokes
-``synthetic_data.render.upload.upload_render_dir`` on the prepared
-directory once ingestion is complete. Keeping ingest separate from
-upload mirrors the CMS-1500 ``render_batch`` → ``upload_render_dir``
-shape and keeps the S3 surface untouched in pure-function ingestion
+Does NOT write to the store — the caller invokes
+``synthetic_data.render.upload.store_render_dir`` on the prepared
+directory once ingestion is complete. Keeping ingest separate from the
+store step mirrors the CMS-1500 ``render_batch`` → ``store_render_dir``
+shape and keeps the store surface untouched in pure-function ingestion
 tests.
 
 A single render directory holds every doc's pages flat:
 ``<render_dir>/<doc_id>-p<N>.{png,json}``. The same shape
 ``find_render_pairs`` already expects from the CMS-1500 renderer — so
-the uploader needs zero DocILE-specific code paths.
+the store writer needs zero DocILE-specific code paths.
 
-Default S3 prefix is ``synthetic/business/docile`` — mirrors the
+Default store prefix is ``synthetic/business/docile`` — mirrors the
 healthcare ``synthetic/healthcare/cms1500`` prefix one directory level
-up, keeping a clean per-vertical namespace on the documents bucket.
+up, keeping a clean per-vertical namespace in the local store (V2
+restores the S3 bucket; the prefix shape is identical either way).
 """
 
 from __future__ import annotations
@@ -36,13 +37,13 @@ from synthetic_data.docile.parse import (
 from synthetic_data.docile.rasterize import RasterizedPage, rasterize_document
 from synthetic_data.docile.sidecar import build_docile_sidecar
 
-DEFAULT_S3_PREFIX_DOCILE = "synthetic/business/docile"
-"""S3 prefix DocILE artifacts land under in the documents bucket.
+DEFAULT_STORE_PREFIX_DOCILE = "synthetic/business/docile"
+"""Store prefix DocILE artifacts land under in the local store.
 
-Parallel to ``synthetic_data.render.upload.DEFAULT_S3_PREFIX`` for
+Parallel to ``synthetic_data.render.upload.DEFAULT_STORE_PREFIX`` for
 healthcare (``synthetic/healthcare/cms1500``). The two-level
-``synthetic/<vertical>/<source>`` shape keeps the bucket browsable by
-vertical."""
+``synthetic/<vertical>/<source>`` shape keeps the store browsable by
+vertical (V2 restores the S3 bucket; prefix shape unchanged)."""
 
 
 def ingest_document(
@@ -158,10 +159,10 @@ def ingest_dataset(
 def main(argv: list[str] | None = None) -> int:
     """Ingest DocILE annotated documents into a render directory.
 
-    Does NOT upload. Pipe the resulting render directory into
-    ``python -m synthetic_data.render.upload --prefix
-    synthetic/business/docile`` to get the pairs to S3 (the
-    ``synthetic-data-docile-build`` ``just`` recipe chains the two).
+    Does NOT write to the store. Pipe the resulting render directory
+    into ``python -m synthetic_data.render.upload --prefix
+    synthetic/business/docile`` to copy the pairs into the local store
+    (the ``synthetic-data-docile-build`` ``just`` recipe chains the two).
 
     Usage::
 

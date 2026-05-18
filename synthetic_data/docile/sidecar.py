@@ -1,13 +1,14 @@
 """Build per-page sidecar JSON for a DocILE-rasterized PNG.
 
 The DocILE ingestion path produces (PNG, sidecar) pairs that the
-existing ``synthetic_data.render.upload`` module uploads to S3 under
-the same content-addressable scheme as the CMS-1500 renderer. The
-sidecar schema (v1, locked) requires top-level ``image_sha256`` +
-``source_id`` + ``page`` so the generic uploader can route any
+``synthetic_data.render.upload`` module copies into the local
+content-addressable store under the same scheme as the CMS-1500
+renderer (V1 is local-first; V2 restores the S3 path). The sidecar
+schema (v1, locked) requires top-level ``image_sha256`` +
+``source_id`` + ``page`` so the generic store writer can route any
 vertical's pairs without branching. DocILE-specific annotations (the
-55-field KILE taxonomy for this page) live under a ``docile``
-namespace so the top-level schema stays portable.
+KILE taxonomy for this page) live under a ``docile`` namespace so the
+top-level schema stays portable.
 
 The sidecar is **per page**, not per document: a 3-page PDF produces
 3 (PNG, sidecar) pairs, each with its own ``image_sha256`` and
@@ -23,7 +24,7 @@ from synthetic_data.docile.rasterize import RasterizedPage
 
 SIDECAR_SCHEMA_VERSION = 1
 """Sidecar schema version. Matches the v1 contract the renderer +
-uploader already agree on; bump in lockstep with
+store writer already agree on; bump in lockstep with
 ``synthetic_data.render.upload.SIDECAR_SCHEMA_VERSION_SUPPORTED`` only
 on a deliberate breaking change."""
 
