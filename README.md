@@ -1,6 +1,6 @@
 # intake-form-ai-pipeline
 
-> **V1 (local-first) is complete.** A self-improving intake-form extraction pipeline running end-to-end on consumer GPUs. **V2 — the cloud rebuild (deployed demo at `ai-intake.markandrewmarquez.com`, BAA-eligible AWS tiers) — is the next phase of work.** Last updated 2026-05-18.
+> 🚧 **In active development.** A self-improving intake-form extraction pipeline. The V1 (local-first) cascade runs end-to-end on consumer GPUs; the broader evaluation corpus, the full F1-over-time measurement, and the local Tier-3b model are in progress. **V2 — the cloud rebuild (deployed demo at `ai-intake.markandrewmarquez.com`, BAA-eligible AWS tiers) — is the subsequent phase.** Last updated 2026-05-18.
 
 ## What it is
 
@@ -12,9 +12,11 @@ V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB co
 
 ![F1-over-time across progressive alias-table batches](docs/assets/f1-over-time.svg)
 
+> **Preliminary — 6-document corpus.** This chart is an early, deliberately tiny sample (the 6 committed CMS-1500 fixtures). It is early-saturating *because* the corpus is small, not because the hardware is. The fuller curve comes from the deferred 500-document local corpus, which is in progress; the Tier-3 model is also currently a documented consumer-VRAM quantization compromise (registry Q4_K_M) that the in-progress local Tier-3b upgrade will lift. The *shape* below is a property of alias coverage and cascade architecture, not GPU power — what changes it is corpus size and Tier-3 precision, both in flight.
+
 The interesting part of this project is not that the curve goes up. It's that measurement contradicted the pitch and the repo reports the contradiction.
 
-The pre-build story was "end-to-end F1 climbs as the correction loop runs." Phase 6 measurement on the committed corpus showed that's false for a cascade with strong escalation tiers: **end-to-end cascade F1 is flat at ≈0.78**, invariant to alias coverage, because the Qwen Tier 2/3 tiers recover whatever the alias layer missed. What alias growth actually buys is fewer escalations — so the plotted headline curve is **Tier-1-stage F1** (≈0.22 → ≈0.32, climbing then asymptoting), the layer the alias table governs, and the flat end-to-end number is persisted alongside as a cascade-robustness statistic rather than dressed up as a climbing curve. The defensible claim is the measured one: the alias loop demonstrably reduces escalation load, and the cascade is robust to alias coverage. `docs/eval-methodology.md` has the mechanism and the full two-stage finding.
+The pre-build story was "end-to-end F1 climbs as the correction loop runs." Phase 6 measurement on the committed corpus showed that's false for a cascade with strong escalation tiers: **end-to-end cascade F1 is flat at ≈0.78**, invariant to alias coverage, because the Qwen Tier 2/3 tiers recover whatever the alias layer missed. What alias growth actually buys is fewer escalations — so the plotted headline curve is **Tier-1-stage F1** (≈0.22 → ≈0.32, climbing then asymptoting), the layer the alias table governs, and the flat end-to-end number is persisted alongside as a cascade-robustness statistic rather than dressed up as a climbing curve. The defensible claim is the measured one: the alias loop demonstrably reduces escalation load, and the cascade is robust to alias coverage — both stated as preliminary on this corpus size. `docs/eval-methodology.md` has the mechanism and the full two-stage finding.
 
 That posture — measure honestly, publish what you find, build the guardrails that keep the published artifact from drifting — runs through the whole project.
 
@@ -75,7 +77,7 @@ The whole system persists to one SQLite file (extracted fields, eval log, ColQwe
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 548 tests (529 fast + 19 slow)
+just test           # 547 tests (528 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the 6
@@ -101,7 +103,7 @@ intake-form-ai-pipeline/
 ├── demo/                    # Streamlit: data.py (testable core) + app.py (view)
 ├── synthetic_data/          # synthea/, render/ (Playwright CMS-1500), docile/
 ├── infra/                   # terraform/ (V2 target; bootstrap live) + bicep/ (no-deploy parallel)
-├── tests/                   # 548 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+├── tests/                   # 547 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 └── docs/                    # architecture-deep-dive, hipaa-architecture, eval-methodology,
                              #   production-roadmap, local-development
 ```
