@@ -1,6 +1,6 @@
 # Architecture deep-dive
 
-Detailed view of the cascade orchestration, routing layer, and data model. Sections fill out as the corresponding phases land; the README is the canonical entry point until then.
+Detailed view of the cascade orchestration, routing layer, and data model. V1 sections describe the shipped local build (Phases 4–9 complete); V2 sections are explicitly marked and describe the deferred cloud rebuild's target. The README is the technical entry point; this document is the depth layer.
 
 The project ships in two iterations. **V1** is the active local-first build — three local cascade tiers (PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B), local Python orchestrator, plain SQLite for storage (ColQwen multivectors as BLOB + brute-force MaxSim, not sqlite-vec), no AWS. **V2** is the deferred cloud rebuild — adds BAA-eligible AWS services in the middle of the cascade (Textract) and at the top (Bedrock Sonnet), wires the local tiers to deployed Lambda via Cloudflare Tunnel, and stands up the public demo at `ai-intake.markandrewmarquez.com`. Sections below are labeled V1 / V2 / both as appropriate.
 
@@ -109,11 +109,53 @@ The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aur
 
 ## Sequence diagrams
 
-> Lands in Phase 10 polish. Mermaid or Excalidraw export covering: V1 happy path (Tier 1 only), V1 low-confidence escalation through Tier 2 → Tier 3, V2 happy path with cloud tiers wired, V2 frontier-fallback escalation through Tier 3b, two-stage classifier with Stage 2 fallback (V1 local, V2 Bedrock Nova Lite), and the full failure-handling tree.
+**V1 happy path (Tier 1 resolves everything):**
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant R as Stage 1 router
+    participant T1 as Tier 1 (PaddleOCR-VL)
+    O->>R: OCR text (page 1)
+    R-->>O: vertical + schema (weighted score >= N)
+    O->>T1: extract(image, form_cls)
+    T1-->>O: fields @ confidence >= 0.85
+    O->>O: compute_form_confidence -> min >= 0.80
+    O-->>O: status=extracted (auto-approve)
+```
+
+**V1 low-confidence escalation (Tier 1 → Tier 2 → Tier 3):**
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant T1 as Tier 1 (PaddleOCR-VL)
+    participant T2 as Tier 2 (Qwen 2.5 VL 7B)
+    participant T3 as Tier 3 (Qwen 2.5 VL 32B)
+    participant Q as Review queue
+    O->>T1: extract(image, form_cls)
+    T1-->>O: some fields conf < 0.85
+    O->>T2: re-extract narrowed gap fields
+    T2-->>O: coerced scalar @ conf 0.5 (< 0.80)
+    O->>T3: re-extract still-low fields
+    T3-->>O: best-effort fields
+    O->>O: compute_form_confidence -> min < 0.80
+    O->>Q: enqueue (full per-tier provenance)
+```
+
+The Stage 2 classifier fallback (V1 local Qwen 7B; V2 Bedrock Nova Lite) slots in front of the Tier-1 call when the Stage 1 weighted vocabulary score falls below `N`. The per-tier failure tree (retry-then-escalate: 4xx fails immediately, 5xx/timeout retries 3× with 1/2/4 s backoff + jitter then escalates, schema-validation failure retries once with a stricter prompt then escalates; Tier-3 exhaustion → review queue) is described under "Step Functions state machine layout (V2)" — the V1 Python orchestrator implements the same tree in-process. V2 inserts Tier 2-cloud (Textract) between V1 Tier 2 and Tier 3 and Tier 3b (Bedrock Sonnet) after V1 Tier 3; the escalation shape is identical, with two additional confidence boundaries.
 
 ## Schema introspection patterns
 
-> Lands in Phase 4 alongside the provider implementations. The Pydantic v2 schemas are introspected at runtime to drive: prompt template generation per vertical, alias-table vocabulary extraction for the Stage 1 classifier, and the `compute_form_confidence` aggregation that decides auto-approval vs review-queue. Section will cover `get_field_metadata`, `field_metadata_as_dict`, and the `FieldMeta`-keyed canonical-name invariant enforced at module import. Same module surface works in both V1 (called directly by the local orchestrator) and V2 (called from Lambda handlers).
+The Pydantic v2 schemas in `intake_schemas.py` are introspected at runtime so the cascade never hardcodes per-vertical field lists. Every field is `Annotated[ExtractedField[T], FieldMeta(...)]`; the introspection surface reads that annotation:
+
+- **`get_field_metadata(model_class) -> dict[str, FieldMeta]`** resolves `typing.get_type_hints(model_class, include_extras=True)` and pulls the `FieldMeta` out of each hint's `__metadata__`. Subclass redeclaration wins (a `HealthcareIntakeForm.first_name` overriding the base to `DataClass.PHI` resolves correctly), so the same call works for every vertical including `BusinessDocumentForm`'s 36 KILE fields.
+- **The Tier 2/3 prompted-VL providers** (`cascade/providers/_qwen_vl.py`) use the same `get_type_hints(..., include_extras=True)` walk to build `{field_name: (inner_type, FieldMeta)}`, then emit a JSON schema for Ollama's constrained decoding and a human-readable prompt from each field's canonical name + description — zero per-vertical wiring.
+- **The Tier 1 provider** (`cascade/providers/tier1_paddleocr_local.py`) calls `get_field_metadata` to map a form's canonical names onto `alias_table_seed.json` records, building the `{canonical_name: [aliases]}` table its layout-to-fields post-processor matches against.
+- **`field_metadata_as_dict(meta)`** flattens a `FieldMeta` for serialization/telemetry; **`compute_form_confidence(form)`** walks populated `ExtractedField`s (recursing into list-valued models) to return `{min, mean, field_count, blank_count, unattempted_count}` — `min` drives the auto-approval-vs-review-queue gate.
+- **`_validate_canonical_names()`** runs at module import and raises if any `FieldMeta.canonical_name` disagrees with its attribute name, so a typo fails fast at startup rather than silently breaking the alias join.
+
+The same module surface is called directly by the V1 local orchestrator and (in V2) from Lambda handlers — it has no V1/V2 branch.
 
 ## Data model
 

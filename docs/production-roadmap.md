@@ -120,4 +120,4 @@ Defer to production deployment. Synthetic data doesn't expose this requirement; 
 
 Items on this list are not on a schedule. The build's main instructions document is the source of truth for what's locked and shipping; this document is where deferred items live so they don't get lost. Revisit triggers are stated per item — when the trigger fires, that's when the item moves from this document into a real decision.
 
-Phase 10 polish includes a sweep of this document to verify nothing has rotted (e.g., upstream models or services changing in ways that invalidate the deferred reasoning) and to add anything new that emerged during Phases 4–9 build work.
+This document was swept at Phase 10 polish (2026-05-18): every deferred item was re-checked against shipped reality and none had rotted. The emergent Phases 4–9 findings are already folded in above — the Qwen3-VL Tier-3 upgrade candidate's revisit condition 1 became "Realized (2026-05-17)" when the consumer-VRAM Q4_K_M trade-off was measured, and the Bedrock adapter-import item now records the Phase 9 identity-baseline result that keeps it deferred. No new deferred items emerged from Phases 4–9 beyond those.

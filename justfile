@@ -238,11 +238,13 @@ tf-apply:
     terraform -chdir=infra/terraform apply
 
 # Database: print the SQL needed to initialize demo/eval/staging schemas + pgvector.
-# Phase 2 PR 4 doesn't ship a connection method — bastion / Session Manager / Lambda
-# runner lands in a follow-up PR alongside the compute layer. This recipe is a
-# documentation stub so the schema-init step is visible in the build flow.
+# V2-only recipe (V1 is local-first SQLite — no Aurora). The schema-init
+# connection mechanism (bastion / Session Manager / Lambda runner) is a
+# deferred V2 compute-layer item, tracked in docs/production-roadmap.md; this
+# recipe is intentionally a printable documentation stub until V2 builds it.
 db-init-schemas:
-    @echo "-- Run against the Aurora cluster (connection method TBD in follow-up PR):"
+    @echo "-- V2-only: run against the Aurora cluster once the V2 compute layer"
+    @echo "-- ships a connection mechanism (deferred — see docs/production-roadmap.md):"
     @echo "CREATE SCHEMA IF NOT EXISTS demo;"
     @echo "CREATE SCHEMA IF NOT EXISTS eval;"
     @echo "CREATE SCHEMA IF NOT EXISTS staging;"

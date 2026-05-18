@@ -25,7 +25,7 @@ from synthetic_data.synthea.parse import extract_patient, find_patient_bundles, 
 
 pytestmark = pytest.mark.slow
 
-FIXTURE_DIR = Path(__file__).parent / "tests" / "fixtures" / "synthea" / "fhir"
+FIXTURE_DIR = Path(__file__).parent / "fixtures" / "synthea" / "fhir"
 
 
 @pytest.fixture(scope="module")

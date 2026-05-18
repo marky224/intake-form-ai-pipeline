@@ -24,7 +24,7 @@ from synthetic_data.synthea.parse import (
     load_bundle,
 )
 
-FIXTURE_DIR = Path(__file__).parent / "tests" / "fixtures" / "synthea" / "fhir"
+FIXTURE_DIR = Path(__file__).parent / "fixtures" / "synthea" / "fhir"
 
 
 @pytest.fixture(scope="session")

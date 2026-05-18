@@ -33,7 +33,7 @@ from synthetic_data.docile.parse import (
     load_document,
 )
 
-FIXTURE_DIR = Path(__file__).parent / "tests" / "fixtures" / "docile"
+FIXTURE_DIR = Path(__file__).parent / "fixtures" / "docile"
 ANNOTATIONS_DIR = FIXTURE_DIR / "annotations"
 
 DOC_ID_SINGLE = "aaa000000000000000000001"
