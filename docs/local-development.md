@@ -212,7 +212,7 @@ Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping th
 
 ## DocILE workflow
 
-The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The 55-field KILE taxonomy is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` consumes those annotations in Phase 4.
+The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and upload the (PNG, sidecar JSON) pairs to S3 under `synthetic/business/docile/`. The full KILE annotation set is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` (36 KILE fields, shipped Phase 4 / PR #46) consumes those annotations.
 
 ### Pre-requisites
 
@@ -222,7 +222,7 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 
 ### Scope (locked)
 
-- **Splits downloaded:** `labeled-trainval` only (combined train + val). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "labeled-trainval"` raises immediately.
+- **Splits downloaded:** `annotated-trainval` only (combined train + val; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 vendored-script commit — see the `download.py` `BUILD_DATASET` note). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "annotated-trainval"` raises immediately.
 - **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the 55-field KILE taxonomy against `BusinessDocumentForm`.
 - **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
 
@@ -285,8 +285,12 @@ The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.e
 
 ## Local-only mode for the quickstart
 
-> Lands in Phase 7-V1. The quickstart `just demo` command runs the cascade against local fixture documents using cached responses (default) or live local inference (with `EVAL_LIVE=true`); no cloud calls, no AWS credentials needed. This is the default V1 demo shape — alternatives at Phase 7-V1 entry are CLI + screenshot artifacts or no-demo / eval-report-only. This section will document the cached fixture format, how to add new local-only test documents, and how to switch between cached-replay and live-local modes via environment flags.
+`just demo` (Phase 7-V1, shipped) runs the real three-tier cascade against the six committed CMS-1500 fixtures through the per-tier replay cache — cached responses by default, live local inference with `EVAL_LIVE=true`; no cloud calls, no AWS credentials either way. The cached path is `$0`, deterministic, and needs nothing on the GPU.
+
+- **Cached fixture format.** Per-tier replay lives at `tests/fixtures/eval-cache/<provider>/<image_sha256>.json` — one file per (provider, document), keyed on the PNG's sha256. `evals/fixtures_manifest.json` pins the alias-seed version, per-provider model identities, and the document id list to that cache. The demo's `demo/data.py` is a Streamlit-free, unit-tested core that drives the cascade into a throwaway temp DB; `demo/app.py` is a thin view over it.
+- **Adding a local-only test document.** Render or drop a PNG into `tests/fixtures/eval-validation/cms1500/`, then regenerate that document's cache entries with `EVAL_LIVE=true` (see "Generating eval-cache fixtures" above) and commit the new `tests/fixtures/eval-cache/` files.
+- **Switching modes.** Default is cached replay. Prefix `EVAL_LIVE=true` (`EVAL_LIVE=true just demo` / `just eval-live`) to bypass the cache and hit the live local Ollama + PaddleOCR models. CI never sets `EVAL_LIVE`, so committed fixtures drive every CI run.
 
 ## Coexistence with general-purpose Ollama workflows
 
-> Lands incrementally as the cascade orchestrator is built. The locked architectural pattern: Mark's existing Gemma 4 31B general-purpose workflow shares the GPU resources with the cascade. `OLLAMA_KEEP_ALIVE=10m` controls model unload behavior; the cascade orchestrator handles its own model loading/unloading via per-request `keep_alive: "1h"` overrides during eval batches. ~60–90 second swap latency between Gemma and Qwen is accepted.
+The cascade shares the GPU box with whatever general-purpose Ollama model is already resident (e.g. a local chat model). `OLLAMA_KEEP_ALIVE` controls default unload behavior; the cascade orchestrator overrides it per request with `keep_alive: "1h"` during eval batches so models don't unload between consecutive documents. The orchestrator processes the cascade tier-batched (all Tier 1 first, then escalated docs through Tier 2, then Tier 3) so Tier 2 (Qwen 7B, ~6 GB) and Tier 3 (Qwen 32B, ~31 GB across the pool) never need to co-reside. A ~60–90 s swap latency when switching between a general-purpose model and the Qwen cascade tiers is accepted — eval batches amortize it across the whole run.

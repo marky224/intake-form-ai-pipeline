@@ -22,7 +22,7 @@ from synthetic_data.docile.rasterize import (
     rasterize_document,
 )
 
-FIXTURE_PDF_DIR = Path(__file__).parent / "tests" / "fixtures" / "docile" / "pdfs"
+FIXTURE_PDF_DIR = Path(__file__).parent / "fixtures" / "docile" / "pdfs"
 FIXTURE_DOC_ID = "aaa000000000000000000003"
 FIXTURE_PDF = FIXTURE_PDF_DIR / f"{FIXTURE_DOC_ID}.pdf"
 

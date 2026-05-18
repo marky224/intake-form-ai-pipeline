@@ -499,7 +499,7 @@ def test_cli_unpaired_files_propagates_error(
 # drift. Needs Chromium installed locally; CI skips via `-m "not slow"`.
 # ---------------------------------------------------------------------------
 
-SYNTHEA_FIXTURE_DIR = Path(__file__).parent / "tests" / "fixtures" / "synthea" / "fhir"
+SYNTHEA_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "synthea" / "fhir"
 
 
 @pytest.mark.slow

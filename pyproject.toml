@@ -154,6 +154,11 @@ extend-exclude = '''
 [tool.pytest.ini_options]
 minversion = "8.0"
 python_files = ["test_*.py"]
+testpaths = ["tests"]
+# First-party packages live at the repo root (flat layout, no src/); the test
+# suite lives under tests/. pythonpath keeps `import intake_schemas`,
+# `from cascade import ...`, etc. resolvable regardless of where pytest is run.
+pythonpath = ["."]
 addopts = [
     "--strict-markers",
     "-ra",

@@ -39,4 +39,6 @@ Pre-pivot architecture history is documented in the project's internal `.claude-
 
 ## V2 healthcare-specific routing rules
 
-> Lands in V2 Phase 5. Section will enumerate the per-DataClass routing predicates and the Stage 1 vocabulary-matching threshold N (starting value 1.0, tuned in V1 Phase 5 spot-check against ~50 hand-classified docs and again in Phase 6 eval).
+> Lands in V2 Phase 5, alongside `HIPAA_MODE`-flag activation. This section will enumerate the per-`DataClass` routing predicates as live runtime restrictions rather than the V1/V2 startup-time defense-in-depth assertion described above — `PUBLIC` → any provider, `PII` → BAA-only when `HIPAA_MODE=on`, `PHI`/`PCI` → BAA-eligible always — and the conditions under which a future non-BAA cost-optimized provider (e.g. for non-healthcare business documents) would be admitted to the routing table without violating the PHI/PCI invariant.
+>
+> The Stage 1 vocabulary-matching threshold `N` (starting value 1.0) governs the BAA boundary's first line: only documents scoring below `N` fall through to the Stage 2 LLM (V1 local Qwen 7B; V2 Bedrock Nova Lite). V1 Phases 5–6 shipped with `N = 1.0` validated on the 6 committed CMS-1500 (weighted distinctive-vocab score ≈5.5 ≫ 1.0); the broader ~50-hand-classified-doc spot-check is a deferred-local-corpus follow-up (it needs the 500-doc render deliverable), not a V2 prerequisite. V2 Phase 5 re-tunes `N` against the cloud routing table and the larger corpus once both exist.
