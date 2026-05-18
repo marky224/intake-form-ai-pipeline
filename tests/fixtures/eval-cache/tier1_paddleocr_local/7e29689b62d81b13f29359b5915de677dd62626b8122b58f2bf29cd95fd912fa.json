@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        62,
+        823,
+        481
+      ],
+      "block_content": "<table><tr><td>1.INSURANCE PLAN</td><td>1A.INSURED&#x27;S I.O.M.NBER</td><td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td><td>3.PATIENT&#x27;S BIRTH DATE / SEX</td><td></td></tr><tr><td>Other</td><td>SYN-99D263F7</td><td>Marin855, Marisol435</td><td></td><td>11/19/1987</td><td>F</td></tr><tr><td>4.INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td><td>5.PATIENT&#x27;S ADDRESS (STREET)</td><td></td><td>6.RELATIONSHIP TO INSURED</td><td></td></tr><tr><td>SAME</td><td></td><td>328 Lakin Junction Suite 69</td><td></td><td>Self</td><td></td></tr><tr><td>5B.CITY</td><td></td><td>50.ZIP CODE</td><td></td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td><td></td></tr><tr><td>Gloucester</td><td></td><td>01930</td><td></td><td>555-495-6470</td><td></td></tr><tr><td>18A.EMPLOYMENT</td><td>18B.AUTOACIDENT</td><td>19C.OTHER ACCIDENT</td><td></td><td>11.INSURED&#x27;S POLICY / GROUP / FECA NO.</td><td></td></tr><tr><td>No</td><td>No</td><td>No</td><td></td><td></td><td></td></tr><tr><td>14.DATE OF CURRENT ILLNESS, INXJURY, OR PREGNANCY (LMP)</td><td></td><td></td><td>15.OTHERDATE</td><td></td><td></td></tr><tr><td>10/31/2023</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>21.DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Sterilization requested (situation)</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>25.FEDERALTAX I.O.MUMBER</td><td>26.PATIENT&#x27;S ACCOUNT NO.</td><td></td><td></td><td>27.ACCEPT ASSIGMENT</td><td></td></tr><tr><td>12-3456789</td><td>99d263f7-e9f</td><td></td><td></td><td>YES</td><td></td></tr><tr><td>12.Patient&#x27;s or Authorized Person&#x27;s Signature</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Marisol435 Marin855</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>SIGNED</td><td></td><td></td><td></td><td>DATE</td><td></td></tr><tr><td></td><td></td><td></td><td></td><td>10/31/2023</td><td></td></tr><tr><td colspan=\"6\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"6\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

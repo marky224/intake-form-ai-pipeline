@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:43:22.299644007Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 303,
+  "eval_duration": 102956803424,
+  "load_duration": 169247345,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Renda520\",\n  \"middle_name\": null,\n  \"last_name\": \"Jones311\",\n  \"address_street\": \"492 Frami Lodge Unit 05\",\n  \"address_apt\": null,\n  \"address_city\": \"Lincoln\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"2024-03-04\",\n  \"phone\": \"555-322-4486\",\n  \"email\": null,\n  \"date_signed\": \"2026-03-29\",\n  \"patient_id\": \"ceeealal-bb5\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-CEEEA1A1\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Jones311, Renda520\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Fish (substance)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 3958677974,
+  "total_duration": 108529083133
+}

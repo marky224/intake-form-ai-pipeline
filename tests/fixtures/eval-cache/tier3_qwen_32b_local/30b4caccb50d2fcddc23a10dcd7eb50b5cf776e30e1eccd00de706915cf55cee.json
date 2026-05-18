@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T20:06:23.086843191Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 312,
+  "eval_duration": 107031673988,
+  "load_duration": 117108689,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Lynwood354\",\n  \"middle_name\": null,\n  \"last_name\": \"Smitham825\",\n  \"address_street\": \"376 Marvin Parade\",\n  \"address_apt\": \"Suite 0\",\n  \"address_city\": \"Stoneham\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02180\",\n  \"date_of_birth\": \"1943-04-05\",\n  \"phone\": \"555-847-3555\",\n  \"email\": null,\n  \"date_signed\": \"2026-05-12\",\n  \"patient_id\": \"ec69ac53-d13\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-EC69AC53\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Smitham825, Lynwood354\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1943-04-05\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4041806875,
+  "total_duration": 112654869613
+}

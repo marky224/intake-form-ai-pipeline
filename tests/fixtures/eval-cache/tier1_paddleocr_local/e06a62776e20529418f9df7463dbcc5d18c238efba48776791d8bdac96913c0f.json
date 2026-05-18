@@ -1,0 +1,40 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        40,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        55,
+        825,
+        503
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A.INSURED&#x27;S I.O. NUMBER</td><td colspan=\"3\">2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"2\">3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-AD048FAB</td><td colspan=\"3\">Ortiz186, Nolan344</td><td>01/09/1974</td><td>M</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"3\">5. PATIENT&#x27;S ADDRESS (STREET)</td><td colspan=\"2\">6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td colspan=\"3\">937 Auer Center Suite 41</td><td colspan=\"2\">Self</td></tr><tr><td colspan=\"2\">5B. CITY</td><td>5C. STATE</td><td colspan=\"2\">5D. ZIP CODE</td><td colspan=\"2\">5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td colspan=\"2\">Boston</td><td>MA</td><td colspan=\"2\">02131</td><td colspan=\"2\">555-794-2957</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td colspan=\"3\">10C. OTHER ACCIDENT</td><td colspan=\"2\">11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td colspan=\"3\">No</td><td colspan=\"2\"></td></tr><tr><td colspan=\"4\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LJP)</td><td colspan=\"3\">15. OTHER DATE</td></tr><tr><td colspan=\"7\">07/16/2025</td></tr><tr><td colspan=\"7\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW) Gingivitis (disorder)</td></tr><tr><td>25. FEDERAL TAX I.O. NUMBER</td><td colspan=\"4\">20. PATIENT&#x27;S ACCOUNT NO.</td><td colspan=\"2\">27. ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td colspan=\"4\">ad048fab-ae8</td><td colspan=\"2\">YES</td></tr><tr><td colspan=\"7\">12. PATIENT&#x27;S OR Authorized Person&#x27;s Signature Nolan344 Ortiz186</td></tr><tr><td colspan=\"7\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td colspan=\"5\">SIGNED</td><td colspan=\"2\">DATE 07/16/2025</td></tr><tr><td colspan=\"7\">31. Signature of Physician or Supplier Including Degrees or Credentials Synthetic Provider, MD</td></tr><tr><td colspan=\"7\">Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

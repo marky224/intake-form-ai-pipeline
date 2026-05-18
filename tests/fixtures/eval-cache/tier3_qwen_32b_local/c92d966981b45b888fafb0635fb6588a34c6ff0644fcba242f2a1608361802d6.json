@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:47:38.677758689Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 330,
+  "eval_duration": 118118554463,
+  "load_duration": 146161151,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Carie544\",\n  \"middle_name\": \"Wiegand701\",\n  \"last_name\": \"Wiegand701\",\n  \"address_street\": \"615 Greenfelder Trail\",\n  \"address_apt\": \"Apt 5\",\n  \"address_city\": \"Methuen\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01841\",\n  \"date_of_birth\": \"1990-11-18\",\n  \"phone\": \"555-397-5904\",\n  \"email\": null,\n  \"date_signed\": \"2026-05-17\",\n  \"patient_id\": \"7e5ef194-7a6\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-7E5EF194\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Wiegand701, Carie544\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1990-11-18\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Normal pregnancy (finding)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4201851540,
+  "total_duration": 123982784086
+}

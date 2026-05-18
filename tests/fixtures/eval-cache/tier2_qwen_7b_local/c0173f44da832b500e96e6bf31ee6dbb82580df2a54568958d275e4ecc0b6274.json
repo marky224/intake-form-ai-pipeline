@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:15:08.203813039Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 308,
+  "eval_duration": 5333215936,
+  "load_duration": 94380085,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Jaskolski\",\n  \"middle_name\": \"B\",\n  \"last_name\": \"867\",\n  \"address_street\": \"554 Yost Underpass Unit 38\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Medford\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02155\",\n  \"date_of_birth\": \"2006-12-11\",\n  \"phone\": \"555-994-8442\",\n  \"email\": null,\n  \"date_signed\": \"2026-02-09\",\n  \"patient_id\": \"9255b577-57e\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-9255B577\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Jaskolski867, Laraine204\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590517719,
+  "total_duration": 8312184666
+}

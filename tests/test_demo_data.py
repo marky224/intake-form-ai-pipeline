@@ -42,7 +42,9 @@ def test_escalation_gate_matches_locked_cascade_value() -> None:
 
 def test_list_demo_docs_returns_committed_cms1500_corpus() -> None:
     docs = list_demo_docs()
-    assert len(docs) == 6
+    # 92 = the patient-stratified test split of the 584-doc local corpus
+    # (was the legacy 6-doc slice before the broad-corpus eval).
+    assert len(docs) == 92
     for d in docs:
         assert isinstance(d, DemoDoc)
         assert d.png_path.is_file()

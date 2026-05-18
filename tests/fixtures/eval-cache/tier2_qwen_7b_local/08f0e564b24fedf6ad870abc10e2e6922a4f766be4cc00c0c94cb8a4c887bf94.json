@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:08:07.634752121Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 302,
+  "eval_duration": 5229005298,
+  "load_duration": 87339860,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Crist\",\n  \"middle_name\": \"667\",\n  \"last_name\": \"Clark193\",\n  \"address_street\": \"391 Dach Mission Unit 21\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Taunton\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02767\",\n  \"date_of_birth\": \"1952-01-18\",\n  \"phone\": \"555-101-9133\",\n  \"email\": null,\n  \"date_signed\": \"1970-02-27\",\n  \"patient_id\": \"0a817ca7-853\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-0A817CA7\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Sudden cardiac death (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 592732290,
+  "total_duration": 8217844771
+}

@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:13:28.593848294Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 309,
+  "eval_duration": 5356535220,
+  "load_duration": 104315287,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Cheri\",\n  \"middle_name\": \"871\",\n  \"last_name\": \"King743\",\n  \"address_street\": \"1054 Bechtelar Way\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Dennis\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02638\",\n  \"date_of_birth\": \"1942-04-24\",\n  \"phone\": \"555-241-5879\",\n  \"email\": null,\n  \"date_signed\": \"2025-11-01\",\n  \"patient_id\": \"74651b0-1fb\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-746511B0\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"King743, Cheri871\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Hyperlipidemia (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589655907,
+  "total_duration": 8369697187
+}

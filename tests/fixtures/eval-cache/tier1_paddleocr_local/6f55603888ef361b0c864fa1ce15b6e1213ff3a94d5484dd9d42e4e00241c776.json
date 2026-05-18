@@ -1,0 +1,60 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        40,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        26,
+        60,
+        824,
+        294
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A.INSURED&#x27;S I.O. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-B66F1445</td><td>Koss676, Alica364</td><td>09/18/2005 F</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>691 Monahan Mission</td><td>Self</td></tr><tr><td>5B. CITY</td><td>SC. STATE</td><td>50. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Boston</td><td>MA</td><td>02122</td><td>555-978-3380</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>19C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"3\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td>15. OTHER DATE</td></tr><tr><td colspan=\"3\">09/14/2025</td><td></td></tr><tr><td colspan=\"3\">21. DIAGNOSTES OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td></td></tr><tr><td>25. FEDERAL TAX I.D. NUMBER</td><td>20. PATIENT&#x27;S ACCOUNT NO.</td><td></td><td>27. ACCEPT ASSIGMENT</td></tr><tr><td>12-3456789</td><td>b60f1445-f7c</td><td></td><td>YES</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        31,
+        309,
+        819,
+        422
+      ],
+      "block_content": "<table><tr><td colspan=\"3\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"3\">Alica364 Koss676</td></tr><tr><td colspan=\"3\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td colspan=\"2\">DATE 09/14/2025</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

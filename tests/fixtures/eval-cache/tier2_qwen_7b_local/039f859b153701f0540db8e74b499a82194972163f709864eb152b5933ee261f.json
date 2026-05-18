@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:09:13.524846476Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 304,
+  "eval_duration": 5269168947,
+  "load_duration": 86416249,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Maryanna\",\n  \"middle_name\": \"659\",\n  \"last_name\": \"Homenick\",\n  \"address_street\": \"913 Miller Dale\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Chesterfield\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1922-07-01\",\n  \"phone\": \"555-190-1176\",\n  \"email\": null,\n  \"date_signed\": \"1953-09-26\",\n  \"patient_id\": \"2c35b5f8-b22\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-2C35B5F8\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Fracture of vertebral column with spinal cord injury (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589733343,
+  "total_duration": 8227479009
+}

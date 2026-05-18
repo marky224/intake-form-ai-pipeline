@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:58:44.184105445Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 317,
+  "eval_duration": 110257620712,
+  "load_duration": 152613970,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Benjamin\",\n  \"middle_name\": \"452\",\n  \"last_name\": \"Nieves278\",\n  \"address_street\": \"997 Schuster News\",\n  \"address_apt\": \"Apt 3\",\n  \"address_city\": \"Amesbury\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01913\",\n  \"date_of_birth\": \"1974-09-04\",\n  \"phone\": \"555-195-7853\",\n  \"email\": null,\n  \"date_signed\": \"2026-01-06\",\n  \"patient_id\": \"d660127d-13f\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-D660127D\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Nieves278, Benjamin452\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1974-09-04\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 3987834079,
+  "total_duration": 115853629232
+}

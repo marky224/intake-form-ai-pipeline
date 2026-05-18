@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T20:14:01.430415822Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 317,
+  "eval_duration": 108574668347,
+  "load_duration": 167520210,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Lurline371\",\n  \"middle_name\": null,\n  \"last_name\": \"Durgan499\",\n  \"address_street\": \"421 Grimes Camp\",\n  \"address_apt\": null,\n  \"address_city\": \"Northbridge\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1979-06-21\",\n  \"phone\": \"555-337-2349\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-20\",\n  \"patient_id\": \"f58a6077-761\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-F58A6077\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Durgan499, Lurline371\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Acute viral pharyngitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 3995897008,
+  "total_duration": 114201759855
+}

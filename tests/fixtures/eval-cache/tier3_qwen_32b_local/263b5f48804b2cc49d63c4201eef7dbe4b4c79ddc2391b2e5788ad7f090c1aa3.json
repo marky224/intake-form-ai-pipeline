@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:39:40.816985627Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 323,
+  "eval_duration": 115229635238,
+  "load_duration": 167967164,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Hipolito984\",\n  \"middle_name\": null,\n  \"last_name\": \"Rogahn59\",\n  \"address_street\": \"830 Becker Stravenue\",\n  \"address_apt\": \"Suite 35\",\n  \"address_city\": \"Somerville\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02145\",\n  \"date_of_birth\": \"1991-04-24\",\n  \"phone\": \"555-625-3126\",\n  \"email\": null,\n  \"date_signed\": \"2014-10-08\",\n  \"patient_id\": \"b498abf6-f91\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-B498ABF6\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Rogahn59, Hipolito984\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1991-04-24\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Overdose (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4107973298,
+  "total_duration": 120958243889
+}

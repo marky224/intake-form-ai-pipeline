@@ -1,0 +1,40 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        586,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        75,
+        825,
+        497
+      ],
+      "block_content": "<table><tr><td>Other</td><td>SYN-D003CF24</td><td>McDermott739, Renay451</td><td>09/11/1970</td><td>F</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"2\">5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td colspan=\"2\">1042 Romaguera Walk Suite 20</td><td>Self</td></tr><tr><td>58. CITY\nWorcester</td><td>SC. STATE\nMA</td><td colspan=\"2\">50. ZIP CODE\n01583</td><td>5E. TELEPHONE (INCLUDE AREA CODE)\n555-697-2346</td></tr><tr><td>104. INPLAYMENT\nNo</td><td>108. AUTO ACCIDENT\nNo</td><td colspan=\"2\">10C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td colspan=\"2\">No</td><td></td></tr><tr><td colspan=\"2\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td colspan=\"2\">15. OTHER DATE</td><td></td></tr><tr><td colspan=\"2\">08/12/1977</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">Fracture of vertebral column with spinal cord injury (disorder)</td><td colspan=\"2\"></td><td></td></tr><tr><td>25. FEDEAL TAX I.D. NUMBER\n12-3456789</td><td colspan=\"2\">20. PATIENT&#x27;S ACCOUNT NO.\nd003cf24-022</td><td>27. ACCEPT ASSIGNMENT\nYES</td><td></td></tr><tr><td colspan=\"2\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">Renay451McDermott739</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">I authorise the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">SIGNED\nDATE\n08/12/1977</td><td colspan=\"2\"></td><td></td></tr><tr><td colspan=\"2\">31. Signature of Physician or Supplier Including Degrees or Credentials\nSynthetic Provider, MD</td><td colspan=\"2\"></td><td></td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

@@ -10,19 +10,27 @@
             fresh cached Tier-1 sweep (no persistent DB write). The drift
             guard in ``test_evals_chart.py`` fails CI if the committed SVG
             is stale, so this is the "make it green again" command.
+``build-manifest`` — regenerate the committed ``manifest.json`` from the
+            gitignored full local corpus (``CORPUS_RENDER_DIR``), patient-
+            stratified train/dev/test. Local-only (the corpus is not in
+            CI); run after ``just synthetic-data-render-500``. Only the
+            ``test`` split is staged + committed; the full partition is
+            recorded so the leakage guard and Phase 9 ``train`` see it.
 """
 
 from __future__ import annotations
 
 import argparse
+import collections
 import logging
 import sys
 import tempfile
 
 from cascade.store import DEFAULT_DB_PATH
+from evals.alias_partition import load_seed
 from evals.chart import write_chart
 from evals.harness import run_eval, write_fixtures_manifest
-from evals.manifest import load_manifest
+from evals.manifest import build_corpus_manifest, load_manifest, write_manifest
 
 
 def _regenerate_artifacts(series_tier1: list[tuple[int, float]]) -> None:
@@ -31,14 +39,38 @@ def _regenerate_artifacts(series_tier1: list[tuple[int, float]]) -> None:
     write_fixtures_manifest(seed_version=seed_version, entries=entries)
 
 
+def _build_manifest() -> int:
+    """Regenerate the committed stratified manifest from the local corpus."""
+    seed_version = load_seed()["version"]
+    entries = build_corpus_manifest()
+    write_manifest(entries, seed_version=seed_version)
+    dist = collections.Counter(e.split for e in entries)
+    logging.info(
+        "manifest.json regenerated: %d entries (seed v%s) — train=%d dev=%d test=%d",
+        len(entries),
+        seed_version,
+        dist["train"],
+        dist["dev"],
+        dist["test"],
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m evals")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="sweep + persist to data/v1.db + regen artifacts")
     sub.add_parser("chart", help="regen committed SVG + fixtures manifest only")
+    sub.add_parser(
+        "build-manifest",
+        help="regen committed manifest.json from the local corpus (stratified)",
+    )
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    if args.cmd == "build-manifest":
+        return _build_manifest()
 
     if args.cmd == "run":
         series = run_eval(db_path=DEFAULT_DB_PATH)

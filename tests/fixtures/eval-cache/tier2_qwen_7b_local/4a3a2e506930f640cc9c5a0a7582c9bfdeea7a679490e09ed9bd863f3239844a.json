@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:14:26.612747542Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 313,
+  "eval_duration": 5419531981,
+  "load_duration": 104957283,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Luann\",\n  \"middle_name\": \"880\",\n  \"last_name\": \"Bins636\",\n  \"address_street\": \"1039 Waters Knoll Apt 66\",\n  \"address_apt\": \"Apt 66\",\n  \"address_city\": \"Hanson\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02341\",\n  \"date_of_birth\": \"1972-04-19\",\n  \"phone\": \"555-601-9430\",\n  \"email\": null,\n  \"date_signed\": \"2025-11-11\",\n  \"patient_id\": \"8992a603-029\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-8992A603\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Pulmonary emphysema (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591178904,
+  "total_duration": 8397302317
+}

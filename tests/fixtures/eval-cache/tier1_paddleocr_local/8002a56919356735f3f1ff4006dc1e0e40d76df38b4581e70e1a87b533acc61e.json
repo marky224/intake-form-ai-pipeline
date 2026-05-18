@@ -1,0 +1,60 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        586,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        26,
+        60,
+        823,
+        294
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSURED&#x27;S I.O. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-F32A088B</td><td>McLaughlin530, Wayne846</td><td>03/31/2006 M</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>1090 Crist Spur Suite 38</td><td>Self</td></tr><tr><td>5B. CITY</td><td>SC. STATE</td><td>50. ZIP CODE</td><td>3E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Cambridge</td><td>MA</td><td>02140</td><td>555-240-2097</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>10C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"3\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td>15. OTHER DATE</td></tr><tr><td colspan=\"4\">11/21/2025</td></tr><tr><td colspan=\"4\">21. DIAGNOSES OR MATURE OR ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td>25. FEDERAL TAX I.D. NUMBER</td><td colspan=\"2\">26. PATIENT&#x27;S ACCOUNT NO.</td><td>27. ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td colspan=\"2\">f32a088b-988</td><td>YES</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        34,
+        308,
+        818,
+        421
+      ],
+      "block_content": "<table><tr><td colspan=\"3\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"3\">Wayne846 McLaughlin530</td></tr><tr><td colspan=\"3\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td colspan=\"2\">DATE 11/21/2025</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        31,
+        439,
+        820,
+        506
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

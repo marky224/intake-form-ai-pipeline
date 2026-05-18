@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:12:05.853899916Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 303,
+  "eval_duration": 5248771062,
+  "load_duration": 103690960,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Green\",\n  \"middle_name\": \"467\",\n  \"last_name\": \"Tijuana228\",\n  \"address_street\": \"797 Keebler Heights\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Hubbardston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1943-08-13\",\n  \"phone\": \"555-799-7158\",\n  \"email\": null,\n  \"date_signed\": \"2017-05-05\",\n  \"patient_id\": \"5c8956ba-335\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-5C8956BA\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Overlapping malignant neoplasm of colon (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591242551,
+  "total_duration": 8218615500
+}

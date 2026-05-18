@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        62,
+        823,
+        475
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSURED&#x27;S 1.0. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-D42CE7A3</td><td>Rodriguez71, Johnny786</td><td>02/17/1960 F</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td>831 Greenholt Flat Apt 64</td><td>Self</td></tr><tr><td>5B. CITY</td><td>5C. STATE</td><td>5D. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Salem</td><td>MA</td><td>01970</td><td>555-424-7666</td></tr><tr><td>18A. EMPLOYMENT</td><td>18B. AUTO ACC IDENT</td><td>19C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td colspan=\"2\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LJP)</td><td>15. OTHER DATE</td><td></td></tr><tr><td colspan=\"4\">04/25/1990</td></tr><tr><td colspan=\"4\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td colspan=\"4\">Malignant neoplasm of breast (disorder)</td></tr><tr><td>25. FEDE BAL TAX 1.0. NUMBER</td><td>20. PATIENT&#x27;S ACCOUNT NO.</td><td colspan=\"2\">27. ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td>d42ce7a3-a91</td><td colspan=\"2\">YES</td></tr><tr><td colspan=\"4\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"4\">Johnny786 Rodriguez71</td></tr><tr><td colspan=\"4\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td colspan=\"3\">SIGNED</td><td>DATE 04/25/1990</td></tr><tr><td colspan=\"4\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"4\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        438,
+        820,
+        508
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

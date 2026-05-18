@@ -1,0 +1,40 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        586,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        70,
+        825,
+        507
+      ],
+      "block_content": "<table><tr><td>Other</td><td>SYN-33C23B76</td><td>Gutkowski940, Dulcie148</td><td>12/11/1987</td><td>F</td></tr><tr><td>4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)\nSAME</td><td>5. PATIENT&#x27;S ADORESS (STREET)\n895 Homenick Hollow Suite 42</td><td>6. RELATIONSHIP TO INSURED\nSelf</td><td></td><td></td></tr><tr><td>5B. CITY\nMansfield</td><td>5C. STATE\nMA</td><td>5D. ZIP CODE\n00000</td><td>5E. TELEPHONE (INCLUDE AREA CODE)\n555-356-8142</td><td></td></tr><tr><td>18A. IMPLOYMENT\nNO</td><td>108. AUTO ACCIDENT\nNO</td><td>10C. OTHER ACCIDENT\nNO</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td><td></td></tr><tr><td>14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LJP)\n08/11/2025</td><td></td><td>15. OTHER DATE</td><td></td><td></td></tr><tr><td>21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)\nDependent drug abuse (disorder)</td><td></td><td></td><td></td><td></td></tr><tr><td>25. FEDEAL TAX I.D. NUMBER\n12-3456789</td><td>20. PATIENT&#x27;S ACCOUNT NO.\n33C23B76-6C8</td><td>27. ACCEPT ASSIGNMENT\nYES</td><td></td><td></td></tr><tr><td>12. Patient&#x27;s or Authorized Person&#x27;s Signature\nDulcie148 Gutkauski940</td><td></td><td></td><td></td><td></td></tr><tr><td>I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.\nSIGNED</td><td></td><td></td><td>DATE\n08/11/2025</td><td></td></tr><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials\nSynthetic Provider, MD</td><td></td><td></td><td></td><td></td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td><td></td><td></td><td></td><td></td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

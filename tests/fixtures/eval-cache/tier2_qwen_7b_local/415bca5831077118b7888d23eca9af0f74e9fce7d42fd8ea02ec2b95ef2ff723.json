@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:15:24.497580692Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 308,
+  "eval_duration": 5338160048,
+  "load_duration": 80079489,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Dominique\",\n  \"middle_name\": \"369\",\n  \"last_name\": \"Lockman863\",\n  \"address_street\": \"647 Shields Brook Apt 26\",\n  \"address_apt\": \"26\",\n  \"address_city\": \"Tewksbury\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"2015-05-22\",\n  \"phone\": \"555-398-7866\",\n  \"email\": null,\n  \"date_signed\": \"2025-06-06\",\n  \"patient_id\": \"97a7a416-77e\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-97A7A416\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589487750,
+  "total_duration": 8276622436
+}

@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:08:55.036460716Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 323,
+  "eval_duration": 110267303416,
+  "load_duration": 129420295,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Flo729\",\n  \"middle_name\": null,\n  \"last_name\": \"Cummerata61\",\n  \"address_street\": \"339 Crona Common\",\n  \"address_apt\": null,\n  \"address_city\": \"Tyngsborough\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1953-08-04\",\n  \"phone\": \"555-687-8750\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-17\",\n  \"patient_id\": \"449a8a21-c29\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-4498A821\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Flo729 Cummerata61\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1953-08-04\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Malignant neoplasm of breast (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4012908786,
+  "total_duration": 115853413344
+}

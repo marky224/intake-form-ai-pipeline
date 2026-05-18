@@ -47,12 +47,18 @@ def test_canon_signature_presence():
 
 
 def test_box2_name_split_and_box3_dob_sex_split():
-    # The aa616abe sidecar: box 2 "Terry864, Shalanda398", box 3 packs DOB+F.
-    # aa616abe: box 2 "Robel940, Jona712", box 3 "06/24/1958 <nbsp> F".
-    truth = load_cms1500_ground_truth(
-        "tests/fixtures/eval-validation/cms1500/"
-        "aa616abe-1761-0c9a-7959-07544679dafd-e0d8a677.json"
-    )
+    """Box 2 packs "Last, First"; box 3 packs "MM/DD/YYYY <nbsp> Sex".
+    Synthetic sidecar — exercises the split/canonicalize logic itself,
+    independent of which docs happen to be in the committed corpus (the
+    old test pinned a specific now-superseded validation doc)."""
+    sidecar = {
+        "fields": [
+            {"name": "patient_name", "value": "Robel940, Jona712"},
+            {"name": "patient_birth_date", "value": "06/24/1958 \xa0 F"},
+            {"name": "signature", "value": "Jona712 Robel940"},
+        ]
+    }
+    truth = load_cms1500_ground_truth(sidecar)
     assert truth["last_name"] == "robel940"
     assert truth["first_name"] == "jona712"
     assert truth["date_of_birth"] == "1958-06-24"

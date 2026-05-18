@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        27,
+        62,
+        823,
+        477
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A. INSURED&#x27;S 1.0. NUMBER</td><td>2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td>3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-AC25C3C2</td><td>Denesik803, Cletus494</td><td>04/19/1992</td></tr><tr><td>4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td><td>5. PATIENT&#x27;S ADDRESS (STREET)</td><td>6. RELATIONSHIP TO INSURED</td></tr><tr><td>SAME</td><td>221 Wisozk Street Apt 53</td><td>Self</td><td></td></tr><tr><td>5B. CITY</td><td>5C. STATE</td><td>5D. ZIP CODE</td><td>5E. TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Barnstable</td><td>MA</td><td>02675</td><td>555-480-4226</td></tr><tr><td>10A. EMPLOYMENT</td><td>10B. AUTO ACCIDENT</td><td>10C. OTHER ACCIDENT</td><td>11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td>No</td><td>No</td><td></td></tr><tr><td>1A. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td></td><td>15. OTHER DATE</td><td></td></tr><tr><td>07/02/2023</td><td></td><td></td><td></td></tr><tr><td colspan=\"4\">21. DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td>25. FEDERAL TAX 1.0. NUMBER</td><td>20. PATIENT&#x27;S ACCOUNT NO.</td><td>27. ACCEPT ASSIGNMENT</td><td></td></tr><tr><td>12-3456789</td><td>ac25c3c2-ef4</td><td>YES</td><td></td></tr><tr><td colspan=\"4\">12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td colspan=\"4\">Cletus494 Denesik803</td></tr><tr><td colspan=\"4\">I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td></td><td></td><td>DATE\n07/02/2023</td></tr><tr><td colspan=\"4\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"4\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

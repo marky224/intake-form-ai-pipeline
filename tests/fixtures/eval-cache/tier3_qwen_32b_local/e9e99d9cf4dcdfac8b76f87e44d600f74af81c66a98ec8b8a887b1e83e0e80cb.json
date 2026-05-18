@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:07:46.896090604Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 314,
+  "eval_duration": 112497855809,
+  "load_duration": 116330860,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Quinton\",\n  \"middle_name\": \"758\",\n  \"last_name\": \"Schiller186\",\n  \"address_street\": \"976 Ondricka Heights\",\n  \"address_apt\": null,\n  \"address_city\": \"Walpole\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02081\",\n  \"date_of_birth\": \"1995-02-05\",\n  \"phone\": \"555-860-7702\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-19\",\n  \"patient_id\": \"9432ec87-13f\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-9432EC87\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Schiller186, Quinton758\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1995-02-05\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4081359004,
+  "total_duration": 118197344953
+}

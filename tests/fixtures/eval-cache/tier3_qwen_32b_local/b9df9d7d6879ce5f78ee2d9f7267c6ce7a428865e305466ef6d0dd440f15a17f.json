@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:57:48.32020418Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 329,
+  "eval_duration": 116749290298,
+  "load_duration": 156926240,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Turcotte120\",\n  \"middle_name\": null,\n  \"last_name\": \"Santa373\",\n  \"address_street\": \"1049 Luettgens Viaduct\",\n  \"address_apt\": \"Apt 19\",\n  \"address_city\": \"Lexington\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02421\",\n  \"date_of_birth\": \"1971-07-20\",\n  \"phone\": \"555-853-1461\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-18\",\n  \"patient_id\": \"8a378120-cbc\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-8A378120\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Turcotte120, Santa373\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1971-07-20\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Dependent drug abuse (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4167064620,
+  "total_duration": 122561984387
+}

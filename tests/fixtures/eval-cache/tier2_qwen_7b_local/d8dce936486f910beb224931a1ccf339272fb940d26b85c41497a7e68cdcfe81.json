@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:09:54.909148993Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 314,
+  "eval_duration": 5442893374,
+  "load_duration": 116100745,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Viki\",\n  \"middle_name\": \"33\",\n  \"last_name\": \"Flatley\",\n  \"address_street\": \"196 Stehr Mews Unit 62\",\n  \"address_apt\": \"62\",\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02109\",\n  \"date_of_birth\": \"1989-11-20\",\n  \"phone\": \"555-742-9043\",\n  \"email\": null,\n  \"date_signed\": \"2026-04-27\",\n  \"patient_id\": \"378f5f5f-1bc\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-378F5F5F\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Flatley871, Viki33\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"04/27/2026\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 591396028,
+  "total_duration": 8503563234
+}

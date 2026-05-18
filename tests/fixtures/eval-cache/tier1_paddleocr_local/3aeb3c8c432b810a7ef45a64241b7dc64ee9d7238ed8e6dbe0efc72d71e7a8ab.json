@@ -1,0 +1,60 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        26,
+        60,
+        824,
+        294
+      ],
+      "block_content": "<table><tr><td>1. INSURANCE PLAN</td><td>1A.INSUREd&#x27;S I.D. NUMBER</td><td colspan=\"3\">2. PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"2\">3. PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-61F0D3CA</td><td colspan=\"3\">Nikolaus26, Ana972</td><td>05/30/2015</td><td>F</td></tr><tr><td colspan=\"2\">4. INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td colspan=\"3\">5. PATIENT&#x27;S ADDRESS (STREET)</td><td colspan=\"2\">6. RELATIONSHIP TO INSURED</td></tr><tr><td colspan=\"2\">SAME</td><td colspan=\"3\">140 Cremin Forge</td><td colspan=\"2\">Self</td></tr><tr><td>5B. CITY Everett</td><td>SC. STATE MA</td><td colspan=\"3\">50. ZIP CODE 02149</td><td colspan=\"2\">5E. TELEPHONE (INCLUDE AREA CODE) 55S-870-7399</td></tr><tr><td>10A. EMPLOYMENT No</td><td>10B. AUTO ACCIDENT No</td><td colspan=\"3\">19C. OTHER ACCIDENT No</td><td colspan=\"2\">11. INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td colspan=\"3\">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP) 06/07/2025</td><td colspan=\"4\">15. OTHER DATE</td></tr><tr><td colspan=\"7\">21. DIAGNOSES OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td>25. FEDERAL TAX I.D. NUMBER 12-3456789</td><td colspan=\"4\">20. PATIENT&#x27;S ACCOUNT NO. 61F0d3ca-b4c</td><td colspan=\"2\">27. ACCEPT ASSIGMENT YES</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        31,
+        310,
+        819,
+        421
+      ],
+      "block_content": "<table><tr><td>12. Patient&#x27;s or Authorized Person&#x27;s Signature</td></tr><tr><td>Ana972 Nikolaus26</td></tr><tr><td>I authorize the release of any medical or other information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td></tr><tr><td>DATE\n06/07/2025</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        30,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

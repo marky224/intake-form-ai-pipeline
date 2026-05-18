@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:21:52.603973285Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 318,
+  "eval_duration": 114003737435,
+  "load_duration": 172978018,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Royal\",\n  \"middle_name\": \"919\",\n  \"last_name\": \"Rowe323\",\n  \"address_street\": \"689 Dietrich Walk\",\n  \"address_apt\": \"Unit 73\",\n  \"address_city\": \"Brockton\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02301\",\n  \"date_of_birth\": \"1961-06-06\",\n  \"phone\": \"555-860-2132\",\n  \"email\": null,\n  \"date_signed\": \"2026-03-03\",\n  \"patient_id\": \"a1e4d5b0-151\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-A1E4DSB0\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Royal, Rowe323\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1961-06-06\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Patient referral for dental care (procedure)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4161730145,
+  "total_duration": 119854170445
+}

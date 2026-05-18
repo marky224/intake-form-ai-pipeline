@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:12:47.15860714Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 299,
+  "eval_duration": 5176153568,
+  "load_duration": 82614181,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Javier\",\n  \"middle_name\": \"97\",\n  \"last_name\": \"Gerlach374\",\n  \"address_street\": \"171 Block Skyway\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Yarmouth\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1944-11-23\",\n  \"phone\": \"555-370-4917\",\n  \"email\": null,\n  \"date_signed\": \"2006-03-09\",\n  \"patient_id\": \"6c0ad5e9-e67\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-6C0AD5E9\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Non-small cell lung cancer (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 588767821,
+  "total_duration": 8187222760
+}

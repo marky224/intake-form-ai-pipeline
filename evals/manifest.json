@@ -1,39 +1,3507 @@
 {
   "entries": [
     {
-      "doc_id": "46ee9d82-b52c-856d-069b-5064ff052225-4b9353cf",
-      "image_sha256": "96277483d54fce285587bb97a1d78b7b7251eee2b277104376f1fe2cfb6ad491",
+      "doc_id": "0126af27-a469-d3f6-eed8-af0a1c46dad8-a86f802a",
+      "image_sha256": "975df0cf10c801b8d54d3b17200551be64cc895cc108e8a9755ad9238908143a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "016a1a5e-4450-7aaa-e5f6-16dc61e33ae6-f18857d7",
+      "image_sha256": "f845715e212b88afe1c79424df7a4870a22e2fffb29cdae5957cc090122cbfb9",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "019cda32-2557-7f65-2cc7-785839725ee1-528fd3b6",
+      "image_sha256": "3ee52f4307998bd82e2cfc0cf628f4c639066216fc25970a854f7bdda043c144",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "021142be-3a32-af72-8a9c-06958b3dba9f-c36b7aa0",
+      "image_sha256": "4ca5ca2ab375aa4e70f45814e5dc22ac3348c6b83b49e2c7818edfcf8b3461db",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "02cca109-7737-4ad8-52ed-578e135fe8d9-e9448533",
+      "image_sha256": "5d7b2c1b66a8842b2905965b110bdc46481a83c30aab5955b6d885c04ee68baa",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "032000cf-30b4-7e9b-cbc7-297a9e0e6aef-9fd95f83",
+      "image_sha256": "e0372145e7b5593c136486a13ca5bbb8fbd4bbf3a207a077bee6fe90b610862b",
       "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0399299d-024a-c139-e8b4-6ae7c67bc004-2e9744ea",
+      "image_sha256": "dd1d19e52fd3e9d5d4058ab58fb452739389c46b1283c4060ce28a34b8b00907",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "03e733d5-721a-3740-11f3-dc05fc74c8ed-9bddab69",
+      "image_sha256": "1fc1ad29502dcfedd4642eaf7c14317e0f4e63fa3afabb6f0d77a31af75f43cb",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "060aa7a8-9653-5ae4-1b0a-29e4d7c175bd-0238197a",
+      "image_sha256": "2ee69a46b084b1e4c02274e1768e79653ef40c05661514690c8e5c43acd3c331",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "06d9b168-6ea1-82f4-043b-576aa738a3e7-0f0b0594",
+      "image_sha256": "4a31dffb049d68e85878e7d871a28418dbc72f1c1657a179d232a6fee104a6d0",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "06eb6dda-a918-928f-76cf-6bf370cf2014-34bbd667",
+      "image_sha256": "c83175f90ca5a94c530fe31ff845b29c834ecd44d6c81f8914986d2dcaef1962",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "06fe0fa1-aba9-b4f6-6231-5f41bd42492d-83fab3e9",
+      "image_sha256": "117322776cc630306658f2d54311e531e66c26aa844ce1c5c19c32cb3ef4d3d2",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "075c319c-5d10-4b7a-df6f-ff3eec95feea-812bb4d8",
+      "image_sha256": "358e2e9cfe84b9d3e0fe64aa44df22013080161ae81d153bbd809b9e7e7e29e2",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "07c8148c-491b-0579-9fad-06425ab51535-60e57798",
+      "image_sha256": "4ff8548de9ada118ebbd2ffe651b77c023b6b8141bf6e1084c67dda4a16777c6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "080b069b-5108-46b6-ecef-6aacd3b9ef3f-1a00da00",
+      "image_sha256": "dabc00e0b660a0f4f527ab40d9248ad362f04bb016b7497212ed648f98d3941f",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "08a12ee7-a852-94d4-61fd-b2e16b209205-fe2b24b0",
+      "image_sha256": "921648871b878d5d6bdcce273903562cd551319b362ec8c0a67eb478bcfed851",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "08d65f8d-3561-01de-64dc-99eb9b35c375-95cf1991",
+      "image_sha256": "54c2db821b918c8be86f98a9c4638f228471e52f989157b8225f8d7943629823",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "09570ca0-77fa-de46-54b5-14ac2040a62e-bfa009f6",
+      "image_sha256": "9e948902f23d2626d1a94f77d0dced9880d70945a16d07ca8116e96efb477f25",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "09ee0327-a1cb-8f07-b0c8-b2c07c002544-7ac65954",
+      "image_sha256": "ad4fe39d3d644daa36e0b8ade64fe05186719c4d852d9335bc6e23ca3a9e102b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0a7ebdbd-4c3a-07d2-20f6-232c74396637-7b8d5396",
+      "image_sha256": "fc34d69fa56cabe92610b496a04629e96c5f10fb8b3448f7f5eec642c6c28a88",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0a80947b-a6e7-a756-d2cf-448a3e3cd5f2-bf9fd646",
+      "image_sha256": "ad3913a7aead75365a775f23b9acd03aa9f6b36db7d5fee39ff77012e509919a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0a817ca7-8538-f463-599f-b463735e6f35-db67d73f",
+      "image_sha256": "08f0e564b24fedf6ad870abc10e2e6922a4f766be4cc00c0c94cb8a4c887bf94",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0a830fdc-1123-ebf2-b59d-fc826a824e5d-6455cf02",
+      "image_sha256": "27ec6b621e55783689e238274d718d08c3f9d260e2c323df50439fbac75e7a93",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0b6b1053-30a9-439c-ffa0-4ca19a70c0c3-a9bb31ff",
+      "image_sha256": "49edb36d99ad8bd91cf93f8ac11eff7ccec0df93afb16e3ba475a2b354dc1cb9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0bf58e2d-c46b-5b4c-97fc-170298377ec0-7031bd23",
+      "image_sha256": "074045cb03ba135161aa19dd360fdf50ac39f648781befd57508977bd3cd8bf8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0d6a874a-279a-257b-e1be-561449de44f0-7b932b08",
+      "image_sha256": "5866ea58024186e045053f3fad17f9b1d93f85c2aea759dbd72a388b22f7e7ab",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0f00a4c3-f6b5-b50e-24d8-554138a1bc64-bee7a8aa",
+      "image_sha256": "8b4d6f7e5bd3f94a1f889d6841e6b71e1393d46a2536714877a1c87ad2b6283d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0f07fc79-9416-3271-4532-326867da365c-efcb5de8",
+      "image_sha256": "36ff0d2e3a7c9346a5f7acebfbe2f1785a6d0b4f1f8dd1fac0494871d7870cd6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "0fed2443-9479-996b-6031-af23e5026104-a110fbc6",
+      "image_sha256": "851583c5326db8be52dbe8be273122259083bd6bded67ff89c18fb019905fc64",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "102ce685-32cd-8a9f-d42e-823daff4a9bd-9c3d1163",
+      "image_sha256": "9f6ae577118426415cb0858e5d83c4a84ffc94ffc27b13215b3622f989d41388",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "10fd7415-d729-ef2e-83c1-55af80c62ec8-6f578df9",
+      "image_sha256": "3c072e89d1489d6ae01d7e047cd782e3c41f9700e86fdf6d07fa21676d47c662",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "11ea9e54-1cf1-655e-1207-2de06969874a-7a619cfc",
+      "image_sha256": "b014c5e76ea569b58cd3517ff038887664866493ed44040302374f606d4115c8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "132074e8-9d74-8f18-0e61-4734cdd9f956-62073627",
+      "image_sha256": "aabde77a716945b872b75f4e78178ae2a05f4957e926ecf190dc75431f15f284",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "13b74bc5-1abd-7516-6093-d980a046903b-a23cd964",
+      "image_sha256": "6903a7bff08f1bec4c5d39765f9967d8b1660160da6bb5f47773c0898920a6dd",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "13bbd9ac-5c42-f173-5411-4e30e7da9e8d-0efdf8de",
+      "image_sha256": "947f1aebaa12f989afd83aee81c2c9f109186911c3a109676966bb19311946d4",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "148d5f62-4056-4e88-d999-af251eef9eef-6308d964",
+      "image_sha256": "d1045d7cbd0de746165f1f28a3345af83d8b457b746c6dbbbefa237d7e64edba",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "15c4e9f2-24ff-3101-9368-3fc5f5bd4656-0ff2bb66",
+      "image_sha256": "05026575c70f473e5c19bfef985f36173566115465fbf7971f3df4c1e8c0a97e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "17cb5ccc-4c1f-9747-f535-e57cd464679d-18f0d408",
+      "image_sha256": "81b6efaa56cfb972bf837313a2eefd6fae0c23a483e3a1676387fd6791c82f15",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "18b101ed-6582-7193-5a1a-cac8e8de151c-8b609099",
+      "image_sha256": "5cf908f4b640cb614dcc4d0c89189d36ac69edb0277a7eaec13637a9e23ebec7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "18cbb615-420a-8641-133c-af71cbb769be-f72b7962",
+      "image_sha256": "9435b4ee90e6b18f7f948fd85f79153d18e2a359ac3a5581019e00fe0588bf0d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "19aaec98-0e39-87a2-7141-0b3885e88f7a-c63adf64",
+      "image_sha256": "980c95c5fa43cafa5af000efdb8bb92d9797245219296214d85d0a772c772e20",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "19b87c0d-b841-18cf-3cb1-7218e853b384-0482b60e",
+      "image_sha256": "523ef9c2f9ea7f60245864adbee5a193cecb8fb90e811c412e9d599601cd91cf",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1a578c2a-84e6-3705-622a-333ff6951ed9-5a63732f",
+      "image_sha256": "9e3ce39a708e547be0c6079da330d424680f67791cefe1594b96332f448d6944",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1a965d90-6476-30d5-4ae6-a8ace70d483b-c673c53d",
+      "image_sha256": "a2209adf4acdf3a1cdca9c95f7cfb641e2c3366c75387d8c2cb890f8ff6c5978",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1c440cea-242e-d64a-99fb-d5b1c64360b5-77a2dd56",
+      "image_sha256": "dafecaf92c4bcd745885f9f0daf568348ac4d88b3b0d420aef329d639a4a2b2d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1d55f8ae-f39b-a58c-49e6-bcc2e1903615-915d6349",
+      "image_sha256": "7d01127ae24221fe6271fe4d96e05291a4039d0fddc90e8490ce67cb8a4831e0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1da1ccef-4f88-f506-730e-c4189e2e5539-cec25e28",
+      "image_sha256": "82a66e445ffc51d7020ac45f374c3656c4e333c58232a1b932f978e991609d28",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1eecc050-6542-48d7-8b21-6cc6357d4cf9-d3191943",
+      "image_sha256": "7899efac0226c633aedfb287286507552fed8194fbaa78072e92776170bcc45d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1f5e460e-a26c-0249-60be-12108a34dfcb-e39abcf7",
+      "image_sha256": "3c6f8d88b1699cc62873799c26572eed9438764e9d4cf94b85b4ad91c5e2b0e1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1fee85c9-7061-f223-eda9-a18dc7a51473-5995e0d1",
+      "image_sha256": "482da3498403816c8c9e647b03851bbfee8b252c0a40d5a0dfdaca82163e4675",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "1ffa429d-4447-d14e-e081-9297df87f91c-c794d453",
+      "image_sha256": "5922be771ec18a72f18182718cf76d481654ac2b14abcadf5c68c825ebe6237b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "20526ee7-17ba-b863-b5f1-776defcde2e6-def53737",
+      "image_sha256": "91f61831633a4d78313c67be8222e78d4e80e459161c6782b3c62371421aab29",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "209e8c7b-4233-8ab9-d289-fdacce5f4772-ced7cce6",
+      "image_sha256": "194789b369b78aec58b02f45b51574d6fde0fe878e45248462e30eec8f5f8631",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "20a24b42-e25a-2edc-aac2-1312f7854aa7-fbefda7b",
+      "image_sha256": "4bfd894a71928ff21cf1851b21d1a5cf14de62fadf5939cb6c63fcd2e8ef46e4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "210e7241-3e4f-dfd5-3bd4-ee07a6f80846-aa33a293",
+      "image_sha256": "cb5452e9897e4d52a8b01a0009a8902c663ad57c4ce7dac5be14b501c7f9ace6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "21cb4452-b958-9992-9c6b-b727ffacd336-6c0dda05",
+      "image_sha256": "ff5fff26b8c51322ba550f3bdb8ae4d6fc87a0d85e192d06de1f17b3c20d08f5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "22a118a1-9bf6-cbe9-fa81-98b77c84ddc0-b2e7f836",
+      "image_sha256": "9707070e24fb71517e6fe1a546f6d2a6855a890a5fe62ba018e4daf5c165aa5d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2388187a-155e-474a-cb1e-64ecffde728b-b5f88d93",
+      "image_sha256": "7f2facfe1916f15cccf0ad44a8ec34be5806ecfc5259aabbdd53dca813c47102",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "239ee417-8147-4096-d42a-9d7e2816c051-8a2204ef",
+      "image_sha256": "4e4169ed1a85731032dc83fc6f412bd5f0a6dab684fff9f8a461ba128ba78c47",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "23be53d1-b91c-dce0-89a7-355631324548-37ec63c6",
+      "image_sha256": "5cfbcd355e846547f3d1c7e3079385abcbf4db80a72bdd914fbae7d392871025",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "23c94034-f050-04d5-c5a3-2d42bf3ccc7f-cdaf2f1b",
+      "image_sha256": "4ec28d956037fb477efebda2bbd1b1b8a7dab35286f41735f679c7ccff673051",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2474b3ff-db68-b836-9215-b947f832b0ca-81dfc1ff",
+      "image_sha256": "f72555a29ff2a109341a226150095fb749abf7e65836ee1201a8b0c204f65844",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "24f27ab5-b47f-0e8d-20a4-df2b1af80e68-faaf1554",
+      "image_sha256": "a495b68fdfb4a36d1a17f1b894dc7a55645384a8cb4ef7c19f763b00dc15725f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2503f21b-df26-a5c8-cda1-1f0386991ca7-9ccea621",
+      "image_sha256": "fd448e40ca0ccdf9780aa699b74ba380148ce3b909e9821adf6d1ed6ce8c0510",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "25494748-602d-a952-32c2-3cb41ab13b0e-0930fe3a",
+      "image_sha256": "85bf34323b586e37a748cbeb51d8e7c6bfb9d45a560603479b7811159cd33032",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "25dcb0bd-60e6-a38f-406d-c8d83bd4fc11-7e0f4d9c",
+      "image_sha256": "23cb9a7eb014c9cff4d20c08d89844225e1969b086695bf638e437bdc8df9159",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "26aa011e-0d75-d1a3-3c5a-560a9450cc9d-92f39253",
+      "image_sha256": "c4e1f473d72791e792c684a307f5583a7ac5bc17b1dbd64842973b0fc4a915fa",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "27181dd6-98fe-9cef-b255-7f44eb3e3365-bac9b3c3",
+      "image_sha256": "ab45b7e8aa95b1b66147a1e77428278d245451e9616b80c3845ebe1f0be2658c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "271af137-6ac7-08bf-252c-872f41b9e646-132a2508",
+      "image_sha256": "aa34ea7a6c5e634c4e5b19f2e61b42ccbd13befcb69e9b168c7e46e06d8fab15",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "273d5197-f7b2-3e57-4718-6c5c6cca8169-73b63fb0",
+      "image_sha256": "2c35cf376c2d6895a5bca53fe982cba8b95a9d49b779aa0cb658415cf5472edb",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "27af11aa-2603-d62b-1b8a-1803394a6633-499ee97f",
+      "image_sha256": "2ba9d2ad2b3d289cd7af350d973d61cdbf72473ffb0412a4b185d389fef67b01",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "27cca774-3306-e72e-c010-edc5fe37235b-4acdd69c",
+      "image_sha256": "4cfb33ca82c3b879ec54ce96a7ab551cfecc84d76fc25c0cc7437337c0030cb4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "27d44017-ab24-4e1b-79cf-71aceeb1c7fa-73d06b0c",
+      "image_sha256": "5e20766cb6b038ad231803efbcb988c5f5dda902010016573781fee8b024cf72",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "289d9a59-53a2-19f3-dd2e-e570f6d14042-d192e233",
+      "image_sha256": "16e3531a0b16d0e9864e61229fe5f7366449d6938882c6a9a3b2e90df5cdb8b0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "28dc95ea-454e-cf3c-20f1-76f5d0fed736-7ae8b66a",
+      "image_sha256": "c98843b11adab2b2c9dd99c13878f618e7ccab6ae5f94c1a6cd76188054d6060",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "28fe5454-0301-961c-85a0-b1f787314069-24983390",
+      "image_sha256": "d0fe5d62e57e57c0967233e6ac538bb33240f99e4497411398a19ede11df52ea",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "292b5aae-02fc-4e2f-6d3b-060c952d7038-b65abb87",
+      "image_sha256": "4c4b5df36c2debfa8d902b72f7e72fa1009bb2388696e8cd7839d8b6e84dadda",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "293b5046-ff66-69d2-6e7d-8d68a20ec3fb-361ee82c",
+      "image_sha256": "76f383860f5f8b21a7912634ecaf0ab855e5e97df671714f90d2d30be3d816a6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2a89ee40-606f-4df2-9e77-80aeb1304f4f-df6489f5",
+      "image_sha256": "8e337cb1e211c00bd871db94b239b643ba7af75b555e9a7091f723bad5adaeb5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2ae7b20c-696d-1319-e3ee-1e5046945291-d3a50716",
+      "image_sha256": "8b7442eb864770e40b26c27a63925fca41ec1b060b6e72696451a288cac7ab47",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2bbd76b7-e9a4-0597-7752-c228b9ffe6c1-0c0fb315",
+      "image_sha256": "3e26037b10d2632d9e8f360682b545fea0b6fe778c56e9da8bf7042d489bf16e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2c167999-289d-95fa-5c27-7d8b8d35348c-a0849c21",
+      "image_sha256": "f8abf6dbfa9e9fb74d3f8b76ef7a37a363955038e53f6dbf7fd4dc104ecacfcf",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2c203652-77f2-8b28-b3be-11276e9aa095-635da3ce",
+      "image_sha256": "0a7acd28d3bd2e85da234b5b028ad8ef67bb2e68f9bb652be99be773d11deb83",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2c35b5f8-b221-9e42-c5a2-6ae72598e125-38ce1631",
+      "image_sha256": "039f859b153701f0540db8e74b499a82194972163f709864eb152b5933ee261f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2c588417-7537-a68c-7c2d-e1a45847fcc9-93bf61ea",
+      "image_sha256": "66b07bdb0c92a9fa2189b5b87fb4329bfd8f554b4767dc90469fc079aa14334e",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2d055ee5-b453-45ff-6a53-8e05892b6567-c73783ff",
+      "image_sha256": "cd251b6e1c6ff45c542188a6bbf02a30a50366c977cdd52e072644ca3866f4c3",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2d50c1da-048e-fcd4-d569-1c2867225cd8-f7275cf4",
+      "image_sha256": "f898c58ced87fee922392443175ef7621f30a3e49a81b410a484d33b73fa708d",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2d68ad16-268a-478c-1f84-d0f1976e1a46-18192580",
+      "image_sha256": "8c09731ce2194b135ab59e1858ce0c07e0ee380d5ab36e9a0d64d461f07909d9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2de4dd0d-f665-8a2e-4c6b-997735e14ace-49dec166",
+      "image_sha256": "319b50ee72271482930f4b138cdf16c856037769352c7b6b526658eba70a1d75",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2deee42b-bc97-11cf-e5c9-541193b6b840-edfa1af3",
+      "image_sha256": "ba344e686c9526fac9e472854718792013c31d6ca624ed1f7360be2026df21f7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "2f4e5dee-d991-4c97-97b8-bd98801e2a8b-b0610e4b",
+      "image_sha256": "6912f012034db88560e0c6d8d64db7d2979642451e99a56463ab4932ac861a18",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "30730007-8756-ac68-9f3b-2ba3b7275bc7-a262e341",
+      "image_sha256": "939d2fccf3191db66f7e0463055a8aa9499584efa3bcf3a7221c2ba5c4e39643",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "30eb8a8c-56e4-d0fc-df32-29180ec0e783-201847fc",
+      "image_sha256": "a98314281dd625f9cd6375e16993524464d04b48726d5b87cbc22e3085647b12",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "322ab5c6-5846-ac1e-38cc-48b8cb441e20-0a630b99",
+      "image_sha256": "343397e266161eea41fea3ff66dc433712d53938cbf0d72ca3c780e9da78dce1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "322d2eb8-0c80-96f1-ef96-062b9d87ae43-322eaca7",
+      "image_sha256": "12d63c032f2574f4dcc40471a062a290d5b03cbe1f4b72616a730affabe040f1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3236b1f8-2bc1-3e38-c539-a29407c6a206-2286638a",
+      "image_sha256": "5e5686a5979524c59dc78bbd5d3c679b8a4ae9de98ad8d6f0f36a207fd5a9514",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "326580b5-448f-6772-2e89-952233f4f69f-93239359",
+      "image_sha256": "be5fb557669f0317b76380c7e6fa22f95a005125dcc90365c7749c23c74fb85f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "33a6f1a7-d1b3-1369-ac63-9e2ece58eb33-a865c7f5",
+      "image_sha256": "8001cd51738daab7f8f4a434d688a40f0580a1b554ca7f86036e7cf986ac22a3",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "33c23b76-6c80-cfa8-d836-43c198c4cd9e-a93efd4b",
+      "image_sha256": "e2df2c5d0c4e478a9e37f5fcff0438c8cb6aa8c63f77ab79ebd6f7cc3f181e3c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "351bf4e1-3a6b-4f06-5b67-b4ee093df8e9-3efecbae",
+      "image_sha256": "c744bebe218fffbe327ad1fdedc26145054c24fbc309affbc79c7bcc2d449375",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "35b353dd-402b-571a-d67a-af0a104d0854-0c4110fb",
+      "image_sha256": "108a25bbc98e7b4279e3be80785a4818cea2144ed09d5be5274ac3b172344724",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "37673647-f996-00e9-c578-89e9d94c4094-ae735ef0",
+      "image_sha256": "55f8039435b4d403e41211beb4a671f94153e7353d461c80392a1d8e7164e2c2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "378f5f5f-1bcf-284d-d989-c24185c87437-4c914fb6",
+      "image_sha256": "d8dce936486f910beb224931a1ccf339272fb940d26b85c41497a7e68cdcfe81",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "38d31286-a833-c02a-fc5a-38ac4402813a-63e469f9",
+      "image_sha256": "151ca28df54755fed8526a85f4ee886f1213a8382675903b9e70e11e95efa1d1",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "392fffda-2a04-7bf9-0a8b-9e6eb53542d1-260f0e47",
+      "image_sha256": "5cd11b00f52d016bc29be6519ed26cc96cfeb485e009cc5d07f6e54569032af8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3969666d-312b-a344-a1bb-0610e26b7030-cb4e84ee",
+      "image_sha256": "0d5023b6d49506a1a61953dbbe1a97d3199ebdb508af0fa16c5349604076754f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "39bdbcaa-0f4c-539e-f559-87b06ad232a3-e1d31544",
+      "image_sha256": "53148a48d000e867afc25917e600983cf7ad310983098ffef0137d57001b8f87",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3a6eb3b5-a124-f738-10fc-e7df35c4efdb-0e0ef1f6",
+      "image_sha256": "0d9d9d001479410aff8b59f4b6d98988095fa44395d3696ed5a76d5cb4a15088",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3b1b1d2d-1612-2992-46c9-feb3e88e536f-c5653001",
+      "image_sha256": "936bba5d4e063c1530632dd86924dc827e51fa2873da90ef343293677c38b87f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3b24d024-a466-fe09-4049-d78883436802-21629e97",
+      "image_sha256": "9e36a26d56ccd0dea093ca8661201508898e7d7d005f6f1257c5af4ba1fb65a4",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3b969c93-07cb-1f15-28b3-306a5a90677b-4a4bd299",
+      "image_sha256": "a8649b3bc8e449ebe07372669c77bee93fae8a2517f9b3f8a68d9aa7be4f8ffb",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3c5bcecc-2843-46e5-dd82-6d2afe4f51af-2bc4c567",
+      "image_sha256": "27c02cbd068526a86282d1815220df73225f57c71fb89f64e9830b87e8203ae2",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3caaac5c-b201-5c61-f231-2a65da71dd2d-7693bf13",
+      "image_sha256": "e2b369393f92b90e106eb5835d19edcc2775a5de06476f7623db3890bda1bdad",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3cc8e690-af74-88f2-5c51-2d6485251cb9-4b759d26",
+      "image_sha256": "621a985b754217c4176c9d9f449615f64fdc07edd99e103893c2e5bd2b1c9d82",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3dc8fd4d-1758-0f73-c548-19e0227ab17b-78dc3d58",
+      "image_sha256": "a3233977afeefb0f37999becc8b978dcb71a3d3412fd39e2b25265963d617898",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3dcca8e2-4b69-4e25-6e05-8639d88c50f2-71817b9f",
+      "image_sha256": "b208dc5de1dfb4c83d6ab17dff981f20bbc3f581aeaf3f96760146ab1833e9b0",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3deb75e9-7ebb-bd33-0c89-e02db3c1c167-04cfd3ec",
+      "image_sha256": "6b4522502dd0686001f2ea04c7a46ef32ff4db2183d59252ca1606e0345735ab",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3e530ee0-aaed-681d-587f-be2090bbaa6a-d5ffed41",
+      "image_sha256": "f581d088a2f9d8e4922419de82bfe9afece8d7a6aea13d99b17dd3e5374ee76a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3f63dcce-8427-5a25-89a4-99f68322639c-6354dc2b",
+      "image_sha256": "8084002cd6b2b0bc9812de4385e3ed1e6d777fd07544c4407d70d58d08760dfe",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "3f9967ef-3af8-1778-181a-bc7401338a5e-3e17e085",
+      "image_sha256": "023ac44b359df7cdee399b3ba40645bde162c7e873253e54b44056a4ac546623",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "416ca3dc-0b65-e871-b4fa-e47d3521fab5-70d80cf6",
+      "image_sha256": "8e7bdce699b8566d49f591c190f50ffe2401c2995e0d49787477245165135740",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4204c681-768c-7ddf-fe9d-bb60d6ab41d1-05d3325f",
+      "image_sha256": "0b17885aeac21223b227f46b71ed05dfbba65819dcef5e57086f10cb95acc26c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "421719bf-f1bd-7712-6a4a-8dd749f47a7e-ea25bb67",
+      "image_sha256": "a40d73c33c4e15d6a72504fbdd93f51b24930add5841c0d61c856ef1a055b3f6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "429c0ce7-01f1-b23c-fe3c-0a1d24bc3cb9-5c6bf335",
+      "image_sha256": "5f3bf554188d2a86171a9341132f94a437d8891e54519178af5930fb3c8a9290",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "42b98020-379f-cab2-13e0-a62b8ba5662b-0e0c335d",
+      "image_sha256": "fe301dfcd9d7cd64da3cece210f5c8ad60ce53437a6f20379370a343af5460d4",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4395a9bc-a279-9cd5-40ef-cbbdba34ee74-f741fc1d",
+      "image_sha256": "673d24fa01f5640a0f74334048cb1df146d6919796e39c95d6e298fffe037819",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "440cfb11-d96f-7a6a-19ae-545a5bef9261-04d35f39",
+      "image_sha256": "8198bb05bb4fec1f35785fa2e9c9ccd8115d4b6314ca400cc5b4f17ab2fa9927",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "445be4e4-bd8a-1b1f-03d9-46199e279f75-5fad46bc",
+      "image_sha256": "d3f92b55479fed3c8028fa7ad40b5313dd8aaac369298e011260f1a55c6e8276",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "449a8a21-c29b-08b6-2043-15e903ca96d1-d696527f",
+      "image_sha256": "3e3f9a9a40de037a6e29779ad55f270382ef6adcab6b8c27933f1b566b00c926",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "44bf5b9e-e94f-fbd1-aa65-3a39cf795964-c09608c1",
+      "image_sha256": "1372d60d2c2629466336bd8b816a9f7539e91669413c4f6ab782c2bd11c1930c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "456f1eb2-97b5-b116-a6c2-e6ac8a1f35f8-b349a550",
+      "image_sha256": "de5e8dc436dd6bc1a9fdc06885149c6c42b608059f2fa54bbc74b8f05fce8168",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "46976cf7-b0bf-be20-39a5-9f425a52886d-049fab76",
+      "image_sha256": "89ac9f7e0e3026e1d1cfd5cdf41c70fcd3d317dcd75d93b13742804e0515acd2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "46acfc22-b7e9-6148-2719-3fe64400c9d7-b80dd529",
+      "image_sha256": "21f701733c9f9c1f1965a5ebec3f0faebe16bbb846c059741e21fe2f31e7ae20",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "46ee9d82-b52c-856d-069b-5064ff052225-4b9353cf",
+      "image_sha256": "5e10d045e7bfec51dc23252ea6ff436317b2191a6a1a393c5e899f39ad75dcef",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "47128282-168d-0ddb-157d-7e93cd7fd3f4-a15b9ac5",
+      "image_sha256": "43aafdfd71411e2cfb07a15e31c36ff56fbda46e9e709020ca5eedacbf46ce2e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4760e5e7-fa82-b084-95cb-bb4564d42496-3cb51ecf",
+      "image_sha256": "1cd4ca05691111ee577314c151b23ff9c69ba6de44edeba8a1ab1d4a928fce8c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "47c1333a-4ed9-e6cf-dff8-1777a198c7fb-b2241ce6",
+      "image_sha256": "d9bd77a4e60feb2918f614f22ee972888184834d81a2ece9221aa2f38bdddb03",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "47d390c6-a1a2-1a80-dd1d-9722c7b24159-eb9f2465",
+      "image_sha256": "bc0efbc1d7c4ac25d7c9922199d7380444bd28695fc1d5eafb22477c7a8c0767",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "483e25a3-67ac-6cf9-d374-28ee0adc2035-00561c83",
+      "image_sha256": "41dc099efedd8485066aff429a4b14ff3da5fe399002c894eb90143925c05966",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "48cfee32-4afc-3239-160b-2b213f115fff-417f5240",
+      "image_sha256": "87334380a8128bdd416683da8d99067e8f32c26f267bd1dd44039018c57a9cc5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "493b0521-fd86-2072-3d5e-4bea0a173113-67c7d394",
+      "image_sha256": "b884d134b3d1a3913ff3ec3de84fe68f8833e4d41ee60b696f86171781f73935",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "49c6d4e6-553c-45b4-598c-f2e9b8ae216a-b4b2d7dd",
+      "image_sha256": "aefafe1628e582f854de475263f2cb3af593c6faf63b6afbcdb2c4a728095780",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4a3660b4-9af6-5fbb-5d47-895d40fac0ce-f9a710cd",
+      "image_sha256": "8c3f2c976497de6e69e63d10439d62686288286fd51bfa5b2a0c3be0f762e2c2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4a4e1120-ea05-5be7-9558-b056069c3ad0-1eede032",
+      "image_sha256": "0ca9af380283afc9e7ae1b49878ff08eedc43ac07ad4c37612e29cbbea08604c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4aaa0001-3832-cc52-e2f3-47aad08f4284-353ccd35",
+      "image_sha256": "6a831d49e86e1e0b31940ae53a46a4fbee39ef7e6aa318dc1486877c14d5ebca",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4b39ebb7-69e5-a12d-b88f-7e21e359b28d-8618e6da",
+      "image_sha256": "3e91924841fdd89b8d0871d074a5308d466fb93ef26613f444acf789a27178e7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4bf9098f-a62e-60f9-a402-67fe989c84d6-ab746392",
+      "image_sha256": "0195f5335dcaf4de3fff4cdf914af99e533600aed0e42dd0f6ba0ee77f81a44a",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4c837a0a-93aa-9793-c490-da1035a7108d-bdde4f56",
+      "image_sha256": "474ccb1961d146856f7526045319fb6c903cc3cb1bb215d9c585a83c4c5268f4",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4cba36e9-f2b6-9e3d-f0c0-f189dae95a74-a90b3a93",
+      "image_sha256": "b1c65ff018d9580b05c3ef578661c6094523482ab240981aed61019b6d0105b6",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4dbe6dc4-6eaa-ef37-6c36-361e9450ea93-da653f5d",
+      "image_sha256": "7e74e133a01419fd1d66b882abea018fa505f84d1b86a0c30be9e909b77663c2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4e3a6f7b-ffb9-5478-ae0f-e03a42891892-5384ce95",
+      "image_sha256": "d4785d7a185d94d81acf0061bb448d11afa3e2e2840df6b8b8160d3f3ae2d23d",
+      "split": "train",
       "vertical": "healthcare"
     },
     {
       "doc_id": "4f083ce3-f12b-bb4b-7353-e17f0cd55b0a-47df2b3a",
-      "image_sha256": "dd8da35db4e0cd5654745c0803e08e7b1fa8ad48537767ad9a40f1f90cde4015",
+      "image_sha256": "a6363f933fc7fb90bb0e7dfa5a4dedd0a8013f93bfa52b21bb4696d843865e84",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "4f3413dc-f81f-72b8-ecb7-15075da90e07-6678297e",
+      "image_sha256": "ee1af8eebc87be18552abd7b77318a64f637b55fbf72784a1ae082b01546d3a6",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "50493d0f-5411-bdb1-f53f-3a3d5e563724-2135c27f",
+      "image_sha256": "2b295d0903965543d354b9fa9512993e14d3247a2efeff6e4447ba908a9d1b73",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "50a071ca-fe2e-9564-9ff9-a7f29641ee8a-5a8f542e",
+      "image_sha256": "6ac311551bcdba55d19b3a767033cd8982fa1f9823dd6235e9e22bcf320f4662",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "50ad813c-cbc2-47aa-eaaa-8694cbcd66c9-1cb936fe",
+      "image_sha256": "ac6d817c6e73f94afc19fc36311ec3a7a068f180183d28bfbd079a0f09708e30",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "50b95daa-11fb-fb1d-f3aa-70e2d777e5ba-e5e2675e",
+      "image_sha256": "b9a7d3419d8b93369afd9af93da4c68c2f5da306c9e6147b8f64d84f88bc8414",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "51a285b2-b4cc-88fa-34aa-a4c6e5726cfa-a02f6655",
+      "image_sha256": "69f0c38e7d692af979ac9a5936d4e6bd94a211ffe1bdcbd48cd32deef80bbdb4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "51b91092-77f6-c109-889e-80f7b682a5c5-0a07c323",
+      "image_sha256": "20b7bcc4ccec29ab732191d3181a1a38a37ad589cb11afa2d35f021eafd77f49",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "51c5ced0-aa86-4550-8e59-157313768445-e1382fd0",
+      "image_sha256": "9b19bac4b8c5c58ec11a35ecb34d5b4d221ba21257d6703f2f418e92c58fd7d8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5231b84a-d200-7881-98b9-100cd0c7a7ec-b4542e7b",
+      "image_sha256": "6be09cba13416b47aea208e65e58cd0a10925d27a3bd993db62d7b722d4c0c92",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "541991b9-3058-6dcc-f90b-1d9ac111af1c-6325b4b0",
+      "image_sha256": "8819cd3d99bf44d223c6c8f5460527fffbc5ee52ffa21b25d86e97813650a8bf",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "541c815b-f845-f154-e834-5305410bdf96-2ca679ab",
+      "image_sha256": "30987bddc470d4281aab36d7adf9f5eb886ebbb6c0ec0bd69041f62be9d7f846",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "545d9709-6fc2-3ee6-ea17-b5e297854a33-0c4eac7d",
+      "image_sha256": "e04b4b04cdae28aed28cc8f5be89b249fd7ec9097144699540a27f768781213b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "55133401-cd51-32bc-3046-82cb0a11d3da-ccd1faee",
+      "image_sha256": "988aa5107b76af53e414d9dceae8a25e77756773e9296c2e6f5cd5919d8fa4b4",
       "split": "test",
       "vertical": "healthcare"
     },
     {
-      "doc_id": "5ff83c72-4f21-80a1-8f5d-d246f1e47259-73169850",
-      "image_sha256": "b76d321ba2b6642a6044782a4e218281c3cf736c450b7bdae22099e99f2448fe",
+      "doc_id": "55454546-83f7-218a-0510-1acfa3ed3127-54c59c36",
+      "image_sha256": "53e08828acaeee88b3cf217360520ec439fd00604a2e9c093f1949601b5b81ff",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "557e2cbb-b9ca-680c-4b1d-839654c0f92a-1b23dbf2",
+      "image_sha256": "cee77a22594d8b986bc5178387b4a7e1710ea4a04ca4bcb4abe447c14e05727c",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "56258afc-7573-5e2b-fad0-b5cfe5f2c87d-2bae0d00",
+      "image_sha256": "000761f3dbde47cfce9ae9551340bdb4a42ebb435059e5bfbc813526e9c44b82",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "56c63f3e-f7e7-0710-53e3-43223194b7b6-2a2e9e5c",
+      "image_sha256": "733782b33fb6af341990aaad63a3ddeb2b765286d83edaf29a2c1a58f2bfc67d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "56f9aa9c-814a-a5fa-defa-c4f5540dc0a8-4e15af1c",
+      "image_sha256": "c1bcc27020755c2a50beb4ad4a3f317be9cf966644e6a71d6c4de7a9d58ec2b9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "56fb59d9-c925-1761-86a2-c00e4b7b8603-3602e65e",
+      "image_sha256": "1e31d58653db417f112211ae6aba45edc03eb4cef9e0d5cdb674502a10b9acda",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "571b7a8b-a860-77c7-4000-c278169b7e54-12a88082",
+      "image_sha256": "ce9cc0d88921598193f43e8d0757a5456386c5a8c9c020abac56b66e8121587f",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "580c9794-bac7-bc0f-4620-c3af0400250e-997022d6",
+      "image_sha256": "342b6621f7dc1db8846d5859ea7d4a19c9324d1fc687d48bd6ff239a4089bc06",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "583ab65e-8262-f764-96b4-8ec18cc960e3-23704cc7",
+      "image_sha256": "8c781011d32bebd18ea92af7bb15d9e9dba31b3b88d903d1862846a771e41e99",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "58419e9c-3033-28bb-df36-c30b68f82997-61c0ded1",
+      "image_sha256": "7139f6fe144caf55d026ab730689c7df7a86d2ede5839e3895ad19b1c5b83d89",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "589e9617-b783-4e6a-805e-09021472ba4f-dfd875d8",
+      "image_sha256": "c6214b12cdb7891dc750a359bdd80ea1317f9da08490c59796839206e1a0474a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5b74100e-eb50-3689-8e9e-5612a08dcea0-5e111bfc",
+      "image_sha256": "3017d9ad85a0a92d39eea745b54502fbb9b638c3bceee083eab63280c2a2d414",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5ba0a3f3-32f7-02b1-ec6a-8f568923954c-d68132da",
+      "image_sha256": "ee19385f001eac48b1232cb6529601324b9bbf980995753340bc59cac03fc77f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5bde0701-7770-8d1e-6a42-e0a3fd4fc148-cc16747b",
+      "image_sha256": "fef31b8c5f7b9454317acf3cdc902d9f7380eb8013c26f0b693a07a8fee348e8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5c39a9da-6fb0-3cbb-0181-add875529d46-ad09d0e9",
+      "image_sha256": "8cd3dea337cd611d20421814da6ba2c8f44c1f0a076e22ae040b93bf42f8861a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5c4fe487-ca90-2050-6316-6a8acb2f8c2e-af8e8c9e",
+      "image_sha256": "e8068635d0449109d41b62062ef579f7ce33e6a509afb6b45ecd871f9e168904",
       "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5c8956ba-3359-155e-a6f4-0e1d5bc43a77-57a52758",
+      "image_sha256": "9a9da29d5531fd3864ff3de9ac643e4b67311ea44568b57780cc7468adb68549",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5ccc84a9-e80b-784a-bb29-d13302695d3f-e794b845",
+      "image_sha256": "844802627681e46c0ee1c849c353bd760a95139e363b93c10cff09758abfbd98",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5d77f297-1e40-c341-a906-1e7a400c0aa9-d415008a",
+      "image_sha256": "fa76a2ed9ef7dee28a7d715c3edd50a1a63680f4b04d34b53afdd2ac2d6a770a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5e688e99-61b3-5c88-3f60-21df8aaced27-749214b3",
+      "image_sha256": "2766291cd3a2a0e2afa287314b104b47d99352045343f50760f2d97887a2f43e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5e7ebf2c-22ec-a89b-53ab-38edddd81be9-b21c3d97",
+      "image_sha256": "f44d5abe64f96fd9c93b0a57e9798dc918ff2e0fc70f031d07cafd5058a0deb4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5e96a8ce-3fd5-436d-08e7-8ab4378893fb-4d172769",
+      "image_sha256": "d2cdef579dbc2a1bc3b210e185f8b5804c5fe34ceb53bfd74586d6e742b236c0",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5efaa97c-4a6c-5f10-2c9c-8ffdefa57893-e6af849f",
+      "image_sha256": "4f104314a28a7e512d62ded365c615a396b3be5a58f4dbf1e4de91ad25f1541c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5f1f8600-04bd-87d8-0c12-90a103c96a71-43fd6a11",
+      "image_sha256": "93edf1759d10c4a089813046586787b2965463c21f09c1bcc0f51ba45fef8554",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5f717f67-cedb-f96c-dc1f-c8f27c346dd8-8991f7b4",
+      "image_sha256": "dd99246bc9a1ae1ebe3da140e156f72edf8a16d4bc2d1c4a9fcb0267428587f7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5f9307b5-3aab-617c-ebc2-1e6093b29d09-0febff07",
+      "image_sha256": "42b1360b060e1def7499b0ff3bedee2680c2306ed77323181a6beefdd8a3dc0c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5fb3b9bc-eba6-e693-4e05-6bd91dbea56b-2b8991fd",
+      "image_sha256": "f26e74a7ea77cf69582acac56ee30853f0df273bca55892e7f5ec6f44f21077c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "5fd603dd-1d6a-62be-0862-67ff6e3978b5-7056ffb0",
+      "image_sha256": "a283e3f3bfc51b6fae9353b84be7012cf2874513816548e67579106b7ad1a61e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6047419c-a879-7748-7d02-5875cb8c9a89-ed00b2c9",
+      "image_sha256": "01477f7bf3b1810db2d71f60a2d797684a86918ffbef8458e2308e7df8bd6286",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6111a518-0080-ae91-0964-087921762f09-19035df9",
+      "image_sha256": "ffd9f95528d692ca5ae10d2a77463fcbcb7d25f5d9f2bdc0252da8197e1ac926",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6142e354-6f40-1504-754c-0a19ffdf48ba-22c23d10",
+      "image_sha256": "dc179d3f39e5e4373bd7b34ba292b1a5eed885b54a974effda8598d54adf9afe",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6181508e-0d74-a1ce-1292-301206ce17e4-76bf9566",
+      "image_sha256": "cc9ca6ef5b997fbb3e95fb8ef2964ea124be7cda39e3d74b563c336f21b307a7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "61f0d3ca-b4c9-52e3-eef6-e52d42080cdd-72655897",
+      "image_sha256": "3aeb3c8c432b810a7ef45a64241b7dc64ee9d7238ed8e6dbe0efc72d71e7a8ab",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6275db11-d13f-3576-ca29-c3f6247ac2dc-3f8abd10",
+      "image_sha256": "b5e60dab316577ce0584bf82cd205207b3ed7ad5ea5d4947f18f8e0f186ff224",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6275deb4-e6fe-ed17-ced2-7d7f9117215a-d8365208",
+      "image_sha256": "d76a12166c4f6abe6bd9d1c3d2cb18d53d2969a440d7d3b7538b57f3f6d0d1de",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "62f60bdb-cc5c-8305-b98b-f2b229a55eca-0d663300",
+      "image_sha256": "af088e4546f06cda327c43f6b8537165903ef97aa1b4cc2c69fa4a0b3d1db456",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "62faaba8-cf91-2440-5455-d33a5d8e6291-f020232f",
+      "image_sha256": "7b1d0af4e4801dd52477f339b7f11d36c24f11cb618430f09f8d7280d101030d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "63069029-e1a8-21af-7579-6ab7efa5aaca-5c59b28a",
+      "image_sha256": "1d4d04480c888e6a7eac20eb0880dc04803e72fbebc3c8d61858c3fc11b426ab",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "63469bf1-a127-7393-2deb-7a1d0891c948-739aeed1",
+      "image_sha256": "53ef244c3332b3840d8a25a70e8b89e633f885225cc309bd0aa1cbd4bb93bc31",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6415b890-b12c-2fe4-cdc6-454d62f49f80-c1b68e74",
+      "image_sha256": "033a595c64dae13b8912df41d78007737bf4dec088b5b4cee1749bc6671d39df",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "64950a0b-a786-1f99-3c07-76299effbfd2-757e4f58",
+      "image_sha256": "a0bf2c1f27e1c5999af7b125d53150b3749824144c30b6a6d58ac334fdc4b269",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "64a65d4c-e31c-ad1d-e9f3-48933778a2ac-53cc6514",
+      "image_sha256": "6c3ffef2f3679d7a75eb37f81f5ce24c3c6e2a3e7d8adeb53041cb677b0278e6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "64d261e3-b2ea-88aa-4679-9cc9c39734a7-dbd04075",
+      "image_sha256": "d298853c2bb0de809afb236ba56b007f3d83f659949ba6fb7236bcc799a0a13d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6550f07d-78c7-bd66-5faa-a6aa4604e490-5d04cb4c",
+      "image_sha256": "7ae4f264cc2c24f254aa5cd6acba51c7895d66ed3ffe15aa9fa67eac546549fd",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "659a0ef8-49ce-9d84-a17d-bdb29bc78f21-333b40df",
+      "image_sha256": "4b7729d9a70e4730ff1a247eb6b854d4d7bd59b4d6963c625c5219add85d82d3",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "65c4ede4-d442-1e7d-3106-30668bda826d-188d1881",
+      "image_sha256": "d239fbebce5810c990f49f0ea31b332b0004efa9f4faea260e420787845456a9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "67474bd3-7615-e0d7-d74e-f685757a5fb4-6d648190",
+      "image_sha256": "79e41e1d42b6171f871a52359292a16a35813da1fba867321ef5d316767f0ee6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "68df5c5a-19fc-cd3e-6020-3779eb796956-b4a47cb1",
+      "image_sha256": "c61092f76ae036a0741d1014a05fb572d40396de4867f7e810cc1fdca1ff653a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "68ed51d8-5ef4-5277-c8ad-21222eee36a2-a5120d7d",
+      "image_sha256": "e7138f213b2e57268b2119b70dabeb3df3b95d96a067c6c7c00dd14fde5d7868",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "693dbf49-2b9a-4acc-c266-39958ccfed14-f8d4fe62",
+      "image_sha256": "6bb1ef04d0a40e8e45286d69a06376a4a2622a8229cfa4ca66fd28efb091eed6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6a080c2f-0c83-5ef7-f3a3-8180f4a6a8f2-ca1b8418",
+      "image_sha256": "e9b04dea6ce3b712b5cb18d509c8868ebbd1708b081cc78e5cfab27eff622f5e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6a16bdcc-7009-3f6a-ff1b-bb267f89c5bf-4dbf0d0e",
+      "image_sha256": "16d243160cd84d8c9950b7f57650208f0a42b7f820c83fe27fe3b76addc5ba26",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6ab8d168-18db-b425-d455-4ab3bdd92d14-b17101b7",
+      "image_sha256": "12678bb4ff1108b42164d550ff0329e4cc5eb5bde43891184dfb8a43992f2b4a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6aed9210-c500-4375-b0fc-3374c40b8591-5fc184b2",
+      "image_sha256": "9d7669e9202bfcf93f4b143866fc81228032b1af30075af09c6fd2dfdfa99d0c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6b3a4e2a-af8e-8780-e943-8fb27c617120-2690234a",
+      "image_sha256": "524fb13b3bb6108ae651c4ce7faeec7324c7bba84ffb8eb1fdb04eefd2a6f557",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6bb007b9-8692-0656-5d87-7fe7db858543-97dd67fb",
+      "image_sha256": "fbc21784be17e855cf3d12ffeb0edc216138f67862b49e50b8a93d24b87db890",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6bc4cd5d-0216-17a9-8192-ac2209957d3a-9e0e80cc",
+      "image_sha256": "3b57de7481fc4ff4f02ba11c5ca96e50fb11bd7cf8d34f9a6abe0ca0b2f561f0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6c0ad5e9-e672-3406-3085-02538200daa8-eedef1de",
+      "image_sha256": "b187c7430b61a992523853918c5ca5dcff40c75dac767b3b0ee7b66b8f47f131",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6c56f201-20c5-05fc-0fdd-c613ce93b885-52d9e3f8",
+      "image_sha256": "dedb077f0a78a35c568d7c046619feeffa2a07ffe06b6df3ea912a49338e6406",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6dfcf4c2-32d6-f3ec-f3aa-cc953407deb1-dcb410dc",
+      "image_sha256": "8c3414a754d5806e9deddab6002dd8a4a90c219a41c77ec7a7ebc975d914f320",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6e0dea40-e2fc-2370-075a-56cfae531f98-45bae21f",
+      "image_sha256": "affdb3b445e193b39d454ce787236c381366160beea639e26af16f614008e436",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6e2dd26a-8320-3367-2e05-4be9b7d7b55f-8e963ff7",
+      "image_sha256": "0889577270e45b7c22212ed3cce718c7043bfb0e62de5511099982082e738379",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6e6a4d89-4709-5549-d696-94a38122b047-6eaf90ed",
+      "image_sha256": "91e30c5d389ac46447a2fa3b693bfc7f8cf6bd20a5b20ba25654099c91431001",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6f422ce6-7bc6-2cc2-1e30-1bb279eb8a09-8b6e0fc5",
+      "image_sha256": "9e3e9cefd659eebf625897f540f7a9df2929f57e83aefe18b77bffb12204f91e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6f45f2e9-a617-570a-8867-dec1260088bb-efbaba97",
+      "image_sha256": "afa3410750c560b5f1f1a2c027e55ff8e72e57f5eae68d9d39baa10ef5302466",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6fbddf55-7096-b883-7cd3-260f27953080-ae2c5602",
+      "image_sha256": "5215d6963f98bdffec6f25fa75a8935d57483f2ce53d6bb74c6942717e231eab",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6fc11c55-edde-10b5-c1ea-53094687fe73-cd8287cb",
+      "image_sha256": "eec278bacc0ab67d1d3e947a08c25b472366206ee78be05b157a6a6f3f9ebf6a",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "6fddfbab-7db6-45a8-359e-654d7ea95e64-db54157f",
+      "image_sha256": "702a6efb59fc855bb18b5a7548150025791b9a2620f98efac5613b0efb7347c3",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7094a43c-3819-c182-934e-3e03228cf389-e1935edb",
+      "image_sha256": "7e35c1efdf15d49f5a1fff9a377ff5514b04e5ad2889315c47ef86f66cedb286",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "715724a5-2018-a4ef-8f62-42ec13f9c91d-8b198808",
+      "image_sha256": "3c1250df5bc3362a0a82b91d575fa493b3ba341e5451793ee94dd152a4aba461",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "71618ae8-996c-79b1-100a-386ae37dd384-c12ab5a9",
+      "image_sha256": "3fdb1bf67c03f9990c7bbfc520b3a469cf4315ae06780c2ae58ad1996549d300",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "71bade63-ca24-38ec-728c-2b7303759d56-0580dd53",
+      "image_sha256": "a796e22819c2e6ab336194ccb060eb9392e395185dd8727ac05dfe44a1a02b4e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "739d5eb1-701b-d9d7-63d1-8c041eec8bad-7ea2b0e5",
+      "image_sha256": "0dffb0b3b34181bcdfd8f63707f58f613a8b6e2932cc570a3bf36569e763b060",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "73aecbee-e618-bc52-ff2c-322809b17fc3-c2ab885b",
+      "image_sha256": "40e5e3d9fb096658b2b431ce73f19ad4e3466756188444f189df9b1cef5ffc0c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "73ff6ddd-8dc4-e912-7de0-e9836b532cec-4fec793b",
+      "image_sha256": "ab7fcbd88c9ca22bd2133925d70d61a03ccadf9e5a713ccc5a5a3b9d5e728991",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "740ee37e-42f8-be14-1cc4-ea1920d2c422-31ba5f28",
+      "image_sha256": "284a410ceba845faaa3be02fd709b8086270c55ee33a0035499e7416b597cfe2",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "746511b0-1fb6-c8bd-da65-dd97c26a8fae-12730605",
+      "image_sha256": "3a4db5c3e3f91ffb13f4ea5cacfb0f38f575e7070bdd435d122a05720009af29",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "75067a17-df27-c741-e64d-d4ac2a37ce57-4aeb6605",
+      "image_sha256": "207eb7025349200803bc4c35ab3047f2dc93fdf81aa365273fd48ddca57ed409",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7508ad02-bbda-fe12-20ae-3b22430b00ec-4cf58a64",
+      "image_sha256": "03cc5195f0aa646aaec8a67aac8e7864a062eb1ac6225ee7ab966f6240181baf",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7512bbb4-b22b-0979-6edc-389e16607ac7-3b94cf7d",
+      "image_sha256": "a752c7bcfc880652dcc3ecf3cd2c6f4b7d2a03e8444d7dd90c6fd190caf04199",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "754d8162-a1f2-127e-f2d1-4da7dba59146-50826022",
+      "image_sha256": "b8670cd7f6890cbc3d92a104eb6bca49c44ad07bbd801fd1935c22d89019942b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "75d6a35c-c2e1-5b9f-e7f8-6a5b05af8fc8-888b594e",
+      "image_sha256": "ce0f4f2dee1f462130fe084e9a2cbc8cd8c6f3bfdfb0cc5df419b0db0285856e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "75e3d6db-a468-8e1e-2d31-83595dd49340-c0b14e62",
+      "image_sha256": "d6cad480a48f0f7e2d50c364b77245f18b976068652499c7412f74bf39e39e08",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "76306a5a-ecfa-90e7-3e7e-4f461eaa7eaf-635fecc1",
+      "image_sha256": "1fdfdf6cc249d894aa96f96184f77c1bc7c47985373b3ae721727a18a2ac0b70",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "76a1559f-a83a-59b9-ed07-4efd4a0f1b39-3cea92b5",
+      "image_sha256": "f4c0dd0bc54bf636387783334f36ff6aeb49baba19540524c0a74e72e9d6367c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "76b20010-c318-5754-8c85-983aa538522f-57ffc84b",
+      "image_sha256": "cef2d4e91677aeeded43f7e5e5e14358b65a488930fde1c0d725169f0f7fde95",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7811dc30-8c86-8164-6c33-6b6f464745ef-ed59e6f8",
+      "image_sha256": "b2b28e44908a407f86ed295969cf8e5c9fb11322d6f2a5304fa14437b6364481",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "79021b82-f370-50bb-c5a1-7333816d683f-cd7cec3a",
+      "image_sha256": "f6bc1c5bddd16ce2f3e3e4ac8dc681146d69aa9f094e6977f6d37f91fe21954f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "795e3fd0-6db0-8bc7-ae9a-d7a3903f24dd-26781223",
+      "image_sha256": "5717785f4958a05fb076120346d8875fa67bd23bc8c987d121302fcd4898d005",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7a272748-5b0c-8308-27ed-9a785d3cc250-fffd17bc",
+      "image_sha256": "8669b546baa13de53ae605f05ce695570a94a4dbd4cc13cd96a3955361cd10d6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7aab8cea-d10e-9f8b-cb09-2cbbcdd69197-9f5dbdb2",
+      "image_sha256": "ef9f99e91b5f6e1a02db383313d5281b95bcf61d9a3e2c3d36b2ab548a0b2923",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7b04ab97-56cf-7cc3-8496-81768c206c70-5d73f0f8",
+      "image_sha256": "e2a082696690fd02eede6c781c60c66f4ab84e8c24b6d1c4b28b3ab1389e63fc",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7b06ee52-df9a-8487-0be6-dff27cc7d519-1b0f5a53",
+      "image_sha256": "328488b19ec29bf5168dd86d2f4c477b2defcb5b264253cede4e673a1cc644d0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7b7389cb-00f6-4022-6b66-c233c3375d64-fb2c5d9a",
+      "image_sha256": "71c1cc7807d3c2acd89ddf1bf02f1c3b9f82d489022e3c71ebd036bdd738a80f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7b809a81-60d4-8863-350a-1edca5b8ef2b-152d16d2",
+      "image_sha256": "2d2d1474068d69328f70fac065f09c126c8e992e267cd22fd919cb07c1268b3b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7bdd30f5-7598-e44a-c32c-f928becb9d5e-6610c1ab",
+      "image_sha256": "89c0a02e9569edef2c3c9f84dadf94a308fc00b8633c84891ce9e3a0e51bc32d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7bf4950d-346e-cb43-b925-1c2c66722392-54a37168",
+      "image_sha256": "5f860bdfa07a61a4dae296691d40d6dd2b933fbad0a3d342cd23b599de327265",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7c2a5b6b-6096-af13-5186-ecf3d160fe91-179a103c",
+      "image_sha256": "fadaf82ef83fa2ca7a85e2d174c5b0a9dee34a770c6f99ea60c5e580e1468596",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7c913488-8c54-7aa0-a452-83dbc3ad8377-dfa75abd",
+      "image_sha256": "a43035edf6e16b16baca7accedff43ead5de5fea4858e557fa930629135d437e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7cfa80d2-3524-69e2-3f75-3559d3214f32-b54814bf",
+      "image_sha256": "8c38da3a78a8bcd3811de523244a7bf1aae109b3d989e217dbde05ac09bf6e51",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7d026169-0bc3-ac5f-5a5f-62f7fae5ef28-c0eb0763",
+      "image_sha256": "a4e32b5a61d9d08bd9b46f059469dbb16d9966791aa76b5d267065e8bcf156bc",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7e5ef194-7a64-dec9-07c3-43dab97ef9da-887848be",
+      "image_sha256": "c92d966981b45b888fafb0635fb6588a34c6ff0644fcba242f2a1608361802d6",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7e9f22be-4a63-3512-e65c-c28f2189e109-79db69eb",
+      "image_sha256": "320734ef63c27927969cd749df7193fdf10437decd2921b169b18a76b6580eb0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7ed32bf9-6e8a-4dd5-78e6-041937a6894f-ba93ff8f",
+      "image_sha256": "258d0454d79d87349bd97bc9f70cc4e9c241ad1d981b0e55c2c7255d77f94c4d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7eeabe6a-37e3-8efa-3373-4f7c0adb93d8-8f07822c",
+      "image_sha256": "8153d35cbcb32c503496d12244262ac54353cbefd684517db2d08055a94f9210",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7f50d0ba-ca6b-eaa7-d4f7-50dc977f2e50-066820d2",
+      "image_sha256": "8eb7bfae5f423da244d8cfb236575a8470bd489137e43f0040c0a4a466a7d3cd",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "7f513333-a491-f052-0bc3-d5f6c36143af-49cd2ac0",
+      "image_sha256": "fd9f75fa5730ec7f3ff253871afecce640da28388c725ece4700cae75c90c519",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8057c7e5-77d0-2248-df05-236c14104dfa-41532465",
+      "image_sha256": "4695e3d7e5c506f2e283ecdc3a3a434222cdd51694fe97d1c8bc3b132c068f2a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "815e3b61-03d7-899b-96b2-7515cc447b0b-c10d65d0",
+      "image_sha256": "8583beaa5ee188a76ab9f61aaf8a57ffcc35b60ef34d797c8a4eee8d9585b421",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "81fd5c88-44e9-6c72-ab37-40e4b25f83f3-4dc0775f",
+      "image_sha256": "55cacd320220463c0cf791485e9bf1b6afd1217c548f5469b557fb6c130a8f94",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "82312251-db0a-9697-d152-8f86a1274d79-3aad41e6",
+      "image_sha256": "78fdc408fcbd8d0b1f43733b52379f7d3ef697050cc81d072aaa8897e7695cf6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8232315a-abdc-7e54-ce2b-ebc86ef63856-801ce527",
+      "image_sha256": "01978915e919bdc320a2de83d2cfccc1e6de773ec6a2c902e7afee58d65f2af4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "828e8ab2-a22d-3b75-f493-83913cb18be1-5ee7b868",
+      "image_sha256": "de183b4ff790ce8fc7e175e2aba954639d76ed9c3e89d8e2fac8eef74e1e2fbe",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "82e8875f-75e1-adbc-ae8c-be3857ff62c0-cbf70747",
+      "image_sha256": "84ced5e28753617c32831bef3419cee3dcfb7dabea2ddb38c3e045d446bae73f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "82ec1b7a-61ac-8b8f-bc75-d2c2d980f7ef-164fd98b",
+      "image_sha256": "bc31d09f4397ee561aa7fe02905302c109dc91ca8db4f37c7d31913b48442afe",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "83650e91-280e-514f-d346-364d2c4a7f83-03506ad2",
+      "image_sha256": "c2b67f2d188789335e7622f43b02684c926ad71c4319e5c496bec5ed2d0fdb12",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "83cf6620-7bed-0435-5108-eae1ffa26a66-1481775d",
+      "image_sha256": "53cee3cf3ec7a2237ab6f03f737675bde2e58c6eeed87c82ded768bc9d06102b",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "84417c0d-0db8-dc7c-4a7d-f80a70b0d7e7-da574a1c",
+      "image_sha256": "a906ae0943231ab48d449a065a45d1aaa138c42190649cb687db2e1a7757dc48",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "846dca41-894c-a653-1cd6-bd677ffa2151-4dc5fb8b",
+      "image_sha256": "2e4be7b33c9811509853d35342f98209a9fff4d83f61a1c787e3e9809f1632a7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "847988f9-9c82-aac5-dca7-a39aca576407-201ce3cb",
+      "image_sha256": "b8d304caf964e65ce9aed0564ff9bc007714dff1f364aa74ebdc93da53f74989",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "84a9e26a-cecb-691d-462d-b384f179a680-29e78873",
+      "image_sha256": "f4e7127eba83e75580246834fa1804045a23b6435378bc10785123fd36c06476",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "84ee9557-3a51-6d4a-3392-5688de324bc2-d79de3c8",
+      "image_sha256": "119be1d0a75ada2d97aee7d14d82d0debceb142b6560e08c157943a7bccc7dc7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "85120612-3f5b-8f1e-2fa1-f20f630afcd3-3d4e0684",
+      "image_sha256": "deb9725e1dfd519b403364fd89354ab04319d60707de6cb13495a16b25330d91",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8580a690-4d97-5739-4f07-788ad44e6f04-64992c8f",
+      "image_sha256": "e1c50a6124ac93fc8794bc98a79d0c27b9d9259d666065292b593a9f50ac6a3e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "869668f8-3af3-bb56-526d-d4de8cf6fc8b-cc5be9ad",
+      "image_sha256": "d4095eb8c9b6c0b52c43d4a91714cf31481e78e05a80b2557fab207053883344",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "86ad0b8d-d9e9-ae5b-9ee6-a05c8768c861-503375c7",
+      "image_sha256": "0d98fbb62d9c55a4e8553ce64be0115d015004d11d90f7055997d39228c6fed8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "86fac348-75d9-8525-a2bc-0c34fb0e2785-3a592841",
+      "image_sha256": "07089f38894a854f193844d22d8bfa1d19b28a397972f6127b59dbaa6d5fb267",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8724b50f-fa30-b76d-f803-70bf579d51de-9acca6aa",
+      "image_sha256": "4f7be7fa0802428dd02a133f83eec246f8e2099658369652657c02faea841514",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "87c87bbc-d185-581f-c2a1-3c49900400cc-fb544e2a",
+      "image_sha256": "8184529da19c0a084bab75fc48a66e408cb986bc4bb5bdd468c101842aa46870",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "880f6337-503c-307f-686c-a0cb070151ba-eec82cad",
+      "image_sha256": "92dab484038e6a91a8c7f8b9e098c29eac32ca08c5ce5796fdf9cac3a701319a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "88d9f932-beeb-dab3-0982-21fce29cad49-4f6fc650",
+      "image_sha256": "bab759dc1d97eab82de983ee9fc8c13d7c8ba13f456fb0214256c00a45de942a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "89080f3e-a11c-04a2-4e37-2d213299a48e-da7cc5b8",
+      "image_sha256": "aadb7524911bcaca4b4d0dbf87c30ce77de8b75fcd50fdaf66a77e555657b7a5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8992a603-0298-24e8-7298-e8c179623f60-d8d3b132",
+      "image_sha256": "4a3a2e506930f640cc9c5a0a7582c9bfdeea7a679490e09ed9bd863f3239844a",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "89e977dc-362e-8166-84db-36192167fd39-a5d10b40",
+      "image_sha256": "2b77733e8bb430187f8e386ff44bb76043b218a9bde6b3297947d8c2d78a6150",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8a378120-cbc8-8dc0-04be-44a8c807932f-cd6988e6",
+      "image_sha256": "b9df9d7d6879ce5f78ee2d9f7267c6ce7a428865e305466ef6d0dd440f15a17f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8af9d5d7-2600-556b-5158-64501509f9f5-faa5b67f",
+      "image_sha256": "070145ee317761019d9688de1419e66467cbe9d4547855cecea5b8781f0abeeb",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8b8f1e13-b68f-5d5f-4230-0ac867267002-50882593",
+      "image_sha256": "ab358bf6af47e41340bc0a0b091f5e3946fbd92f5709bffacd921b81aa007cd9",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8c15cab2-d1db-a2bf-8f49-56763b535951-3687ddcf",
+      "image_sha256": "61867f558edaebe801e0144adbe8f95f5eb43d91ed3cae6acea6bbc7b43c64b7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8c5fa9a2-4100-1e1c-1287-7effbfe0c0d2-1383b81d",
+      "image_sha256": "2c637b1a6f03569cc0985602662ea2a2795d61a34c41e4004375e9d20cbd5b41",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8c8ada4e-c0d8-4abb-5cf8-adecff77bd35-568cd96f",
+      "image_sha256": "bcaf71a752c7af2a2fa030c5510c51869caf82d5ef4328f6601a2b9aab038e77",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8c9658c1-37b5-c9fc-2510-1190835eca52-b66e893d",
+      "image_sha256": "ec32af8725d9f9cb21f5ce251becdf2711d26e835ca79d11c9cfa3a874970a87",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8cc81fed-3131-979a-fcf2-4a25ae2c55e6-65bb9c30",
+      "image_sha256": "0e7248b3d67352c215055d6f505db29369724cd4313837678586de977c16350d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8ce04916-e473-e7da-92a4-6398f6cb5bbe-e41711ea",
+      "image_sha256": "782753e992ec7439d615800ab350872850e1bb81b635af0c341b9203cfdcfb62",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8d062ee1-f816-36c1-9c79-b33d877a0f10-84bc8600",
+      "image_sha256": "2514bc65103865755405a4471699a15ae03cc1532693839e1df87b75b0f0f319",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8e6f1056-7af7-9eab-f985-c9c9c13e0095-4964fa09",
+      "image_sha256": "29fdea8cdeb68119c1ffec1a6b59139dc14f80b073d93648f698225373fd6cd9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8f65985d-f090-a703-440e-67de99fbc4e4-541cc5bc",
+      "image_sha256": "7d9ba75d4195c926b6da0c20e02fa7e8f83dad8f95c921ba432c9fc9806222d6",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "8fcba208-3cbc-150a-a1cd-391bba1167ad-fc533d47",
+      "image_sha256": "705584039c35382c04cd9f2661a99d289ff96bc2ae490d4c97a1d2961354a8df",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "900239ad-d6a3-22f0-94f5-0557cddb4b3f-3608941b",
+      "image_sha256": "37bf57eb69f7f8516f1f36f995f33a935d264cc7203e8891b6d41eb0f8bf36aa",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "902020e2-73d7-b0ab-51f5-07137486340f-04c9d875",
+      "image_sha256": "932f73a21adbbed3592d1405caf7d1efac9cad8c351a1df626e7ef2b0c5fa8f9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "905d3fd1-e330-71c9-a0d4-b658b40fa831-1a0daa1c",
+      "image_sha256": "83eaa0d94badddb6f38373aff615c9c0026ee161e3591b6741e541d15f3644bd",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9096ceff-a5af-8ea8-ebdb-b5f3c19dea01-f433bb8a",
+      "image_sha256": "5e088a652dcfa4b29baa35db6af3dc302b0f1eaad37d95c70af5cdf3f06d7104",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "90b56170-84ef-1474-82ee-16795b7766d0-9d9ae7cc",
+      "image_sha256": "3c30597dafb87961c0e799be833cb6b0a1508482bb8c1a6f8dca65994238118f",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "90d97aa1-2d42-c3b9-55ec-ab667bee5354-e8118765",
+      "image_sha256": "96d33e8ef715fcc84b061e10d07781cc481f6a52e203c49e44a1e453af019cde",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9116ecc2-ba5e-fc0d-a617-597a98054a67-e571edb8",
+      "image_sha256": "558b8bf29c1cf9f4f0f2dfefc5d3c60aaed57af7fc457b2611a1cfc9bd099fdc",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9164a852-f8bf-833f-52db-9ff03d01bc1b-f51a0025",
+      "image_sha256": "ade916faa9bfb988de819b03b3eaafb29111684f09886f6ab1d554fc2ce12d60",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "922fb35e-148d-9e82-7e65-bfa05e3b3515-bb9d37c0",
+      "image_sha256": "465bd62c2704c3fde6a42ebe999f6f867b24ae6d1bceacc4ebfae82f5c1ec984",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9255b577-57ec-5114-269d-ae0e5e12f290-ab8a2190",
+      "image_sha256": "c0173f44da832b500e96e6bf31ee6dbb82580df2a54568958d275e4ecc0b6274",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "92683f03-a77a-0f78-b618-266ad9a301be-06770fc9",
+      "image_sha256": "514d7ff85d90e9c3624ec48281bcae133aef387644922ea057d261a685516e46",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9291fd88-398c-6212-0bf5-e2bf877402cb-2bde1944",
+      "image_sha256": "843921232926a2b8bf761c8b6d06eac7551da493f57da75609b8ab7caa94519f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "929fdbf9-4801-37e1-fd1f-929a91f61e49-9e3a37a4",
+      "image_sha256": "f5c8dcae03950efa41079935c4596fec5a3f1a898c9ad119768d7e543714b46a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "92cc1dc9-edc0-5486-c339-cb1365983237-f07badd7",
+      "image_sha256": "451e70fe085ee33f6e6203da20638419c0500437adfc318b2f57bd5493660768",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "92cf63a9-9fc0-2d83-bf4a-339c6f2d1537-d1a672fc",
+      "image_sha256": "3c8e304848ec0da6dd225b0179213a0b353f76033f1b2514e4c59fd2afa5a45a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "92d32bde-6f58-766d-1ecc-bd45d93ec272-e7209483",
+      "image_sha256": "d35fac65353b817be99d086a5abb8b01d7e1744a6db4ff2637eb912248a86243",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "93a4ee80-d2b8-bcd8-9bce-7033afe2df53-fde9f975",
+      "image_sha256": "1139f5220ba91d72855a92c761d7a63cc9284116eceef8cecababae216d8fd8d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "93a8c8cb-76af-0abe-4dec-9952c352e576-c711991f",
+      "image_sha256": "787bd7fca542e4ecc46ef031f752f93a5d663e8ef72890c649fe7ccd1d5ea646",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9432ec87-13f3-6c0a-daf8-807d8b733be7-7d5c5eb9",
+      "image_sha256": "e9e99d9cf4dcdfac8b76f87e44d600f74af81c66a98ec8b8a887b1e83e0e80cb",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9450c01e-c63f-f29a-c3ea-07c71e71695a-a359630c",
+      "image_sha256": "0593a28dbfbc3bab48d7d2e6d01f6b226dc60583b80974d04ddb2250c4015865",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "947c82ee-1735-c9ed-8210-38cb93d8070c-864e56c2",
+      "image_sha256": "a2339c6e7e287a2a75b5c1b8ee3a6cce9450e841f38607f53e5666d297ae7c62",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "953e87cd-1d8b-d82c-fe99-b6178dd0a972-6f9de56c",
+      "image_sha256": "284b267792e703d337e9a4109a0085bf045e3d9f8b6b75374da89b1288b4044a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "955dbe2e-6cad-28a6-5b0c-79a3f657c4e8-0e414b3b",
+      "image_sha256": "d092edcda9ca648ea04b04a8fc79d649f7cb062d747737cad44ff52543a23571",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9618b67f-a3f5-d203-6253-8decd9e97e5f-d4fd4b01",
+      "image_sha256": "90cf93a34ff7995ec03955fa1af4bbc45ed5afd0b96bee5ec71882d3874a73ec",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9661a432-4630-2cd9-142c-386845fae837-735ba219",
+      "image_sha256": "0132868f46ef9ddce04471cfd91c12825c9c4635324f0315e05163003f9dc835",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "96a88082-137f-80a2-5283-862ed9b56be9-9bca0aab",
+      "image_sha256": "a1ffc21cdfe5ea2fec6961c62cb711c1d04419ad6fe5cc5fa4e6d7186cb4290f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "96b128de-9686-58d4-d031-33de4c6d51bf-d56d4d68",
+      "image_sha256": "20ac2140b574045d37785d03ec2bcc1686de8c7d292bbe044097148dd2c17442",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "96b6d552-da61-e5e6-8dbc-2168f17d2a29-05f40e1e",
+      "image_sha256": "0fe4b29c2c62e0083fd6996f2b00248d34ed16a06970c5012b58bc0bac71ce23",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "96e4667e-d93d-217e-aef4-a83a2cba2ef1-caae7368",
+      "image_sha256": "3e5b44bb44f94c51f7a58b5a83180906ad406b59a4af9fd35017be78af725d2f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "96e7ccff-a207-860b-118c-6ef81afc1793-39a30711",
+      "image_sha256": "e23fbd8e635213df08e0b746c0d94a0886d5a39dba452ca6ce8f731a49e07901",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9701b6ed-4f71-6f2f-da16-fbd93457deff-ede08182",
+      "image_sha256": "e09c03ccb6b12a7625867d2447b06cf3152af18abcf9a90a9b5df0b6484c2277",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "97a7a416-77e3-6052-738a-0f358c16a8b6-e4d6e059",
+      "image_sha256": "415bca5831077118b7888d23eca9af0f74e9fce7d42fd8ea02ec2b95ef2ff723",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "982750f4-569b-5949-196b-60699bdda3fb-db015c93",
+      "image_sha256": "a88898898e85a873afdc1426aa7a02012c5e747a114c0cb0d993f0e9b3b0138f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "989701a8-74fe-34f8-49dd-6a2973370b2e-94a49888",
+      "image_sha256": "3f0a2451478b917e5eb4d66ac3b384ae16980b1bc94a7fca77087d0ffeb7e01d",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "994d6249-48af-8064-c677-0fb58b1b59a8-9c03687a",
+      "image_sha256": "4550e678cc60fe58973bcc0c2fb34ddbb69a57f5cf2ce89a59436646e59558ab",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "99d263f7-e9f2-0b93-6943-0ed96a90d7bc-1318cb07",
+      "image_sha256": "7e29689b62d81b13f29359b5915de677dd62626b8122b58f2bf29cd95fd912fa",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9a574a84-f76d-12dc-0cde-7690f012514a-5239af16",
+      "image_sha256": "f1663232b97306e6511c96edd9ff91b9e96c013cef6ff3143159dd03a8db1460",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9a879aa7-7ca3-a060-36f6-ddca5f672ed1-d133089a",
+      "image_sha256": "b738bf06f6e203fcb678c7624671af818f98a494763d09f8dd4fff0e8f55b483",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9c5fc104-ad4f-8ff4-29b6-52d84920036e-f0c5cd57",
+      "image_sha256": "62e0a795468ec260aa4d4afe3785d8e8c80c07b215582f672e4bba6f92d7ec34",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9d0941e4-8b2f-293f-8ee0-823f76c756c0-5cbc1d4e",
+      "image_sha256": "447d7d9839363e96149b606ad5461f768b9ca1fa5371b94fad2ec09a3ec0e5c3",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9d0c535f-4c61-1866-8d7c-957c608eefe1-f64fe7e5",
+      "image_sha256": "a63379043f88a6ae1f55369a3bf985d5fd499872c8eb913464c40f4899c40d9a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9d3551b7-0a4f-1874-320c-36e470808932-850b5ef8",
+      "image_sha256": "4366231ef91efb076009726d50e95b06efb00d101c9da49094e92b42ee46e41d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9d361982-b058-0cea-4715-a66fa5d38e99-a7889ce5",
+      "image_sha256": "9a63c6b28ea6aba06cc88ca911b072e30f6f791ef4bc7d8b35e0c5a9944fbf78",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9d7ea7c3-f00d-a6e7-4f3c-46d74d51d5a0-1e493499",
+      "image_sha256": "2ffc52b3a989cc4bb896d1f0877c223f07b77f491ed91db1a129b727735ebaf6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9dc02e0c-624b-81c6-4648-829d5074bf90-483be501",
+      "image_sha256": "dc54ad2fcacb85f78df27bf83db93777b70815464caaa5f7415f4cbb1b87c78a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9df64dd5-1ebb-0f02-841c-6175bafb20a8-648e960f",
+      "image_sha256": "52c33b7a5a0384a5dc67a4f669c94df1d66eea59e5a56c81fa8f2e69b1c6505b",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9e4d0c12-8a37-dde9-9c49-34a4c7a2cd14-9fcd366a",
+      "image_sha256": "5645012b3159349e09e41a5e6224ca5ea1f5e87d7e6ca065d91d67fe104b5fa7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9e5ed2b1-cbdd-45f6-e703-775ece999f39-866c9a26",
+      "image_sha256": "d66832851621ffee85e7afe51ece36586b6d79b1618a2396f773d6ab973fe158",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9f10defe-3bb8-e9d5-fa6e-1243474e6bff-b16a031e",
+      "image_sha256": "aa4aa5e20e0297933ec0d6d57c803e7b4c2c75bcfef4d43649ab3d97e337cfa6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9f5f10b1-29dc-e3ea-929b-963231449c19-4d6065e1",
+      "image_sha256": "f8b9a4ba41876135821636108a8e8ebc57b368e07ce7590b0787767c4d33cd7b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9f653678-aad8-1974-24dd-10d018df1cc3-1548ed8c",
+      "image_sha256": "3ffda9044fc249b0f302991f7dadd79459c999313c9851f11029723d456c5d3a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "9f736313-9313-815f-e6d5-4e7f9e5d7e8e-fd468fd0",
+      "image_sha256": "43fbfe6b595af2185f53bad3de4bfd5b7e8d3b31150105ffb3db30a29c5697e7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a060ad2b-a93a-a1a6-b3ae-e187655ab0a3-64f8e244",
+      "image_sha256": "e2106cd9ed394c5f5a11d1e30a2153b652627c021b62042edf6e8cecfe5d897f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a0884917-bb0a-70c2-6ed5-f9d5692ba3bb-f2b25f91",
+      "image_sha256": "5be9cfa9a40d69478a8dca4cdf937f5d75cd416e2b1f3e6d1464f9a49826fa4e",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a0c03c21-c7e2-54b4-175d-a01e8ba6de7b-eaba6fe7",
+      "image_sha256": "e5bbd7d4ba09880a219de688cbb89f445cd2168e5eacd97313538f2c6584aed2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a1ca0d37-09ab-c856-fa48-94be431798fa-d4bd55fb",
+      "image_sha256": "d23ab3e78a737c88a4d2e4616c86f23685f774f784c06a672b1c4dff19f0e376",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a1e4d5b0-1512-073b-c684-02aa89cec791-363e25c9",
+      "image_sha256": "a851e60d2d690352d9152e65125f972c6ec661f04b46b3f3082561b5dfef4fb2",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a203c138-c1f4-67db-655a-5138756a96c7-ebeb4400",
+      "image_sha256": "3ab764aef4ca7aad87eb6d30b5b0156926977d89b21614063a83f2e50a858aa7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a296a2ba-b1ad-a3c5-d172-aa3dfdbcdab9-08e55360",
+      "image_sha256": "1c76d0af1c256aa0ccecea1ca40735f92542ec73b091a897c29d767f6cb7f004",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a2fb233f-60e0-b477-cd38-af3923f792a3-2523fc10",
+      "image_sha256": "18925f55fb2a5d4cac9d540ef960608693ba901ded1c6c3182e7c5fafce936a0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a343f027-1825-f6cf-e87b-3b0279520752-a848dffc",
+      "image_sha256": "7559c268fadd64ffe6d749f447cc1a63dfbf6df1adba8152c3fe96b348a872f0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a3b31db7-75ab-46eb-5a3a-2431b99cf255-4080bca6",
+      "image_sha256": "189a67fc3b9a6bc128a01c757704892a08819ebaf05dda07fc1919ad4c5a03d7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a4c84a04-6ea9-c00c-d627-b44ee9fc1385-889ae9dd",
+      "image_sha256": "372ff1802e63935e3f42b7c3426e9dd135cc16e3dd878efe5f1846458f9d5c93",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a56f7570-fa42-cebe-bded-330118a4268c-ce346343",
+      "image_sha256": "cf2304dd1abcb8d9c31d8bef59949a884cf0f4b0c9204677a331ca9224b84c2d",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a5775c52-8ae5-e37c-3539-7113903ec772-0b7dbc85",
+      "image_sha256": "a5b079df5ab9f85b3450ce8838e7f365e764cd31a1af8e290e132270adfb77ce",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a61aaeb8-8451-96f9-862d-b14b7908d3fd-41c9f1f7",
+      "image_sha256": "8336ef6bd6da2fd21955554ade96f240f48612b9e4ab82362d7fc84494d97884",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a63936e9-4b45-da8f-b78b-dbaa7fc0722f-8b6386fd",
+      "image_sha256": "499266de96d771639f5d1e94955f51344000dc8a040cb095c628f6711331c19f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a66ac766-26d6-8ac4-7b06-c8db052a4252-07a53372",
+      "image_sha256": "d0c8fa4e4c09af70d0622f28451251b99a87a0c2e449c6d02bc3c870f6cb82d7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a71f9d8c-e1c4-c4fd-5ee5-5f81377c4c26-308dbbf5",
+      "image_sha256": "01652d530ab352f275eb78be3efcf9de1456891b75cb527f8ff3442521854102",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a7b1943e-4400-ed7b-2b1f-67b40f8f36e2-4481568d",
+      "image_sha256": "c73a02e4d3d141b4e2f17560fcb064f6a14162e717841bd818db329252fc0d35",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a7d8d5ec-8b0e-003c-99fd-38a30aa16f2a-1eb541e7",
+      "image_sha256": "296430b2466342a2c0c6bb3c57e0684807837aaf11eef5d10d9ac3c869a72a3c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a8113386-ca2c-393f-42a0-26a504c60230-5292cd79",
+      "image_sha256": "2b6fe19192c77c73ecc9d82d226d1128ad02c0f52fb5e15a06e6a92c93f029c2",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a8c03f84-210e-e947-84c6-2eeb60f5b1a9-4ec47e13",
+      "image_sha256": "5db6f7666e12ef991cf79bea554efd7a80e9587a6b87075571de80aa7ef66e71",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "a8e67fbe-bafd-ce97-2236-1e05900b4926-8b040344",
+      "image_sha256": "3be74225be1c8d511ab725dc88a276be9e8a0c14aeb864766b75c05772fbb001",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aa20b461-6893-f4f8-cfce-4399c8065fe6-cec6e37a",
+      "image_sha256": "f86a9b61ae6e58005e7be056e0192de8497bb69608a142c4fb5b4812ff6ed316",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aa2186fb-1334-1bd5-dd89-2679c5ecfed0-e59cc435",
+      "image_sha256": "6361971f0b0118f2b4b61b057b04bdbaadfc841f58fbff090304cc3260198a1b",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aa384bf6-a21d-e3de-4801-190935faafce-cb1b37ff",
+      "image_sha256": "b0ac3cc1ed9585142c7f82e403a44e8cefc1d755cd869577c110023b9a827bc4",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "aa5fba77-1931-cf0a-ee58-b26e2a5f1363-2c3bda77",
+      "image_sha256": "bdfe62f0f10d4689adc4110e39fdeee852cd02595d260fd1529fffa78b27ca96",
+      "split": "dev",
       "vertical": "healthcare"
     },
     {
       "doc_id": "aa616abe-1761-0c9a-7959-07544679dafd-e0d8a677",
-      "image_sha256": "dcc1902f3113455ef84d50a18b39d4a9ecd92165021cd52b41c72e563a3734aa",
+      "image_sha256": "792d84aef58c1d2a5e0a2c9372a70ecaf2ccb9ee53f1dcb86d976924489fa1ef",
       "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ac25c3c2-ef45-4a62-5177-8124712ed270-fefb2e95",
+      "image_sha256": "e31e8c537ac4f9a0a9bbf1b17daaac6049112c96fa29e87228bba81c346cbfbc",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ac679580-bd65-fc87-efa4-2a78d8b0102f-66d2ecf4",
+      "image_sha256": "3f8c529f6a17267d9c3c92160038339a5d2270d14d43815a919cd8ced14b05f8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "acc0c2da-f3d5-758e-364e-41993c8bfbb8-56959de0",
+      "image_sha256": "251c086f3e9e7274733278f9aed293d19797fb76b6b383d606f2cfdfea91e876",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "acef2454-0418-e396-f055-cdffb904ee5b-4d680be7",
+      "image_sha256": "b049c61169776e991dabef244cf92842e94ce5df3f9148a5eeb4d5ab00160d43",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ad048fab-ae8c-05c5-b5f8-0df0f9e05226-e4a21f4a",
+      "image_sha256": "e06a62776e20529418f9df7463dbcc5d18c238efba48776791d8bdac96913c0f",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ad27f9cb-0e01-7165-32e1-7c652d095bd3-3e6cd3e1",
+      "image_sha256": "7ba28d1a5746b1934fdd09bf7a07be236c18eb65845fb918440b4c96a6986e34",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ae44d54d-cbea-a17d-f345-ee7e0f5bb553-5ff4775a",
+      "image_sha256": "f523e6bbd8fbb3dff1c16dec6a4bc4500cf8422a8cc85685d9111e97f5474678",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ae61a7a0-b0bd-c967-2e15-d577dd4017d4-9d9fc20e",
+      "image_sha256": "035c11d6191b5e496e873c955dffaacc001e519273a6ca537cc22e16f60b57e9",
+      "split": "train",
       "vertical": "healthcare"
     },
     {
       "doc_id": "aee7bbe1-0c45-c028-1e62-1f4cdb30c273-1eb445a6",
-      "image_sha256": "84728031d1c332cbd68389221d9e3505e0b7b26ba79496d977a561da766c870e",
+      "image_sha256": "53041c6ae7f05cb61fd493c959d81734223e87a6b91d52b281513ee0a2f17a66",
       "split": "test",
       "vertical": "healthcare"
     },
     {
-      "doc_id": "ba419d35-0dfe-8af7-347c-eebf02485a56-a43a8e50",
-      "image_sha256": "47b0676a4f97b304d21c0e7750d29034b67228a1453846b76f443cc241070f0c",
+      "doc_id": "b030e4fd-ddca-e127-00bb-0d64d7d8d246-63eeb65f",
+      "image_sha256": "cb438f41e9576690fe9b6f759dd0d7e970dbdb4578ca1c86328a5c7aea08e882",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b0671e21-770f-2b82-fc56-dba437627a17-b6191aa1",
+      "image_sha256": "75328e23576a5045b2130df79d141fcc62c4709a49f5e46e57f61d1dc2c4f59b",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b077e9d0-4634-9a50-4b55-1bc19796359c-ee5f07af",
+      "image_sha256": "2c6dc18d390b44ac232e85a0ce3d3912c54c84b47ccdeb6691379379e0fad723",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b08cd82f-4b6b-b670-c053-a2adc43ff838-ab2e006e",
+      "image_sha256": "681bc2652f39ca4af2c2e673f46193da49ca37711a5e00a5c15d90190a310d41",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b099a1b0-d2f2-2952-1699-3dbeb7c701f3-f7965dd1",
+      "image_sha256": "3646b075d2196c0e940ceebc36ca679eda608c61aa17cf180aa7c241af1a130c",
       "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b160ac6f-2490-78f4-c8fd-2ff564fee611-72e271e9",
+      "image_sha256": "4741ac33d3398ba0f8314c5b40d001b582cbc411bec69e6d28cd6858b7bfd8de",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b1ceaebb-dd15-4317-6b34-0281e59005ce-1c55332e",
+      "image_sha256": "3f18c751e609bde2fce7fee395f4427b3299181b655d09cad950da7b5d3a1a84",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b1d83b24-437d-9139-3ea3-f8e8ab615e0e-be5ef8af",
+      "image_sha256": "0190c5c5134e18aea9e4d6328eed0e1e71c7830caa15472f34fd68bac938bd71",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b274b53d-66eb-0cfe-9d2c-0da7e3d0aa26-79077d34",
+      "image_sha256": "6a9361e5fa1fbf356dfd5a9f66b2652e3ac64edc8edefab67dcde0caa6ced675",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b27ee48d-2590-6e78-ee68-28a31a2b37e1-39137a5d",
+      "image_sha256": "d8cecb765a43b8d5e3fd2395020ac845bfcfe7790e56fd8fd5de2d91b5fa705f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b2fcda71-d06e-c6e5-5c35-250faf44e8f9-6682b746",
+      "image_sha256": "21c515581d9a93452c62a70a1842657926ba63ca68d3278254afe6be65870db1",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b329ef8d-a18b-a62f-aa37-7b5ca4504f4b-6937bc76",
+      "image_sha256": "1b45a9bca8e80e6a4b74a23db10ac712f59b867160bf4d9315e0832598f2bf8c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b41565d2-2155-bd97-c503-8c50c5f0e5c8-b56b2f65",
+      "image_sha256": "ae4a1d4f53cbde888ff148f9f981fbcf7a5934709f24a7246e3ac3ac3fa2dd1b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b47b258f-735b-a8c0-16e3-b100a13ac7bd-d26f9531",
+      "image_sha256": "2bc7d268eab6ee76844c82f121797e7a1d17dcd1567ebe71bcf9192ec3e4d3fe",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b498abf6-f911-4399-fe9a-7de57f51f5a5-06baff27",
+      "image_sha256": "263b5f48804b2cc49d63c4201eef7dbe4b4c79ddc2391b2e5788ad7f090c1aa3",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b54dbcf4-7a87-407a-9b3a-90ae4d8cd678-94fe0c58",
+      "image_sha256": "a99f3f500c5a624fe7934aedf8967890aa479539232c0f61b10f91e59eef315c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b5924e84-5d48-32f8-3f3b-053008eac1c0-bc8544bb",
+      "image_sha256": "21257a511e78f02f9de8380749624d9fd63dc7ebeaeadca9ba5049038023c9a1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b60f1445-f7ca-9cd4-fc14-259c1b85fe6e-5f04f643",
+      "image_sha256": "6f55603888ef361b0c864fa1ce15b6e1213ff3a94d5484dd9d42e4e00241c776",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b66ca153-7486-ddf1-87fa-f0723433a2c6-c7c0453a",
+      "image_sha256": "e81cf2cf9f40b5f80b611a4606e3d4a6d90c9a98ebf715c4c0c6621ecfd5631c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b6a1cac9-8873-36a7-e726-4aad8a07d44d-fbdd74d1",
+      "image_sha256": "b3062c6eeb363cb1e2ce6dd55e6270b9ee22763b6fa38ccb83637a5b81d90604",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b85a172f-e790-42a2-847e-50950f0f25ee-c2a2bfa3",
+      "image_sha256": "5d55a6882b2b2fc1aa7d3350320eca8aad259f7ed097ce4935cd9f2b0ff92701",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b87e25cd-79f0-6f32-83cc-98f2e12d8abe-51073483",
+      "image_sha256": "70d98c5488509f15252f188797511cea750cf11e72f98dddf2d1408d72ec39c7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b8be3742-f69d-0d39-8a84-0f2799e0b145-3e72e3b0",
+      "image_sha256": "04ab4c15cd5494e862daf2430b34ac57ec84f4243cf5e4cfff8c240af9480f77",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b9ad3cfb-93b7-3715-5c18-1eb17f5f04e7-bcdaca7e",
+      "image_sha256": "d5c8b1159599c4a84e59702f441745b0a63fd531784355609e6b4b1d6201f8af",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b9aec9d8-f0e8-9a7f-661e-bf5496a0117d-8a184123",
+      "image_sha256": "3c213c3a9272a504472158dee4d9315099720f7eaf272c9c7bf0f5450e8a48e2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b9b70ff7-6ecb-a8df-d07f-a6cc89ab5849-620c2f4c",
+      "image_sha256": "32d6e8979e5de0173cf018a6056be465e020f276b2ed7abb9a6c4c2307266a1d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "b9e042d0-823d-0396-d50a-87eadb3e0fd3-40784d60",
+      "image_sha256": "a421828d7bf6e51ff194b3698fc08cc733fb705f2f6ad13fac29a27c9f9740d4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba1b42b4-92e3-f252-12c2-e5e413a98f00-151f5419",
+      "image_sha256": "b8ce4499945e4b9e08574d0d8947d76c646082122a0798e4b62a0a3f174bbe19",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba3d8a0c-54c7-ce40-ca0b-51b08b8caea2-4f2b800e",
+      "image_sha256": "e01e7364868834f39ec38812a8a7b810c327c295270cb8f7524fed5047c0d99d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba3fd53a-437f-1714-8ec7-11cd21f031de-cc6f54ae",
+      "image_sha256": "0a74a45f1b1395cb2a6291bfce26385e3f96c1ba5d035efc9bc62019d829cea3",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba419d35-0dfe-8af7-347c-eebf02485a56-a43a8e50",
+      "image_sha256": "64b121f476ed1c23d8268fcc4a579e24b162d0864df4ccdca7b727de3244ec7d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ba467ad8-d126-8df0-f032-663a9a71e968-1b3e2fa5",
+      "image_sha256": "1d523d150215a31948eb4b62b487ee0290886725eb79b52cf77b0326c56159c0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "baf8830f-d627-04c0-5af5-394d9d7c4eed-904a6216",
+      "image_sha256": "22b399012d4dd0db9a29f5ea28094ba5421df2522c4ef23bf6b956a0895a142b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bcd6dbd5-6109-791e-2dcc-452b1ddedf8b-7cacbb70",
+      "image_sha256": "5cca5f0b5c941374c0affdcff7511ecb455ef5ff288fc2c91bdc5c3fe734d0d5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bcec5d06-fef8-2b77-69a9-332c43bc2233-f88732a2",
+      "image_sha256": "bea9bf5c1e17b02d3fd87d81b9b9ffc929cd87c2e5c5040d5e7d0de246f7c587",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bd351084-4ab1-e2b4-6c0f-148c38cd0b19-5fd0c143",
+      "image_sha256": "7f623fe7f3bac7e433cba729cb62ce06356fa30d8eda7b564c7851746a5b8e37",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bd699d4b-39ca-8aa0-ab03-3b3256d9a57c-9837c2a4",
+      "image_sha256": "08e6ecd278b31048ebcbdd0c454edb82b81b419bdb9ea632002d6930efbdc9db",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bdd48699-3e59-b78e-1e7f-1ea3f25170c7-9f6bb6f2",
+      "image_sha256": "a3aed0a1eb2b8d85c0d9b1419832dcd24260fd868a4afb79b9d77fac68f43845",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bdfefecd-150d-aada-a399-cc9e3f7a6e5f-8bfce9bf",
+      "image_sha256": "4ca47538c1c199a69a67d8089023bc1e5bba7b8fa6014a3dfffe9bbac1abd199",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bec25def-e2ce-2fe3-4022-747293bc775e-e84fa22b",
+      "image_sha256": "70892a296a43908a3333777c52dd6ac7a88d189f7bf8ec080f7668d5de8d0c88",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bedafc44-6234-6ae9-f4f4-e066b9603e60-f3dc5b77",
+      "image_sha256": "a36d67cdff60da772edcf92d016aaacaaec790eaea8cf944f15f693d5711b98b",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bf7ccf0a-2fb9-7242-0e61-d1bfd1b8f5f2-1539d3ad",
+      "image_sha256": "6b5d14f6e6547bfb08425be3f8a6dca04ec59c4053f044947625f792228301c7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "bff9d9d5-ee3d-d852-9c67-36d8361a4a4a-800d1123",
+      "image_sha256": "49e53f90a0393c8e0400fe15b4fac392a690bf15bf9e87183bac0d59bcb378d2",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c053e996-a4c4-6c02-e2b6-284227156c67-ee052ad1",
+      "image_sha256": "ebeeccd51144f680306b24d4b39777a0e748a40b9baf77e9397350dd09e139b7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c0a47dee-cc72-29ce-df5a-ea6d306c36a4-cf873197",
+      "image_sha256": "eb58d4f243129c2cdd389aa2eb23461c646c942b0cf32b4e93701e04277e89d3",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c20e3ef0-17fe-82f0-251f-8db73bee527f-765d701f",
+      "image_sha256": "e9bb0f435de7a72a18b181805af90a947ea3d42458873db2a1c98b164aca60d1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c307b408-4396-3382-2bdc-4cfa61ad907f-2c8426ea",
+      "image_sha256": "e2ed0f7cdbc89aa2ba433d18363292551b5d85b5b6544b1874747ba17339cdd1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c33a9ae0-1ba2-5d2e-7a5b-0a14351de4c3-95f11ef8",
+      "image_sha256": "2611241fb0f8ce33e982bbf41deda2a2ebb8d9f61ddeee267143a70c2a855104",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c350a264-fb93-149d-e961-2ad283415143-bf13c3af",
+      "image_sha256": "cf4a4e27e48c1887574b7f6769b8a3a7588b3774326b9cb403d03a750289632a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c39f716d-d92d-e6e9-405a-e94d2ecad31f-dd46cf8c",
+      "image_sha256": "ff60e707ea7b47eec20f769ae37ce33c665564f7e98d10d4c84878791ee43c87",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c423e088-814d-156b-6bb2-adfdb3d0e6a7-899b5da8",
+      "image_sha256": "c8008358dd44b30bc4b5176d985bcf974e72817f4fded000260eca13b714b1fa",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c46215b0-1b6b-deac-45f5-b274e5b2d919-861f7c6e",
+      "image_sha256": "5ca7cdc74e8909dc515de01c1fe44fac47e116da2979c2c8b10a05d68d57f4c1",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c53d3c4b-b3b9-3303-5a5b-ee949726f4ca-6f9cb437",
+      "image_sha256": "ae2368d8f940cbaf90f7eff48ee6c78f7876ee1a2889b7e176938445dd7e22ef",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c5b80c72-2f77-fbd3-353e-9904224ae24d-a5398116",
+      "image_sha256": "051dfbd365c3d812e7bb2492a8862cb828c4f6deec7fda48ab46887816aca3e6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c66e4f6a-5dd7-04e6-a6c2-b9f4122446d2-c9c7b61e",
+      "image_sha256": "1e2cc89e36784e749316e9eca975d99ea77431addeed84fced8801aff130d6a1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c6814385-c565-06bc-cbf9-8ad36e67bba8-6edf75c3",
+      "image_sha256": "3c62095da6544d20ac7ba361745e2e72b7dc04aaa54a5ad592932b4788f776a9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c779d3fe-6ed6-1c78-a109-680acc937cf5-2b26792e",
+      "image_sha256": "d5b80a393b6fe27192cdb413c39c1163380af03afc3e51b6f2c164819ceef197",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c8056106-9602-6e41-e8d2-dd177a79b7ce-4d0220c7",
+      "image_sha256": "01953897f5b474df2f28c549aa4d2a04cc549cec9728a9dbc00edbf2c3f30e36",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c86c400e-ff88-a1e3-2e23-caa4d8311f47-9353216e",
+      "image_sha256": "9a8bee6bc3d67ccbfb85af7736a1a07c975bbf8300403747535dd5fcad48eaec",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c8c9fa57-570a-1e91-4580-5c54d5353085-b101c300",
+      "image_sha256": "5dd5500a08466251e77928906dc345702a2bf4f3d17a6bd19a0fccf88d817a6a",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "c958c27a-fa27-59fe-cba1-b96c141930b1-63d554e2",
+      "image_sha256": "78fe61e47cd4745bb0366e72f2e9ef1a1991c59eae16e107519b15074d3268d7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cb684266-eb6d-d2e7-60a2-90aa9b1f707d-2ac16285",
+      "image_sha256": "6a1548e8135d337f1aef7d2b809ba846e116d7b4e9fd581721a5abd6e0c41459",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cb7ce8c8-c3cb-6ad3-c64d-747e64fa9a5f-f708fd32",
+      "image_sha256": "ceb85c1019c2d763b8b453ac308fa78337ea8a1ca90cbd81320321e33fda59eb",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cc1ac2c1-c8c8-53a4-44f4-5b33b59d5694-8366ec75",
+      "image_sha256": "099f0e5b7c2b8d7feb31d7edd3df22ed3b26cc8c7c8a1f27c2bc615898d2973b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cc2d46cd-3c21-d413-3663-94b12c4047bf-e04670d1",
+      "image_sha256": "a75fb51a1ec5054874d65d082282eca63c96c1376b0bac2212dd50f6d58169f0",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ccd0ca16-850b-a065-117f-86a663f91bcd-ce1c85e2",
+      "image_sha256": "c62ac15abd4e83a5136fd908e53f5debdbf359345cfc4f5cd6c9a57e6b07ea90",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ccf5187a-b098-b226-812f-7dac5b890b0b-e6a45309",
+      "image_sha256": "deca7b63d95efe886edd9804508ef34ac1b31c34881438947caa4ceb7254a6e7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cdca3d57-8914-7639-06a6-927b3e2e481a-aad225dc",
+      "image_sha256": "fd405ed70f25d1b8a13352ef5dd222a0d80bff86e2787820d766a8d873f503da",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cdf9f16d-82c4-f446-c865-0835069b1db9-afd13b56",
+      "image_sha256": "bb823591b0fc380d52be0ccb4d51f699802c51bed7a4307119c78aa0899b97e9",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ce2e160d-4a41-c64a-859f-2653d0ec39ad-3c2f6173",
+      "image_sha256": "c03e910c6b0ab043c0b2288b7caeb92d3628e29fc4bcf7c2d6238c12b726e631",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ce44621f-406f-233d-11a3-22cdc96f9aec-6dd4f553",
+      "image_sha256": "d6baaa3bf91eee2b337d2f0d0cb4f8b57fa31fb67cc4b0f9e49101a2fd2c5712",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ceeea1a1-bb5c-04bb-b8e8-4bef689f27dc-70c436eb",
+      "image_sha256": "e42a63a4f37a61584e6488dfe50e4f156b8b6259bf4ec283b1552cdeb2a7dec3",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cf22cde5-48e9-1907-78ec-42abd6782fbe-dedf4c5f",
+      "image_sha256": "b8000fc7dafa6799c1b5737108806bfefa44e92934300d80592f53f9779c8194",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cf33d965-2338-e565-fe36-3c6ec686cbad-d2747cfa",
+      "image_sha256": "642b307e2fdbde954c432f9cad46dda8834d704b3259178132a1bbd209d71b7f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "cf418f8d-045f-313a-8ebf-92be6629a84d-7e5975ef",
+      "image_sha256": "5224c458a1822163e6374ae2c3834f42fcdc1d37a680275f0886406e60310249",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d003cf24-0222-c943-8343-c8f4a326b5bf-914bc32a",
+      "image_sha256": "cf6f98ac30abf93945151771fc11b4f1406a82dddef8071add889f3a109b4273",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d0195bf7-2f82-57fc-7d5c-d34136e44010-55590585",
+      "image_sha256": "24f13f4f2d7262d49ad1d4c35dd610299148bf2f132d094f3f97c7aeaecb3897",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d03fa130-7dc0-1463-61b6-2224a9f84d38-f915debc",
+      "image_sha256": "2e2a481be1b9b371e3e3d70064db99d90a3c36d36e71c1e683a17aded6402b63",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d15b23ed-02d5-3e28-efbd-2604425317c5-a0ad112f",
+      "image_sha256": "4a2de4d7488c74382a7627792dee96d47587c7df6fa02c398c88d788d8b384f8",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d16c167f-1b87-ef6b-b3a0-d0c591c19404-aa89f666",
+      "image_sha256": "c4ddc6e809b4d8907f4040c9c1b53218dd5fe4c8af8b16487f48730ec28f8583",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d20bc0bc-3051-ae6f-f391-ceec7ec0370f-d15e0748",
+      "image_sha256": "843fbd2eed34965415777d6ef6c5bcf910f0a4177c5b0014a9a6708742428183",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d225bff0-6b19-b94c-c371-edb5e246c25c-119bdc2b",
+      "image_sha256": "ae77782bf941a877cfa7b2e3c914f64ae99d38c9f3505a67382c5358bd7cc7f7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d25deaa9-e42d-6346-f328-481a382e8e88-10f77db8",
+      "image_sha256": "7a5c078705fcd6dfb9729e8cf36514657864c4de1eb841f67240a1f6474a8f54",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d2a36b49-b2ec-1cb8-be10-af5df4127877-45592733",
+      "image_sha256": "6d6ba653d18e109c6937f825c0bb11d1dd1154042389af02495f32a9bf0a259d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d2bfeab4-a47f-4b25-61ce-03bfb275a4b1-33a480f7",
+      "image_sha256": "f394cf10c7b6e64efa0757b5187f1304492e4b59802198c5cab88e5612583eb8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d2e610c1-44b3-afbb-67a3-b581494578ed-3e52c681",
+      "image_sha256": "b4f981f76e1d4772690a7c74d633c36b60917f0680a0faa6cafe8bb734ebb77e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d3727ff2-5d7b-347f-d78c-edc4323cf890-34443485",
+      "image_sha256": "1aa483fa880cda7eb89c2b01c47ba25014ebdc45c92476a3d0b2678289eb83ee",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d3cb6736-0991-40ed-a220-7c714aba4c37-31caa67c",
+      "image_sha256": "b5f95bb56e27853902886921716ca374bb3d8d140ab0004c26f2795535419a2c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d42ce7a3-a910-ecbc-462a-b936cf055fa2-65ad2436",
+      "image_sha256": "535c72df72e9eab444f8d583a647ddf3415ee95f2c0c59b8adef95146630a293",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d460615c-a77a-1f95-5ca4-2ba9548f6922-7eabd8c9",
+      "image_sha256": "c255e2854ccada471ac0ee6599df5bb9ca56364391857cf5bcb19d8b4474c47d",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d4a52102-142f-f0bd-30a8-e0dcba765943-d16c0937",
+      "image_sha256": "d16cfc880bc43062a3af789ec9c9978021e92c98e6c872f68cdd72112845b5bc",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d4c52864-d707-20b4-f5d6-f6fe83c0f90c-0d1a46a2",
+      "image_sha256": "2a87acef7a23765a35fe7bcb74be44c88952b3e6a7edc9afad6d98e39838f5a7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d4f0d1d9-663e-1d83-06ae-f6e9ae858306-7880d69d",
+      "image_sha256": "aa95a03a40c4609580bb4e4c230494cb375d61613d2952ff3255ad3b4106f510",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d56d5655-2596-9bf6-4d4a-f62aa25c944a-fca9bb43",
+      "image_sha256": "97456e9e7b9564503211da2875899b47871fecd064d32a6c007e4b196afe00ce",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d57841fa-c9e2-a3d1-0e78-09bdbe4eed66-a10509d4",
+      "image_sha256": "73e7ac507d8cf0665b286f100a3bac9de33351602df19e226900e358bc4a9440",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d5ccc11b-8f52-be82-1d8f-86b67bc393dc-48caac33",
+      "image_sha256": "9f5ab1b86d9928e463528dbb3ae724471483798444b2041eb623966042f89671",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d660127d-13fc-66f1-1ae1-a304975a74aa-414b261c",
+      "image_sha256": "35117c58e0079cb2c68301de85aacf441a6deaed7a7a406e26210021bc7594b2",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d70173c0-1519-0d55-0d3f-19c5eac31752-41528a97",
+      "image_sha256": "4f4be941f86db1ac0f307f2f60a2dbfba4a965881e097bb4c443ea81278013eb",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d71037ea-9732-2a09-8948-91e12c044979-457c9d13",
+      "image_sha256": "720ea61151204eeab4b5a30901abbe5356b8f0bea72c327c62b96ff1ebf52409",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d8a11f55-8f95-ae80-2566-b5f605497932-3de90ee0",
+      "image_sha256": "d872d63a01498e9b4438f756017494433349f2fd240929ae14cebb960c8d6825",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d8f31ad7-7113-4bdb-e0f1-da0134f8c6c6-3286c268",
+      "image_sha256": "0820724c8f77218b6051e74c40a858878bc5dbe5cbef829ce4348573f7fd3e1b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d95116a7-3aef-2cab-263c-a1591f17eead-f7ca9d87",
+      "image_sha256": "010c6a320b71542d52029e4b75bc271d4932a1b78557dccb490761bf9281c537",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d9ac2d36-6c6a-b179-31c1-6545f16148b9-1a6c64f3",
+      "image_sha256": "336b3feb50bed1f10f861c152b9686c00e4f2c79399519b71c2f1d89e66e3772",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "d9e261ae-4435-9c50-78d9-1a8ad8f4f62c-7cf65fef",
+      "image_sha256": "72b7b1f5a06e976f7f9b3efd5e47c6c2e587f8ce6943e5ee583696036b477ce1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "daf8f87e-f818-7c57-c447-e322209f28b3-0a3c168e",
+      "image_sha256": "65ff4131a374ab7ae421db9cf1880b7219bcda1315dba0920be4071bd083be23",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "db462af1-1b86-6440-ffb7-ad5622422ee2-694b8c63",
+      "image_sha256": "abeb66e8c80d5a1867e9f585d7a9e990cfc1cf7632943fe7598127f56fb123ba",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "db8c38f6-e176-9100-6b7c-5cf27e622f54-2e013829",
+      "image_sha256": "0b858ef07ad15581333114c62fa273ab4c067f1ab835b9a0c316437c7b194a23",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "dc9acf7c-7461-d0ff-a3f5-64fa1b77cb30-9c1725c4",
+      "image_sha256": "8d355635e5f7ef81e364e76efdb794b7c6f5b0a49ee24d5e8ab8171b4cea83e2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "dce20b69-20f0-bd7e-98ef-7d74b7d74b77-72c16917",
+      "image_sha256": "912bd4db0232f844dff188cd53d40bf35f9cdf60f85bf400a31284d0e9bc4ef7",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "dd7be1e2-6010-b8f0-dc6a-dbc355eb2f68-1aa6a5d4",
+      "image_sha256": "e81541d1cb60df5ee1c920cfd3c25b86f6af79178dabb09a47f6b89db0d1938c",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "dd9da64b-7b38-4f91-e75d-b1268dde60d4-7f168721",
+      "image_sha256": "11251b0a28d8dc1ef5369177d32d5c0ef0e6d9c77abc7aef5aa7ce0d7bfa9daf",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "dddd3d57-9c7e-e1a3-5ac7-1f87c8d3b33d-b254432c",
+      "image_sha256": "daf523d048613c0760b32e3c8b5b400e0acbb7a3078240717feb2fe89f7af2e3",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "de1bfe03-e167-f03e-e3fb-320b9085bfcd-520d05cf",
+      "image_sha256": "2d1c3b7594a710499513f7233d9200439a1beb8be979af4af9cbf8335aa30eb2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "df2f3ddb-2760-b3c7-40be-f2fbee474089-df5d80f8",
+      "image_sha256": "7c296bd70b41640655b70eea798f330b157e907b234f3c225d953de582c9aad8",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e02012dc-2cef-361d-d550-c3ed3fd80e78-efb2cfcd",
+      "image_sha256": "6eb71e822fad84f64859530fbd267a0b06575863440ebbfe77cb26601c828731",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e0f9ab9a-63cf-0e4f-9b42-add8796a21cd-22f56dde",
+      "image_sha256": "ab25d2bd9ef94cc48bd3db5d544fd75d780ba89d6cbc2e8d8db7e4b3710a4bf1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e115551b-45eb-a459-9ee7-2ceee962f770-4117517f",
+      "image_sha256": "f6b9774065cdbd72e9e5e160cf1cc6ae638a3c1b9e0dcb2e07f56444652ee869",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e12ccbe4-dd48-be80-05a2-aca2c2aa1070-6dbea552",
+      "image_sha256": "6ee1d43b53157eb32beafbee2353a41b8b8d0e723de10490f2b659aa1aa1d088",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e2169663-4fd9-facd-b08f-d2b867cdbf4f-2be52517",
+      "image_sha256": "f7af4cfd5a9e059c529a4b6fa68c93be05506f4fe98ab2137b8eff897662e6bb",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e23e4bbc-f14e-ef73-79be-585c23adddde-57da4b2a",
+      "image_sha256": "c7ca03d464f936c05d2f88aa122253759fd51280c9a9ae98a752874f5ce54053",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e269cfd1-f286-9a15-aa78-6ed1942809a6-2974922b",
+      "image_sha256": "0f12e66c4f2790f899bd3922c0997a434e36536873f5c942db69e8f8e4c7ffc4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e3fa4cfa-3b08-eb4e-baef-51fb15aa5cdd-5fce20f8",
+      "image_sha256": "5fc09b45c3e943f5be3667dc8306fcc6d148763b203a26e7e50e1036117c9d91",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e42e50b4-52ec-77cd-4e3d-8cc3a606a750-10506ad2",
+      "image_sha256": "f3068ffbdd82254cfd2ca3a680325454f238717193082f35e7a9d30dea566499",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e43f4fa7-4c2e-e132-310e-665a7b1dabcb-616724f5",
+      "image_sha256": "7589b6de6fbfb726c723707d5792f0f7d13e4ae7d0eabcda5fb5a581e3e5c68b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e4b11efa-dcc9-52c7-1dfd-b5625eba4b14-646f0780",
+      "image_sha256": "9192ab424c9f1283e0a6138d69ad70243d116a0e902f8d98a658b692b7050849",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e4b58982-aefe-d3ae-5625-79b9805d33b5-aaadb5aa",
+      "image_sha256": "867f90a9b388ddf45474921a46d9c6be306c99f38fe31047e1f36db762d8a4ce",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e4dffd18-650e-d1a9-f0bb-df102547605e-5df10294",
+      "image_sha256": "d6011297190080368f3c07d91527416ef789fd4d7ead03865dc386facf9f7b65",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e5280b6f-e37f-bb0b-15b2-2c6ceaffcd4a-d9a68d15",
+      "image_sha256": "0eccf2b31b9dd651bbf71160b40ac734177ce172bdbba8d7e5bd429237535e79",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e528ce89-53e1-c71b-94be-18ff346a5666-7ff1aec6",
+      "image_sha256": "98af222a15554a1c427d9cad385642339fdab72619e887877a8ef5a229fd24c5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e54e309a-04b9-cc4b-0fc9-8721cdcf0ebe-5906bc30",
+      "image_sha256": "196e52d563ac2ee6b866ff76b67731f68ace387db0bf78d4e46a32d7df077cdf",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e58df2c1-7655-0eb8-03a0-f0d957f0693d-f03c5000",
+      "image_sha256": "bbc7b8ba4e9b6510a25020570af66141b23999e770caa2d9ebc42a80551db216",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e5cb5486-2f65-3a5b-92c4-68d9ab8cc401-080bd89c",
+      "image_sha256": "f0ab056e236a4f4ee97c26bbc94698f913b5f0fb69320d298facc14ed4e3e4f7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e632520a-2e4f-3419-c0f1-1f7b89f11d9c-b056c7b6",
+      "image_sha256": "19be50a640f238d8ff0f09ba6817259dfa9b33f0d75281095733dc6d0ebd8e8b",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e74367bd-7385-97dc-2c7f-251b4cd9fe29-5d6157ba",
+      "image_sha256": "980cd999e5cb113fe3eda0c3bdfa4b2d00afaf91ff58d3ffe85b6f9cb3aee3be",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e753f96c-9730-5366-3dda-dc27f39002a2-d16a8726",
+      "image_sha256": "ce8ec2c680b47e141a018c66fed04085e7267ae9925d4cf456d0a9bac7e85cac",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e76a2496-4736-5759-72f8-18fd505bd018-16bb4bc2",
+      "image_sha256": "a47fde812d0a221768d96de88c3276b0355f1d5683b80cde57da51538da3e73e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e78d61ea-e608-9f53-f746-45244e1b25b0-ea7f4571",
+      "image_sha256": "7c39ec464952cc860879ee97029ca4ac4286e9e869aef5271596459701aadea3",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e89af71d-4aa4-2237-e71d-6fa8e4b5af09-3d391d20",
+      "image_sha256": "3e6b4d236ec4ced9f3be14df5508d2dbad880a1653cd113033b72412c00e230e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e8bb3dad-b417-5e89-b38e-6b66df6adc2a-95a011ce",
+      "image_sha256": "6e4d1037c20001828f0f3c720215a09d0e3980974e4a03a3094267810e85e71c",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e9ca0b18-59f9-7422-6084-900c1715352c-aaf35800",
+      "image_sha256": "fb5398c494d4366d9e691d5050192907e8ede8c69652ed26b5c431c7698d4324",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "e9cefaa0-33c4-ddf2-e2b1-c4b328fe71cf-b40addbf",
+      "image_sha256": "cdee1b7e01cb22d2f9807c24222cc86cb6957e9d55fbfec3810482a7b7a09e15",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ea923aa8-577e-21a3-c8ca-47472326e662-6e22543a",
+      "image_sha256": "94c5bceed1e7d3b15ec2b632712ee0019a21f7e925f818de40a5be5926117dbc",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "eb5910f1-26e6-bc6f-b300-716eae678d6f-074f0d7d",
+      "image_sha256": "38bb53fa04e2b030c955fdab6f619df44f6876e0284c59f8ac48a73930129b54",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "eb8bdc3c-a12c-430c-6185-648a0a0ae959-7ad63f10",
+      "image_sha256": "c94820ca7bae87cd6cfb32f3599e7b73d464e75894e50366cfee86c44f272072",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "eb9de5be-c75f-2e1c-c1c4-32e2f38a18df-a9d2daf7",
+      "image_sha256": "81b85e098a8f6747419eaee3909f87bb9476547a24a9ecb3d0f02ef316ca47f2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ebb5a8b0-f73e-9407-b689-1e7f931fbf50-390c15ac",
+      "image_sha256": "4697099dbaad8e67c8eb0be412bd06840d05e87b5b9f364d929faa0f59981b45",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ec69ac53-d136-fa60-0927-6e6748eec444-da6d5396",
+      "image_sha256": "30b4caccb50d2fcddc23a10dcd7eb50b5cf776e30e1eccd00de706915cf55cee",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ee583d2c-6208-6463-d486-2578603dde5b-d9307f6b",
+      "image_sha256": "bfc7e0b30267671e3659de86b87f31db06ae77a2020b5fbd74d91b678c0f85f7",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "eed0e7bb-1dac-c49d-66eb-b0c2a6e32a0c-57dbdc04",
+      "image_sha256": "e60b39a15ac6e0f2a9e2f9a27bce5d719ea15b99c82a67e0db941a76cad8b17c",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "eed50a92-98c5-5173-066f-d3fcc23c7b37-492164b7",
+      "image_sha256": "bb2aa56ded88e3f6bae090741c7b4389de2f50935bd321925e76fb86a0c4203b",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f0549f67-0bfa-b679-2d4d-31a9e2725898-1327fd5b",
+      "image_sha256": "ac15ad469494ef2c5d0dff5ebd1c2ffd677450393694f22676fb059b6ef21cd5",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f08c7279-b179-2ac6-9b3d-e5e37208c941-a39866e0",
+      "image_sha256": "78c573c93b311cda0e770469c5f61d106111a022ef46d0da646329bd50abc3ea",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f0af24ba-22df-a2a6-ca80-9814fb6febff-1db1dde3",
+      "image_sha256": "e4a4f62ddac290ea2d55c577e6566aa6378e740e3b2ae896df88923c283c570b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f1698104-2ab6-b3b7-72d3-0006ee1b2c9e-62d8e3e7",
+      "image_sha256": "d7484b15d720f2aebc15c90cce96d5953b678b53772f2b2bda9ec4faf7087c58",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f1bb1b85-8e14-8665-0af8-cf6fb25f9933-f30523b7",
+      "image_sha256": "26a48ef0697102489fe0f324b02bfa9fb973b68c4ca6ed8460b41a7a5be49e61",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f1d90bf7-8364-8c43-dd25-f86c894b9154-769b13b9",
+      "image_sha256": "1336a78c953099b41a7aebf3407269f438d2b0f8688d0a14fafe9adb0bfad7c0",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f2e46f22-1947-9f88-e9be-c0c04260d6d7-1879785f",
+      "image_sha256": "9317db801c37829cfc99e38435ece1c489842f27b33800cf6389d1b59c602e5e",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f32a088b-988b-d7d5-008b-89ea4ed1fc48-0fef9fb9",
+      "image_sha256": "8002a56919356735f3f1ff4006dc1e0e40d76df38b4581e70e1a87b533acc61e",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f417fcb8-2051-651c-5d9b-2dbfe438bfac-a0ffee2a",
+      "image_sha256": "4c2867c036baf5c34766c0d17a646b805cc1f526ca00b558aa2f05f2e924ff12",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f4a77c96-9bf4-edcf-ecc7-a95c9da94860-4e661af6",
+      "image_sha256": "2b19ddff61d2bd967a9c9ef3f6d864dae7271e11abc8d6695335df6c99a41140",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f58a6077-7616-9730-c80d-c99f5d4e8246-23fb9a6f",
+      "image_sha256": "da5790600488bf3f74d9645a73b54d22b77dc508b14049b6599c61529586ac90",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f5a65794-5bb1-8ba8-8108-c8759185150c-c8da27df",
+      "image_sha256": "c1dde31b5f8cdbb7d9e963a874c145b7d7c47ac0d2c1f8f1690c1129624e07a8",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f6551cf2-a3ff-3194-689c-5f8b162050a1-68d74b01",
+      "image_sha256": "74f96a8560d3062fee8e9977c572a66ee8fd4cee53456ea01311d4ecc167bc3b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f69d4317-4ebc-d0c4-e68f-5252ae1b429e-521b76ff",
+      "image_sha256": "b040b4d6819ae7f708027c7aac62a8f2ac1e2f34e09c838830066e5d5925811b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f6ab80e0-c112-c2a4-befb-943f4dc92b63-1c395e29",
+      "image_sha256": "6770604852b818bb7a39c3268e470cc77040a349c1c2fa4af756dbe658d9398a",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f75caf9c-ba51-5e74-1461-a54b3d07b53f-0d4e9bb9",
+      "image_sha256": "71af1f02ec5e7137348c36cecde35e88ecd98060c4fdfe65f2bac02f325dc4f1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f7adc5f3-fc3c-f928-7cd1-d8d3a49f3c38-315ee5ac",
+      "image_sha256": "d7ef18e8f67c27b38791498e2452e33daf0307c14ccc14def67c6e197ed70bc4",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f85cd0c9-e14f-3df7-54c1-3ee35f56945c-7038b1c8",
+      "image_sha256": "61f3f69c489d48b9033271dda85b51288d498119882e9bb30239ca6d4d28c90e",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f8a5baf9-2e3a-1643-4cf1-ed22b07ee03c-20556d2b",
+      "image_sha256": "7a1e9711028acac8dc39805dee3aa4fa73ec0cfc2c63a6e5e979dd1661a3adb8",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f8ad92da-4b09-4bd3-1c41-5125116d6993-fdd955ed",
+      "image_sha256": "6da6c0bb03c9b86bb32f57f5a736cf3c5cea05e6bbe4aba84ca53016248353be",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f8b06e24-c861-2886-b556-85f8c9f4be8e-b78a7434",
+      "image_sha256": "a7849e17b6865c7031f065b5c7e4bfa8b8af029037afc00207115c5d3a273205",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f95a6723-14a5-c4b6-78df-fa97f7ab361c-cc76b516",
+      "image_sha256": "d9c1c2a2842ac58d4be355a556bff6a5f176231932f0a5eeba9e7627ccb79601",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f99a18f9-5481-e403-28ee-dc15270732c9-6ac04748",
+      "image_sha256": "35ed09196700a551798c1d57a724a6519e0a056453b4f3415263d2def85ec3ac",
+      "split": "test",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "f9dd6522-9d7a-93cd-c9c9-4fe118627441-3650eeac",
+      "image_sha256": "cc2eca308e42413eb75691ac0a53865336ca149b65ab920c1763671e88f942af",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fa14931f-ccde-4988-79be-e368c9b2c698-0ef37404",
+      "image_sha256": "0bbef3c8fda15fb8bc4a23566f0a3149cfef6778792ade417d8135333a80ee71",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fb50bcb9-7557-bff5-634a-0eb23da97aca-52f9fabb",
+      "image_sha256": "7d26cd9b5515a5e1f4c6ee4f15df1afb40c80e4d7e3e8fd68de7d2c58e39fbe1",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fb8dece5-6be3-a185-a195-8b622b6116fc-f265ccd6",
+      "image_sha256": "4150b4e20f084290558763811bcc6827bd8c025a333eb63ee2abbcb717dc0f8b",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fc2798ca-88d0-3fbd-9e43-851cc245a201-7b4840bb",
+      "image_sha256": "5591cd4f5d1bd8a8d7a52d8dcfcad31c211b3b4a0006d370dc15888183a66e78",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fc4a1a62-ba27-51ed-7efc-0082d3337df8-894c75fd",
+      "image_sha256": "9307506b41b2d11932b11969abc45cc573e452a6f78bbceb5d68e006306b4d4f",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "fd118bfc-e3a2-7ef5-ceac-8f4f9086c329-f4a223b2",
+      "image_sha256": "959f1ef93b82bcf2d3a486081d2e655acd2a46165609973c5d2ed1495f679fbc",
+      "split": "dev",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ff476c5e-8d1d-8f20-5005-55e2a242a17e-e90bc45e",
+      "image_sha256": "29e68e3e9396c32d9d7d3872d2773224b0a620edd577cbaf9ecc0a8f3d03dcd2",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ff57fcaf-8d77-c544-0e40-991e3cf4401d-803b031c",
+      "image_sha256": "9fb813cf66dfaa1543e7718181457979f206a4e9ca716a1003329bf736e7d530",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ff599795-2599-2790-2ccc-dfed533d2062-ee74d520",
+      "image_sha256": "6f53be818c95575c73fd1f49041bfa805fa0805e57c0a7e4139fa875843e02e6",
+      "split": "train",
+      "vertical": "healthcare"
+    },
+    {
+      "doc_id": "ffec08f0-0554-aefd-8cf2-28c0f653b29d-e4317808",
+      "image_sha256": "608e06557196ed9b5ec51f45007e0a5b8c5cf442a96a73771ea9ee52d2ed2dd3",
+      "split": "train",
       "vertical": "healthcare"
     }
   ],

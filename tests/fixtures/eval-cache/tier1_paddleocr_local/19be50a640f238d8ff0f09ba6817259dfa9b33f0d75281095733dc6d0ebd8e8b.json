@@ -1,0 +1,50 @@
+{
+  "height": 1100,
+  "page_size_px": [
+    850,
+    1100
+  ],
+  "parsing_res_list": [
+    {
+      "block_bbox": [
+        308,
+        24,
+        542,
+        37
+      ],
+      "block_content": "HEALTH INSURANCE CLAIM FORM",
+      "block_label": "paragraph_title"
+    },
+    {
+      "block_bbox": [
+        266,
+        39,
+        585,
+        49
+      ],
+      "block_content": "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE 02/12 \u00b7 CMS-1500",
+      "block_label": "text"
+    },
+    {
+      "block_bbox": [
+        26,
+        58,
+        823,
+        473
+      ],
+      "block_content": "<table><tr><td>1.INSURANCE PLAN</td><td>1A.INSURED&#x27;S I.O.1.NUMBER</td><td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.1.)</td><td>3.PATIENT&#x27;S BIRTH DATE / SEX</td></tr><tr><td>Other</td><td>SYN-E632520A</td><td>Schamberger479, Katherine209</td><td>12/03/1964 F</td></tr><tr><td>4.INSURED&#x27;S NAME (LAST, FIRST, M.1.)</td><td></td><td>5.PATIENT&#x27;S ADDRESS (STREET)</td><td>6.RELATIONSHIP TO INSURED</td></tr><tr><td>SAME</td><td colspan=\"2\">676 Konopelski Vista Unit 69</td><td>Self</td></tr><tr><td>58.CITY</td><td>XC.STATE</td><td>50.ZIP CODE</td><td>5E.TELEPHONE (INCLUDE AREA CODE)</td></tr><tr><td>Rockland</td><td>MA</td><td>00000</td><td>555-444-6340</td></tr><tr><td>10A.EMPLOYMENT</td><td>10B.AUTO ACCIDENT</td><td>INC. OTHER ACCIDENT</td><td>11.INSURED&#x27;S POLICY / GROUP / FECA NO.</td></tr><tr><td>No</td><td colspan=\"2\">No</td><td></td></tr><tr><td colspan=\"2\">14.DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td><td colspan=\"2\">15.OTHER DATE</td></tr><tr><td colspan=\"4\">02/12/2026</td></tr><tr><td colspan=\"4\">21.DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td></tr><tr><td>25.FEDERAL TAX I.D. NUMBER</td><td colspan=\"2\">26.PATIENT&#x27;S ACCOUNT NO.</td><td>27.ACCEPT ASSIGNMENT</td></tr><tr><td>12-3456789</td><td colspan=\"2\">e632520a-2e4</td><td>YES</td></tr><tr><td colspan=\"4\">12.PATIENT&#x27;S OR AUTHORIZED PERSON&#x27;S Signature</td></tr><tr><td colspan=\"4\">Katherine209 Schamberger479</td></tr><tr><td colspan=\"4\">I authorize the release of any medical or supplier information necessary to process this claim. I also request payment of government benefits either to myself or to the party who accepts assignment below.</td></tr><tr><td>SIGNED</td><td colspan=\"2\"></td><td>DATE\n02/12/2026</td></tr><tr><td colspan=\"4\">31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td colspan=\"4\">Synthetic Provider, MD</td></tr></table>",
+      "block_label": "table"
+    },
+    {
+      "block_bbox": [
+        31,
+        439,
+        820,
+        507
+      ],
+      "block_content": "<table><tr><td>31. Signature of Physician or Supplier Including Degrees or Credentials</td></tr><tr><td>Synthetic Provider, MD</td></tr><tr><td>Provider attests that the services rendered are medically necessary.</td></tr></table>",
+      "block_label": "table"
+    }
+  ],
+  "width": 850
+}

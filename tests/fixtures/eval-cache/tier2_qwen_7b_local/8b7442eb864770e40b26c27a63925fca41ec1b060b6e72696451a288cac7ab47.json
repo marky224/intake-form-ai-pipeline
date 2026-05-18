@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:09:05.291296283Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 298,
+  "eval_duration": 5158063685,
+  "load_duration": 106043835,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": null,\n  \"middle_name\": null,\n  \"last_name\": \"Nitzsche\",\n  \"address_street\": \"739 Klein Pathway\",\n  \"address_apt\": \"500\",\n  \"address_city\": \"Northborough\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01532\",\n  \"date_of_birth\": \"1922-07-20\",\n  \"phone\": \"555-912-9712\",\n  \"email\": null,\n  \"date_signed\": \"1990-12-27\",\n  \"patient_id\": \"2ae7b20c-696\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-2AE7B20C\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Chronic congestive heart failure (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590660670,
+  "total_duration": 8162852817
+}

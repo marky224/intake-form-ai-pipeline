@@ -1,0 +1,139 @@
+{
+  "fields": [
+    {
+      "bbox": {
+        "x1": 328.41,
+        "x2": 624.41,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "2",
+      "name": "patient_name",
+      "value": "Schiller186, Quinton758"
+    },
+    {
+      "bbox": {
+        "x1": 638.41,
+        "x2": 816.0,
+        "y1": 71.94,
+        "y2": 88.94
+      },
+      "cms1500_box": "3",
+      "name": "patient_birth_date",
+      "value": "02/05/1995 \u00a0 M"
+    },
+    {
+      "bbox": {
+        "x1": 349.59,
+        "x2": 651.2,
+        "y1": 105.62,
+        "y2": 122.62
+      },
+      "cms1500_box": "5",
+      "name": "patient_address_line",
+      "value": "976 Ondricka Heights"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 223.73,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5b",
+      "name": "patient_city",
+      "value": "Walpole"
+    },
+    {
+      "bbox": {
+        "x1": 237.73,
+        "x2": 332.61,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5c",
+      "name": "patient_state",
+      "value": "MA"
+    },
+    {
+      "bbox": {
+        "x1": 346.61,
+        "x2": 536.36,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5d",
+      "name": "patient_postal_code",
+      "value": "02081"
+    },
+    {
+      "bbox": {
+        "x1": 550.36,
+        "x2": 816.0,
+        "y1": 139.31,
+        "y2": 156.31
+      },
+      "cms1500_box": "5e",
+      "name": "patient_phone",
+      "value": "555-860-7702"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 418.0,
+        "y1": 206.69,
+        "y2": 223.69
+      },
+      "cms1500_box": "14",
+      "name": "date_of_current_illness",
+      "value": "04/19/2026"
+    },
+    {
+      "bbox": {
+        "x1": 34.0,
+        "x2": 816.0,
+        "y1": 240.38,
+        "y2": 257.38
+      },
+      "cms1500_box": "21",
+      "name": "diagnosis",
+      "value": ""
+    },
+    {
+      "bbox": {
+        "x1": 37.0,
+        "x2": 813.0,
+        "y1": 323.56,
+        "y2": 360.56
+      },
+      "cms1500_box": "12",
+      "name": "signature",
+      "value": "Quinton758 Schiller186"
+    },
+    {
+      "bbox": {
+        "x1": 619.5,
+        "x2": 807.0,
+        "y1": 397.75,
+        "y2": 414.75
+      },
+      "cms1500_box": "12-date",
+      "name": "date_signed",
+      "value": "04/19/2026"
+    }
+  ],
+  "image": "9432ec87-13f3-6c0a-daf8-807d8b733be7-7d5c5eb9.png",
+  "image_sha256": "e9e99d9cf4dcdfac8b76f87e44d600f74af81c66a98ec8b8a887b1e83e0e80cb",
+  "page": {
+    "height_px": 1100,
+    "number": 1,
+    "width_px": 850
+  },
+  "schema_version": 1,
+  "signature": {
+    "font": "Homemade Apple",
+    "mode": "handwritten",
+    "rotation_deg": 0.426
+  },
+  "source_id": "9432ec87-13f3-6c0a-daf8-807d8b733be7"
+}

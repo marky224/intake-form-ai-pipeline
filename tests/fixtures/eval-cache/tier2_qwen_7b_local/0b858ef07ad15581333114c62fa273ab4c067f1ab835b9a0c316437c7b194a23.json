@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:18:59.750806937Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 301,
+  "eval_duration": 5215595468,
+  "load_duration": 95150254,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Goyette\",\n  \"middle_name\": \"777\",\n  \"last_name\": \"Wilburn\",\n  \"address_street\": \"1040 Renner Ranch\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Brockton\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02301\",\n  \"date_of_birth\": \"1974-05-04\",\n  \"phone\": \"555-187-1665\",\n  \"email\": null,\n  \"date_signed\": \"2026-05-16\",\n  \"patient_id\": \"db8c38f6-e17\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-DB8C38F6\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Goyette777, Wilburn655\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 588884814,
+  "total_duration": 8290880373
+}

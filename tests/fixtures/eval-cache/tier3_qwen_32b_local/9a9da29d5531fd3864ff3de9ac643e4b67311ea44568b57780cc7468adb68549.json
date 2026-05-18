@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T18:22:28.292887756Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 319,
+  "eval_duration": 114032148882,
+  "load_duration": 139466249,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Tijuana228\",\n  \"middle_name\": null,\n  \"last_name\": \"Green467\",\n  \"address_street\": \"797 Keebler Heights\",\n  \"address_apt\": null,\n  \"address_city\": \"Hubbardston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"00000\",\n  \"date_of_birth\": \"1943-08-13\",\n  \"phone\": \"555-799-7158\",\n  \"email\": null,\n  \"date_signed\": \"2017-05-05\",\n  \"patient_id\": \"5c8956ba-335\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-5C8956BA\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Green467, Tijuana228\",\n  \"subscriber_relationship\": \"self\",\n  \"subscriber_dob\": \"1943-08-13\",\n  \"primary_care_physician\": null,\n  \"reason_for_visit\": \"Overlapping malignant neoplasm of colon (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 3993614887,
+  "total_duration": 119636530314
+}

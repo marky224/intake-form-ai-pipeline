@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:16:06.015026714Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 312,
+  "eval_duration": 5403491268,
+  "load_duration": 100795901,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": null,\n  \"middle_name\": null,\n  \"last_name\": \"Block661\",\n  \"address_street\": \"408 Kozey Green Apt 45\",\n  \"address_apt\": \"45\",\n  \"address_city\": \"Watertown\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02472\",\n  \"date_of_birth\": \"1987-11-29\",\n  \"phone\": \"555-157-2192\",\n  \"email\": null,\n  \"date_signed\": \"2026-02-15\",\n  \"patient_id\": \"a0884917-bb0\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-A0884917\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Block661, Yer774\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Contraception care (regime/therapy)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590402234,
+  "total_duration": 8400274676
+}

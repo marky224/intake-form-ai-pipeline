@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T19:31:45.53452581Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 319,
+  "eval_duration": 115314296529,
+  "load_duration": 169108108,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Nolan344\",\n  \"middle_name\": null,\n  \"last_name\": \"Ortiz186\",\n  \"address_street\": \"937 Auer Center Suite 41\",\n  \"address_apt\": null,\n  \"address_city\": \"Boston\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"02131\",\n  \"date_of_birth\": \"1974-09-01\",\n  \"phone\": \"555-794-2957\",\n  \"email\": null,\n  \"date_signed\": \"2025-07-16\",\n  \"patient_id\": \"ad048fab-ae8\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-AD048FAB\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"Ortiz186, Nolan344\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": \"1974-09-01\",\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Gingivitis (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": null\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:32b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 4087485681,
+  "total_duration": 121030745826
+}

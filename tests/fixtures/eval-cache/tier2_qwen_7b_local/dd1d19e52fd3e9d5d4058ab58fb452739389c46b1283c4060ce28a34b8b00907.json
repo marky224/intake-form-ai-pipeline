@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:07:51.117626222Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 297,
+  "eval_duration": 5146934310,
+  "load_duration": 94823494,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Harry\",\n  \"middle_name\": \"448\",\n  \"last_name\": \"Streich926\",\n  \"address_street\": \"609 Breitenberg Branch Unit 65\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Hudson\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01749\",\n  \"date_of_birth\": \"1971-11-03\",\n  \"phone\": \"555-365-1871\",\n  \"email\": null,\n  \"date_signed\": \"2025-11-26\",\n  \"patient_id\": \"0399299d-024\",\n  \"sex\": \"M\",\n  \"insurance_member_id\": \"SYN-0399299D\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 593212611,
+  "total_duration": 8128661406
+}

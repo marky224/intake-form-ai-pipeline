@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:13:36.663200129Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 291,
+  "eval_duration": 5041887557,
+  "load_duration": 102280205,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Tamie\",\n  \"middle_name\": \"596\",\n  \"last_name\": \"Herzog\",\n  \"address_street\": \"256 Fritsch Pathway\",\n  \"address_apt\": \"\",\n  \"address_city\": \"Chicopee\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01013\",\n  \"date_of_birth\": \"2024-10-08\",\n  \"phone\": \"555-161-3658\",\n  \"email\": null,\n  \"date_signed\": \"2026-03-17\",\n  \"patient_id\": \"7512bbb4-b22\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-7512BBB4\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"SAME\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": null,\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 590787079,
+  "total_duration": 8063398894
+}

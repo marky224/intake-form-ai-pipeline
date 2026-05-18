@@ -1,0 +1,21 @@
+{
+  "created_at": "2026-05-18T15:18:01.76034497Z",
+  "done": true,
+  "done_reason": "stop",
+  "eval_count": 319,
+  "eval_duration": 5530238166,
+  "load_duration": 111874848,
+  "logprobs": null,
+  "message": {
+    "content": "{\n  \"first_name\": \"Renay\",\n  \"middle_name\": \"451\",\n  \"last_name\": \"McDermott\",\n  \"address_street\": \"1042 Romaguera Walk Suite 20\",\n  \"address_apt\": \"20\",\n  \"address_city\": \"Worcester\",\n  \"address_state\": \"MA\",\n  \"address_zip\": \"01583\",\n  \"date_of_birth\": \"1970-09-11\",\n  \"phone\": \"555-697-2346\",\n  \"email\": null,\n  \"date_signed\": \"1977-08-12\",\n  \"patient_id\": \"d003cf24-022\",\n  \"sex\": \"F\",\n  \"insurance_member_id\": \"SYN-D003CF24\",\n  \"insurance_group_number\": null,\n  \"insurance_plan_name\": \"Other\",\n  \"subscriber_name\": \"McDermott739\",\n  \"subscriber_relationship\": \"Self\",\n  \"subscriber_dob\": null,\n  \"primary_care_physician\": \"Synthetic Provider, MD\",\n  \"reason_for_visit\": \"Fracture of vertebral column with spinal cord injury (disorder)\",\n  \"emergency_contact_name\": null,\n  \"emergency_contact_phone\": null,\n  \"emergency_contact_relationship\": null,\n  \"pharmacy_preference\": null,\n  \"hipaa_acknowledgment\": true\n}",
+    "images": null,
+    "role": "assistant",
+    "thinking": null,
+    "tool_calls": null,
+    "tool_name": null
+  },
+  "model": "qwen2.5vl:7b",
+  "prompt_eval_count": 1997,
+  "prompt_eval_duration": 589773115,
+  "total_duration": 8587885028
+}
