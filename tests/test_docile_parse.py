@@ -124,6 +124,51 @@ def test_load_document_rejects_out_of_range_bbox(tmp_path: Path) -> None:
         load_document(bad, split="train")
 
 
+def test_load_document_clamps_subpixel_bbox_noise(tmp_path: Path) -> None:
+    """A marginally-negative coord (real upstream DocILE noise) is clamped,
+    not rejected — aborting a 500-doc ingest on a 0.002 overshoot is wrong.
+    Mirrors the observed ``ac61eb8c9ab94f579196f7ab`` ``top = -0.00236``."""
+    noisy = tmp_path / "noisy.json"
+    noisy.write_text(
+        json.dumps(
+            {
+                "field_extractions": [
+                    {
+                        "bbox": [0.10665481, -0.00236246, 0.35073025, 0.04173692],
+                        "fieldtype": "x",
+                        "page": 0,
+                        "text": "t",
+                    }
+                ],
+                "metadata": {"page_count": 1, "page_sizes_at_200dpi": [[1700, 2200]]},
+            }
+        ),
+        encoding="utf-8",
+    )
+    doc = load_document(noisy, split="train")
+    # top clamped to exactly 0.0; the other coords untouched.
+    assert doc.fields[0].bbox == (0.10665481, 0.0, 0.35073025, 0.04173692)
+
+
+def test_load_document_rejects_bbox_beyond_clamp_tolerance(tmp_path: Path) -> None:
+    """A coord further out than the clamp tolerance is genuine corruption
+    and still fails loudly (no silent clamp of bad data)."""
+    bad = tmp_path / "bad.json"
+    bad.write_text(
+        json.dumps(
+            {
+                "field_extractions": [
+                    {"bbox": [0.1, -0.25, 0.3, 0.4], "fieldtype": "x", "page": 0, "text": "t"}
+                ],
+                "metadata": {"page_count": 1, "page_sizes_at_200dpi": [[1700, 2200]]},
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="normalized"):
+        load_document(bad, split="train")
+
+
 def test_load_document_rejects_inverted_bbox(tmp_path: Path) -> None:
     """left > right or top > bottom fails validation."""
     bad = tmp_path / "bad.json"
