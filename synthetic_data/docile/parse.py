@@ -39,6 +39,15 @@ METADATA_BLOCK = "metadata"
 """Top-level key carrying document-level metadata (page sizes, etc.)."""
 
 ALLOWED_SPLITS = frozenset(["train", "val"])
+
+#: Tolerance for clamping bbox coordinates that fall marginally outside the
+#: normalized [0, 1] range. Upstream DocILE KILE annotations carry sub-pixel
+#: rounding noise (observed e.g. ``top = -0.00236`` on
+#: ``ac61eb8c9ab94f579196f7ab``) — a rasterization artifact, not corrupt
+#: data. Clamping these to [0, 1] is what DocILE's own tooling does; aborting
+#: the whole 500-doc ingest on a 0.002 overshoot is wrong. Coordinates
+#: outside ``[-tol, 1+tol]`` are still genuine corruption and fail loudly.
+_BBOX_CLAMP_TOL = 0.02
 """Splits Phase 3.5 may iterate. The ``test`` split is reserved for the
 Phase 7 ``process-batch`` recipe per the half-now-half-later
 partitioning lock in ``cost-model.md``."""
@@ -88,11 +97,19 @@ def _validate_bbox(raw: object, where: str) -> tuple[float, float, float, float]
         if not isinstance(v, int | float):
             raise ValueError(f"{where}: bbox[{i}] must be numeric, got {v!r}")
         coords.append(float(v))
-    left, top, right, bottom = coords
-    if not (0.0 <= left <= right <= 1.0) or not (0.0 <= top <= bottom <= 1.0):
+    # Clamp benign sub-pixel upstream annotation noise into [0, 1]; reject
+    # only genuinely corrupt coordinates (beyond _BBOX_CLAMP_TOL).
+    for i, v in enumerate(coords):
+        if v < -_BBOX_CLAMP_TOL or v > 1.0 + _BBOX_CLAMP_TOL:
+            raise ValueError(
+                f"{where}: bbox[{i}]={v} out of normalized [0,1] range "
+                f"(beyond ±{_BBOX_CLAMP_TOL} clamp tolerance) — corrupt annotation"
+            )
+    left, top, right, bottom = (min(1.0, max(0.0, c)) for c in coords)
+    if not (left <= right) or not (top <= bottom):
         raise ValueError(
-            f"{where}: bbox {coords} out of normalized [0,1] range "
-            f"or has left>right / top>bottom"
+            f"{where}: bbox {coords} has left>right / top>bottom "
+            f"(clamped to ({left}, {top}, {right}, {bottom}))"
         )
     return (left, top, right, bottom)
 
