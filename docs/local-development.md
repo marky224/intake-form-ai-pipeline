@@ -1,8 +1,8 @@
 # Local development
 
-This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, the DocILE workflow, and the Tier 1 PaddleOCR-VL setup. Sections fill out as the build progresses.
+This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, the DocILE workflow, and the Tier 1 PaddleOCR-VL setup.
 
-**As of 2026-05-14 the project pivoted to a local-first V1 build.** The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local; NEW post-pivot, replaces V2's planned AWS Textract at the Tier 2-local slot) + Tier 3 (Qwen 2.5 VL 32B local; was Tier 3a in V2 numbering). The cloud-only AWS upload steps in the Synthea + DocILE workflows below are V2 work — V1 follow-up refactors the uploaders to write to a local filesystem store under `synthetic_data/output/render/`. Until that refactor lands, the upload step is deferred (deliverable corpora can still be regenerated locally; just not pushed to S3).
+**The project is local-first (pivot locked 2026-05-14).** The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local; replaces V2's planned AWS Textract at the Tier 2-local slot) + Tier 3 (Qwen 2.5 VL 32B local; "Tier 3a" in V2 numbering). There is **no AWS in V1**: the Synthea + DocILE workflows below write (PNG, sidecar) pairs to a local content-addressable store under `synthetic_data/output/store/` — the S3 uploader was refactored to a filesystem store writer (PR #64, 2026-05-18). Restoring the S3 path is the documented V2 target; nothing in the V1 local build needs AWS credentials.
 
 ## Hardware overview
 

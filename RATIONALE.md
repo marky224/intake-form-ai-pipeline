@@ -189,7 +189,7 @@ Step Functions passes state between Lambda invocations as JSON. Every model is `
 
 Two specific things this constrains:
 
-- **No `bytes` fields.** Image regions get referenced by S3 URI in `metadata.source_document_id`, not embedded.
+- **No `bytes` fields.** Image regions get referenced by URI in `metadata.source_document_id`, not embedded (a local content-store path in V1; an S3 URI in V2 — the field is a plain string either way).
 - **`date` and `datetime` use ISO-8601 strings in JSON** (Pydantic v2 default). Downstream parsers must use Pydantic's `model_validate_json`, not `json.loads` + `model_validate`, to get the conversion.
 
 `FieldMeta` is **not** in the JSON output — it's class-level annotation metadata, not field data. Confirmed in the round-trip test.
@@ -335,7 +335,7 @@ Multi-page forms need per-page tracking. The original `FormMetadata` only had `p
 ```python
 class PageMetadata(BaseModel):
     page_number: int = Field(ge=1)
-    page_image_uri: str  # S3 URI of rendered page image
+    page_image_uri: str  # rendered-page URI (local store path in V1; S3 URI in V2)
     page_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     tier_used_for_page: Optional[TierId] = None
     page_status: Literal[
