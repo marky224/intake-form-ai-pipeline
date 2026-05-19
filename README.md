@@ -57,11 +57,11 @@ A two-stage router classifies the vertical: a deterministic local vocabulary mat
 
 An in-process Python orchestrator (no state machine in V1; V2 wraps it in Step Functions) runs the tiers. PaddleOCR-VL is a layout parser whose blocks run through an alias-table-driven layout-to-fields post-processor; fields below the 0.85 threshold escalate to a prompted Qwen 2.5 VL 7B, then to Qwen 2.5 VL 32B below 0.80. Cheap fields settle at Tier 1 in sub-second-per-page; only the fields Tier 1 can't resolve pay GPU time higher up. The assembled form's minimum confidence decides auto-approval versus the human review queue. A reviewer's correction writes back with full provenance, appends any missed label phrasing to a runtime alias overlay, and re-embeds the document into the ColQwen corpus — so the next similar document resolves earlier.
 
-The whole system persists to one SQLite file (extracted fields, eval log, ColQwen multivectors), intentionally Aurora-compatible so the V2 migration is a row-copy rather than a redesign. `docs/architecture-deep-dive.md` covers the orchestrator, persistence model, and V2 cloud edge.
+The whole system persists to one SQLite file (extracted fields, eval log, ColQwen multivectors), intentionally Aurora-compatible so the V2 migration is a row-copy rather than a redesign. `docs/architecture-deep-dive.md` covers the orchestrator, persistence model, and the optional enhancement's cloud edge.
 
 ## What's worth a closer look
 
-**The economics.** V1's cost is $0/1K — local inference on owned hardware, where latency is the meaningful metric, not dollars. The cost-routing payoff lands in V2: BAA-cloud tiers in the middle and top take the cascade to ~$9.50/1K, ~32× cheaper than putting every field through a single frontier model (~$300/1K at typical densities). V1 isn't a throwaway prototype for that number — it produces the measured escalation rates that make the V2 cost projection credible.
+**The economics.** V1's cost is $0/1K — local inference on owned hardware, where latency is the meaningful metric, not dollars. The cost-routing argument is what the optional BAA-cloud enhancement would realize: BAA-cloud tiers in the middle and top would take the cascade to ~$9.50/1K, ~32× cheaper than putting every field through a single frontier model (~$300/1K at typical densities). V1 is not a prototype waiting on that number — it is complete, and it produces the measured escalation rates that make the projection credible rather than hypothetical.
 
 **The integrity guardrails.** `alias_table_seed.json` is frozen at v1.0.0 because it's what the F1 chart plots from; live corrections accumulate in a gitignored overlay unioned onto the seed at load time, and the progressive-partition sweep explicitly *suppresses* that overlay so the published chart can never silently drift. The eval harness defaults to cached, deterministic, $0 fixtures with a CI drift-guard on the committed SVG; live provider runs are opt-in behind `EVAL_LIVE`. Phase 9's QLoRA experiment reports a `+0.0000` delta because the manifest leakage guard correctly yields zero non-leaky training pairs at committed scale — the honest result, not a hidden one.
 
@@ -88,7 +88,7 @@ just demo           # Streamlit on :8501 — real 3-tier cascade over the
                     # 92-doc test split via cached replay. $0, no GPU.
 ```
 
-![V1 local demo](docs/assets/demo-screenshot.png)
+![V1 local demo — by-stage ablation + escalation-funnel headline over the cached 92-doc cascade](docs/assets/demo-screenshot.png)
 
 The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.794 → 0.768` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run) with the supporting two-stage F1 chart below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `chart` / `by-stage` run the harness and regenerate the CI-drift-guarded SVGs; full task list in the `justfile`.
 
@@ -106,8 +106,8 @@ intake-form-ai-pipeline/
 ├── finetune/                # QLoRA text post-corrector (Phase 9 experiment)
 ├── demo/                    # Streamlit: data.py (testable core) + app.py (view)
 ├── synthetic_data/          # synthea/, render/ (Playwright CMS-1500), docile/
-├── infra/                   # terraform/ (V2 target; bootstrap live) + bicep/ (no-deploy parallel)
-├── tests/                   # 547 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+├── infra/                   # terraform/ (optional-enhancement target; bootstrap live) + bicep/ (no-deploy parallel)
+├── tests/                   # 1077 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 └── docs/                    # architecture-deep-dive, hipaa-architecture, eval-methodology,
                              #   production-roadmap, local-development
 ```
@@ -120,9 +120,9 @@ V1 has no deployed demo URL and no cloud cascade tiers — local Streamlit only;
 
 ## Further reading
 
-- **`docs/architecture-deep-dive.md`** — V1 orchestrator + persistence; V2 cloud edge, five-tier routing, Step Functions layout, sequence diagrams
-- **`docs/eval-methodology.md`** — F1 computation, partition/leakage discipline, progressive alias partition, the two-stage finding, Phase 8/9 deviations
-- **`docs/hipaa-architecture.md`** — V2 BAA boundary, three-layer enforcement, synthetic-to-real-PHI swap path
-- **`docs/production-roadmap.md`** — V2 rebuild plan + considered-not-done items (Qwen3-VL mixed-precision, Spanish, vLLM scale-up, Bedrock adapter import)
+- **`docs/architecture-deep-dive.md`** — the shipped V1 orchestrator + persistence; the optional enhancement's cloud edge, five-tier routing, Step Functions layout, sequence diagrams
+- **`docs/eval-methodology.md`** — F1 computation, partition/leakage discipline, progressive alias partition, the two-stage finding, the by-stage ablation, Phase 8/9 deviations
+- **`docs/hipaa-architecture.md`** — *why the optional cloud enhancement exists*: the BAA boundary, three-layer enforcement, the real-PHI swap path
+- **`docs/production-roadmap.md`** — the one optional future enhancement (BAA-cloud for real PHI) + considered-not-done items (Qwen3-VL mixed-precision, Spanish, vLLM scale-up, Bedrock adapter import)
 - **`docs/local-development.md`** — GPU/Ollama setup, multi-GPU split, the Tier 3 Q4_K_M trade-off, Synthea + DocILE workflows
 - **`RATIONALE.md`** — schema design rationale (DataClass enum, ExtractedField wrapper, SignatureCapture, BoundingBox, confidence aggregation)

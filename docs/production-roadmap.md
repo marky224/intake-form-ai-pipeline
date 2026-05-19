@@ -1,10 +1,10 @@
-# Production roadmap
+# Optional future enhancement & considered-not-done items
 
-This document collects items deliberately deferred from the build — decisions that were considered, reasoned about, and parked because the answer depends on factors the build can't yet measure (real traffic, real corrections, real cost telemetry). It is the canonical home for "considered, not done, will revisit when X" items.
+The project is **complete as V1** — a local-first 3-tier extraction pipeline, measured end-to-end on a 92-document held-out test split, $0/1K inference, no cloud. This document collects design questions that were considered and reasoned about but deliberately *not* built into that complete V1, because the answer depends on factors V1 can't exercise (real traffic, real corrections, real cost telemetry, real PHI). It is the long-form home for the "considered, not done" reasoning.
 
-**V2 is the largest deferred item.** As of 2026-05-14 the project pivoted to a local-first V1 build (3-tier all-local cascade, no AWS, no deployed demo URL). V2 is the planned cloud rebuild that re-introduces BAA-eligible AWS tiers (Textract Queries + Bedrock Sonnet + Bedrock Nova Lite), stands up the deployed demo at `ai-intake.markandrewmarquez.com` via Lambda + Cloudflare Tunnel, and migrates V1's SQLite to Aurora Serverless v2. V2 entry is a separate decision from V1's build cadence — it lands when V1 is end-to-end coherent (Phases 4-V1 through 7-V1 done) and the portfolio narrative justifies adding the deployed-demo signal. The Hybrid cascade architecture (locked 2026-05-12) is the V2 target; in-tree Terraform at `infra/terraform/` describes the V2 infrastructure verbatim.
+**There is exactly one substantive optional future enhancement: a BAA-cloud deployment, and its sole motivation is HIPAA.** V1 processes only synthetic data (Synthea + DocILE), so it needs no Business Associate Agreement and is complete on its own. A real-PHI deployment is the *only* scenario that would require the cloud rebuild — real Protected Health Information may only be processed through BAA-eligible providers, so a real-PHI operator would swap the middle and top cascade tiers for BAA-eligible AWS services (Textract Queries + Bedrock Sonnet + Bedrock Nova Lite) behind the *same* provider Protocol, wire the local tiers to a deployed endpoint, and stand up a public demo at `ai-intake.markandrewmarquez.com`. The in-tree Terraform at `infra/terraform/` and the Hybrid cascade architecture describe that target concretely so the enhancement is a credible, scoped option rather than hand-waving — but it is **not built, not scheduled, and not required for V1 to be complete**. `docs/hipaa-architecture.md` is the load-bearing rationale for why this option exists at all.
 
-This file is the long-form treatment of V2-deferred items and other "considered, not done" decisions. The locked architectural decisions in the project's main instructions document keep the brief "deferred" framing with don't-re-debate signals; this file is where the actual reasoning lives.
+This file is the long-form treatment of that optional BAA-cloud enhancement and the other "considered, not done" decisions. The locked architectural decisions in the project's internal instructions keep the brief framing; this file is where the actual reasoning lives. Where a section below says "V2," read it as "the optional BAA-cloud enhancement, if a real-PHI deployment is ever pursued" — not a planned next phase.
 
 ## Tier 3 model upgrade candidate: Qwen3-VL-32B
 
@@ -48,7 +48,7 @@ The 584-document corpus populates `train` (394 docs), but training pairs are bui
 
 Open question: in a production deployment, would the trained adapter be imported into Bedrock via Custom Model Import, or kept as a local-only inference artifact? Custom Model Import has cost implications (storage + per-token pricing on imported models) that may or may not justify the operational simplicity over self-hosted inference.
 
-Defer until Phase 9 outcomes are measured (V2-gated). The committed identity-baseline result already indicates the gains are marginal at portfolio scale — consistent with the original "likely marginal, given the small correction corpus a portfolio demo can accumulate" expectation — so Bedrock import stays documented-as-future-work and is not pursued in V1.
+Phase 9's outcome is already measured: the committed identity-baseline result indicates the gains are marginal at portfolio scale — consistent with the original "likely marginal, given the small correction corpus a portfolio demo can accumulate" expectation. The Bedrock-import question therefore only ever becomes live inside the optional BAA-cloud enhancement; it is not a gap in the complete V1.
 
 ## Snowflake destination for production data warehouse
 
@@ -88,7 +88,7 @@ Single-IP abuse won't trigger this — the WAF rate-based rule handles that at l
 
 ## Self-hosted demo deployment vs cloud
 
-Cloud deployment (AWS) is locked. Revisit only if monthly costs become unmanageable. The reliability calculus for a public demo strongly favors managed cloud: a demo that's down when a visitor arrives is worse than the cost difference between cloud and self-hosted.
+*If* the optional BAA-cloud enhancement is ever built, it assumes managed cloud (AWS) deployment rather than self-hosting. The reliability calculus for a public demo strongly favors managed cloud: a demo that's down when a visitor arrives is worse than the cost difference between cloud and self-hosted.
 
 Self-hosted alternatives considered and rejected:
 
@@ -118,6 +118,6 @@ Defer to production deployment. Synthetic data doesn't expose this requirement; 
 
 ## Revisit cadence
 
-Items on this list are not on a schedule. The build's main instructions document is the source of truth for what's locked and shipping; this document is where deferred items live so they don't get lost. Revisit triggers are stated per item — when the trigger fires, that's when the item moves from this document into a real decision.
+Nothing on this list is on a schedule, and none of it is required for V1 to be complete — V1 is the finished deliverable. The "revisit triggers" stated per item are the conditions under which a given consideration would become relevant *if* the optional BAA-cloud enhancement (or a production deployment behind it) is ever pursued; absent that, they stay considered-not-done by design.
 
-This document was swept at Phase 10 polish (2026-05-18): every deferred item was re-checked against shipped reality and none had rotted. The emergent Phases 4–9 findings are already folded in above — the Qwen3-VL Tier-3 upgrade candidate's revisit condition 1 became "Realized (2026-05-17)" when the consumer-VRAM Q4_K_M trade-off was measured, and the Bedrock adapter-import item now records the Phase 9 identity-baseline result that keeps it deferred. No new deferred items emerged from Phases 4–9 beyond those.
+This document was swept at V1 completion (2026-05-18 Phase 10 polish, re-confirmed 2026-05-19 with the V1-complete reframe): every item was re-checked against shipped reality and none had rotted. The emergent Phases 4–9 findings are folded in above — the Qwen3-VL Tier-3 upgrade candidate's condition 1 became "Realized (2026-05-17)" when the consumer-VRAM Q4_K_M trade-off was measured, and the Bedrock adapter-import item records the Phase 9 identity-baseline result. No new considerations emerged from Phases 4–9 beyond those.
