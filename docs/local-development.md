@@ -2,7 +2,7 @@
 
 This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, the DocILE workflow, and the Tier 1 PaddleOCR-VL setup.
 
-**The project is complete as a local-first system (locked 2026-05-14).** This document is the *whole* setup story — there is no AWS step anywhere in it. The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local) + Tier 3 (Qwen 2.5 VL 32B local; "Tier 3a" in the optional-enhancement numbering). The Synthea + DocILE workflows below write (PNG, sidecar) pairs to a local content-addressable store under `synthetic_data/output/store/` — the S3 uploader was refactored to a filesystem store writer (PR #64, 2026-05-18). An S3 store path is part of the optional BAA-cloud enhancement (HIPAA-motivated, not built); nothing in the complete local build needs — or has ever needed — AWS credentials.
+**The project is complete as a local-first system (locked 2026-05-14).** This document is the *whole* setup story — there is no AWS step anywhere in it. The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local) + Tier 3 (Qwen 2.5 VL 32B local; "Tier 3a" in the optional-enhancement numbering). The Synthea + DocILE workflows below write (PNG, sidecar) pairs to a local content-addressable store under `src/synthetic_data/output/store/` — the S3 uploader was refactored to a filesystem store writer (PR #64, 2026-05-18). An S3 store path is part of the optional BAA-cloud enhancement (HIPAA-motivated, not built); nothing in the complete local build needs — or has ever needed — AWS credentials.
 
 ## Hardware overview
 
@@ -116,7 +116,7 @@ nvidia-smi -i 1
 
 ### Generating eval-cache fixtures
 
-Cached responses live at `tests/fixtures/eval-cache/tier1_paddleocr_local/<image_sha256>.json` and are checked in so CI can exercise the cached-replay path without paddle installed. To regenerate against the real model:
+Cached responses live at `src/tests/fixtures/eval-cache/tier1_paddleocr_local/<image_sha256>.json` and are checked in so CI can exercise the cached-replay path without paddle installed. To regenerate against the real model:
 
 ```bash
 EVAL_LIVE=true uv run python - <<'PY'
@@ -133,7 +133,7 @@ PY
 git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 ```
 
-`EVAL_LIVE=true` bypasses the cache, runs live inference against the 92 CMS-1500 validation PNGs in `tests/fixtures/eval-validation/cms1500/` (the patient-stratified `test` split of the 584-doc local corpus), and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run. To regenerate all four replay namespaces (tier 1/2/3 + router stage 2) from scratch, use `just regen-fixtures` (resumable; ~2 h on the GPU box), then `just chart`.
+`EVAL_LIVE=true` bypasses the cache, runs live inference against the 92 CMS-1500 validation PNGs in `src/tests/fixtures/eval-validation/cms1500/` (the patient-stratified `test` split of the 584-doc local corpus), and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run. To regenerate all four replay namespaces (tier 1/2/3 + router stage 2) from scratch, use `just regen-fixtures` (resumable; ~2 h on the GPU box), then `just chart`.
 
 ### Validation set
 
@@ -145,7 +145,7 @@ The healthcare half of the synthetic corpus is generated end-to-end via three ch
 
 ### Pre-requisites
 
-- **Docker** — Synthea runs in a pinned container (`synthetic_data/synthea/Dockerfile` checksum-verifies the upstream JAR at build time).
+- **Docker** — Synthea runs in a pinned container (`src/synthetic_data/synthea/Dockerfile` checksum-verifies the upstream JAR at build time).
 - **Playwright + Chromium** — the renderer drives a headless Chromium via Playwright:
 
   ```bash
@@ -171,7 +171,7 @@ The full 500-patient corpus is one recipe:
 just synthetic-data-render-500
 ```
 
-This chains `just synthetic-data-patients 500 42` → `python -m synthetic_data.render.batch` → `python -m synthetic_data.render.upload`. End-to-end takes ~13-15 minutes (Synthea ~3-5 min, render ~10 min, store copy sub-second) and produces 1000 files (500 PNG + 500 JSON, ~25 MB total) under `synthetic_data/output/store/synthetic/healthcare/cms1500/`. The whole `synthetic_data/output/` tree is gitignored and can be deleted and regenerated at will.
+This chains `just synthetic-data-patients 500 42` → `python -m synthetic_data.render.batch` → `python -m synthetic_data.render.upload`. End-to-end takes ~13-15 minutes (Synthea ~3-5 min, render ~10 min, store copy sub-second) and produces 1000 files (500 PNG + 500 JSON, ~25 MB total) under `src/synthetic_data/output/store/synthetic/healthcare/cms1500/`. The whole `src/synthetic_data/output/` tree is gitignored and can be deleted and regenerated at will.
 
 ### Step-by-step (smaller runs, debugging)
 
@@ -232,7 +232,7 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 just synthetic-data-docile-build
 ```
 
-End-to-end ~30-60 minutes wallclock (the bulk is the 1.6 GB ZIP download from `docile-dataset-rossum.s3.eu-west-1.amazonaws.com` — the dataset host, unrelated to the project's own V2 S3). Produces ~33,000 page PNGs + ~33,000 sidecar JSONs (~66,000 files, ~1.6 GB total) under `synthetic_data/output/store/synthetic/business/docile/`. Local disk peaks at ~3.6 GB during the run (download + render dir + store); `synthetic_data/output/` is gitignored.
+End-to-end ~30-60 minutes wallclock (the bulk is the 1.6 GB ZIP download from `docile-dataset-rossum.s3.eu-west-1.amazonaws.com` — the dataset host, unrelated to the project's own V2 S3). Produces ~33,000 page PNGs + ~33,000 sidecar JSONs (~66,000 files, ~1.6 GB total) under `src/synthetic_data/output/store/synthetic/business/docile/`. Local disk peaks at ~3.6 GB during the run (download + render dir + store); `src/synthetic_data/output/` is gitignored.
 
 ### Smoke run (5-10 documents)
 
@@ -279,7 +279,7 @@ The stored sidecar's `source_id` is `<doc_id>-p<page_number>` (1-indexed page), 
 
 ### Notes on the vendored download script
 
-`synthetic_data/docile/download_dataset.sh` is a verbatim copy of `rossumai/docile/download_dataset.sh` pinned to upstream commit `12f9502d1ee80143c24eb98d89abc324db8003b6`. The wrapper sha256-verifies the file on every invocation so an accidental local edit or supply-chain drift fails loudly before any network call. Re-vendor + bump `VENDORED_SCRIPT_SHA256` together when intentionally upgrading.
+`src/synthetic_data/docile/download_dataset.sh` is a verbatim copy of `rossumai/docile/download_dataset.sh` pinned to upstream commit `12f9502d1ee80143c24eb98d89abc324db8003b6`. The wrapper sha256-verifies the file on every invocation so an accidental local edit or supply-chain drift fails loudly before any network call. Re-vendor + bump `VENDORED_SCRIPT_SHA256` together when intentionally upgrading.
 
 The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.eu-west-1.amazonaws.com/<token>/<dataset>.zip`) — it's a presigned-share-link path segment, not an HTTP header. The wrapper passes it via positional argv to the script, so it briefly appears in `ps` output during the curl. Acceptable for this dev environment given the token is registration-scoped (not write-credentialed).
 
@@ -287,8 +287,8 @@ The token is interpolated into the URL path (`https://docile-dataset-rossum.s3.e
 
 `just demo` (Phase 7-V1, shipped) runs the real three-tier cascade against the six committed CMS-1500 fixtures through the per-tier replay cache — cached responses by default, live local inference with `EVAL_LIVE=true`; no cloud calls, no AWS credentials either way. The cached path is `$0`, deterministic, and needs nothing on the GPU.
 
-- **Cached fixture format.** Per-tier replay lives at `tests/fixtures/eval-cache/<provider>/<image_sha256>.json` — one file per (provider, document), keyed on the PNG's sha256. `evals/fixtures_manifest.json` pins the alias-seed version, per-provider model identities, and the document id list to that cache. The demo's `demo/data.py` is a Streamlit-free, unit-tested core that drives the cascade into a throwaway temp DB; `demo/app.py` is a thin view over it.
-- **Adding a local-only test document.** Render or drop a PNG into `tests/fixtures/eval-validation/cms1500/`, then regenerate that document's cache entries with `EVAL_LIVE=true` (see "Generating eval-cache fixtures" above) and commit the new `tests/fixtures/eval-cache/` files.
+- **Cached fixture format.** Per-tier replay lives at `src/tests/fixtures/eval-cache/<provider>/<image_sha256>.json` — one file per (provider, document), keyed on the PNG's sha256. `src/evals/fixtures_manifest.json` pins the alias-seed version, per-provider model identities, and the document id list to that cache. The demo's `src/demo/data.py` is a Streamlit-free, unit-tested core that drives the cascade into a throwaway temp DB; `src/demo/app.py` is a thin view over it.
+- **Adding a local-only test document.** Render or drop a PNG into `src/tests/fixtures/eval-validation/cms1500/`, then regenerate that document's cache entries with `EVAL_LIVE=true` (see "Generating eval-cache fixtures" above) and commit the new `src/tests/fixtures/eval-cache/` files.
 - **Switching modes.** Default is cached replay. Prefix `EVAL_LIVE=true` (`EVAL_LIVE=true just demo` / `just eval-live`) to bypass the cache and hit the live local Ollama + PaddleOCR models. CI never sets `EVAL_LIVE`, so committed fixtures drive every CI run.
 
 ## Coexistence with general-purpose Ollama workflows

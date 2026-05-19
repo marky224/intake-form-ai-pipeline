@@ -90,11 +90,30 @@ dev = [
     "streamlit>=1.40",
 ]
 
-# Treat the repo as an application, not a library: uv won't try to build/install
-# the root as a package. Phase 4 may revisit this when src/intake_pipeline/ lands
-# and the cascade orchestrator becomes importable code rather than a flat layout.
+# Installable editable package since the 2026-05-19 src-layout refactor
+# (memory `project_src_layout`). `uv sync` builds + editable-installs the
+# package so `import cascade`, `from _paths import ...`, `python -m evals`
+# etc. resolve from anywhere without pythonpath hacks. Replaces the prior
+# `package = false` flat-layout setup.
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# `src/` is the source root. Multi-package layout: cascade, demo, evals,
+# finetune, rag, synthetic_data each become top-level imports.
+package-dir = {"" = "src"}
+# Top-level single-file modules at src/ root.
+py-modules = ["intake_schemas", "build_alias_seed", "_paths"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# Exclude the test suite from the installable package (tests live under
+# src/tests/ for the colocated convenience, but are not shipped as code).
+exclude = ["tests*"]
+
 [tool.uv]
-package = false
+package = true
 default-groups = ["dev"]
 
 # ---- Ruff ----------------------------------------------------------------
@@ -107,8 +126,8 @@ extend-exclude = [
     ".venv",
     "build",
     "dist",
-    "synthetic_data/output",
-    "evals/results",
+    "src/synthetic_data/output",
+    "src/evals/results",
 ]
 
 [tool.ruff.lint]
@@ -143,8 +162,8 @@ extend-exclude = '''
     \.venv
   | build
   | dist
-  | synthetic_data/output
-  | evals/results
+  | src/synthetic_data/output
+  | src/evals/results
 )/
 '''
 
@@ -152,11 +171,14 @@ extend-exclude = '''
 [tool.pytest.ini_options]
 minversion = "8.0"
 python_files = ["test_*.py"]
-testpaths = ["tests"]
-# First-party packages live at the repo root (flat layout, no src/); the test
-# suite lives under tests/. pythonpath keeps `import intake_schemas`,
-# `from cascade import ...`, etc. resolvable regardless of where pytest is run.
-pythonpath = ["."]
+testpaths = ["src/tests"]
+# First-party packages live under src/ (installable editable package since the
+# 2026-05-19 src-layout refactor — see memory `project_src_layout`). The
+# editable install puts cascade/_paths/intake_schemas/etc. on the import path,
+# so pythonpath is not strictly required. We keep `["src"]` as belt-and-
+# suspenders: lets `pytest src/tests/test_foo.py` work in a fresh checkout
+# that hasn't yet run `uv sync`.
+pythonpath = ["src"]
 addopts = [
     "--strict-markers",
     "-ra",
