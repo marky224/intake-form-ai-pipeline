@@ -186,21 +186,23 @@ def _esc(text: str) -> str:
 _W = 720
 _M_L, _M_R = 70, 30  # left / right plot margins (shared by both panels)
 
-# Panel 1 — F1 by cumulative stage.
-_P1_TITLE_Y = 28
-_P1_TOP = 50  # F1 = 1.0 gridline
-_P1_BOT = 280  # F1 = 0.0 baseline
-_P1_NOTE_Y = 322  # mechanism annotation block start
+# Top panel — escalation funnel. Axis 0 … total scorable cells; the
+# genuinely-blank remainder is a stacked gray cap on the final bar (an
+# explicit remainder, never a thin full-width band the value labels
+# collide with). The funnel leads — it is the monotone coverage story;
+# the F1 panel below is the honest non-monotone counterpoint.
+_F_TITLE_Y = 28
+_F_TOP = 52  # y for count == total (top of plot)
+_F_BOT = 248  # zero baseline
+_F_CAP_Y = 296  # caption block start
 
-# Panel 2 — escalation funnel. Axis 0 … total scorable cells; the
-# genuinely-blank remainder is a stacked cap on the final bar (an explicit
-# remainder, never a thin full-width band the value labels collide with).
-_P2_TITLE_Y = 452
-_P2_TOP = 478  # y for count == total (top of plot)
-_P2_BOT = 658  # zero baseline
-_P2_CAP_Y = 706  # caption block start
+# Bottom panel — F1 by cumulative stage.
+_S_TITLE_Y = 404
+_S_TOP = 428  # F1 = 1.0 gridline
+_S_BOT = 628  # F1 = 0.0 baseline
+_S_NOTE_Y = 674  # mechanism annotation block start
 
-_H = 790
+_H = 778
 
 #: The mechanism, wrapped to fit — Mark's ask: the logic lives in the graph.
 _MECHANISM = (
@@ -212,7 +214,7 @@ _MECHANISM = (
     "Shipped honest: motivates the local Qwen3-VL Tier-3b upgrade.",
 )
 
-#: Panel 2 caption — the funnel reading, honest about Tier 1's tiny share.
+#: Top-panel caption — the funnel reading, honest about Tier 1's tiny share.
 _FUNNEL_CAPTION = (
     "Cells resolved by tier ≤ N (cumulative). Tier 3 only ever finalizes the",
     "residual the earlier tiers couldn't clear (the forced-escalated dates), so",
@@ -222,18 +224,20 @@ _FUNNEL_CAPTION = (
 )
 
 
-def _p1_y(f1: float) -> float:
-    return _P1_BOT - f1 * (_P1_BOT - _P1_TOP)
+def _stage_y(f1: float) -> float:
+    return _S_BOT - f1 * (_S_BOT - _S_TOP)
 
 
 def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
     """Render both panels to one deterministic SVG string.
 
-    Top: 3 cumulative-tier F1 bars (the Tier-1+2+3 regression tinted) with
-    an embedded mechanism annotation. Bottom: the escalation funnel —
-    cumulative cells resolved by tier ≤ N against the populated total,
-    with the genuinely-blank remainder drawn explicitly. No timestamp /
-    git SHA — committed-artifact stability.
+    Top: the escalation funnel — cumulative cells resolved by tier ≤ N
+    against the total scorable cells, the genuinely-blank remainder drawn
+    explicitly as a gray cap. Bottom: the 3 cumulative-tier F1 bars (the
+    Tier-1+2+3 regression tinted) with the embedded mechanism annotation.
+    The monotone coverage story leads; the honest non-monotone F1
+    counterpoint follows. No timestamp / git SHA — committed-artifact
+    stability.
     """
     stages = result.stages
     if not stages:
@@ -251,82 +255,27 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
         f'<rect width="{_W}" height="{_H}" fill="#ffffff"/>',
     ]
 
-    # ---- Panel 1: F1 by cumulative stage --------------------------------
+    # ---- Top panel: escalation funnel -----------------------------------
     parts.append(
-        f'<text x="{_W / 2}" y="{_P1_TITLE_Y}" text-anchor="middle" '
-        f'font-size="18" font-weight="bold">F1 by cumulative cascade stage '
-        f"(92-doc test split)</text>"
-    )
-    for t in range(6):
-        f = t / 5.0
-        y = _p1_y(f)
-        parts.append(
-            f'<line x1="{plot_l}" y1="{y:.1f}" x2="{plot_r}" y2="{y:.1f}" '
-            f'stroke="#e5e5e5" stroke-width="1"/>'
-        )
-        parts.append(
-            f'<text x="{plot_l - 10}" y="{y + 4:.1f}" text-anchor="end" '
-            f'font-size="12" fill="#555">{f:.1f}</text>'
-        )
-    parts.append(
-        f'<line x1="{plot_l}" y1="{_P1_TOP}" x2="{plot_l}" y2="{_P1_BOT}" '
-        f'stroke="#333" stroke-width="1.5"/>'
-    )
-    parts.append(
-        f'<line x1="{plot_l}" y1="{_P1_BOT}" x2="{plot_r}" y2="{_P1_BOT}" '
-        f'stroke="#333" stroke-width="1.5"/>'
-    )
-    for i, (label, f1) in enumerate(stages):
-        cx = plot_l + slot * (i + 0.5)
-        x = cx - bar_w / 2
-        y = _p1_y(f1)
-        h = _P1_BOT - y
-        regressed = i > 0 and f1 < stages[i - 1][1]
-        fill = "#d62728" if regressed else "#1f77b4"
-        parts.append(
-            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
-            f'height="{h:.1f}" fill="{fill}"/>'
-        )
-        parts.append(
-            f'<text x="{cx:.1f}" y="{y - 8:.1f}" text-anchor="middle" '
-            f'font-size="13" font-weight="bold" fill="{fill}">{f1:.3f}</text>'
-        )
-        parts.append(
-            f'<text x="{cx:.1f}" y="{_P1_BOT + 22:.1f}" text-anchor="middle" '
-            f'font-size="13" fill="#333">{_esc(label)}</text>'
-        )
-    p1_mid = (_P1_TOP + _P1_BOT) / 2
-    parts.append(
-        f'<text x="18" y="{p1_mid:.1f}" text-anchor="middle" font-size="13" '
-        f'fill="#333" transform="rotate(-90 18 {p1_mid:.1f})">F1 (micro)</text>'
-    )
-    for j, line in enumerate(_MECHANISM):
-        parts.append(
-            f'<text x="{plot_l}" y="{_P1_NOTE_Y + j * 16:.1f}" '
-            f'font-size="11.5" fill="#555">{_esc(line)}</text>'
-        )
-
-    # ---- Panel 2: escalation funnel -------------------------------------
-    parts.append(
-        f'<text x="{_W / 2}" y="{_P2_TITLE_Y}" text-anchor="middle" '
+        f'<text x="{_W / 2}" y="{_F_TITLE_Y}" text-anchor="middle" '
         f'font-size="18" font-weight="bold">Escalation funnel — cells '
         f"resolved by tier ≤ N</text>"
     )
     populated = funnel.populated
     total = funnel.total
-    span = _P2_BOT - _P2_TOP
+    span = _F_BOT - _F_TOP
 
-    def _p2_y(count: int) -> float:
+    def _funnel_y(count: int) -> float:
         # Axis 0 … total scorable cells (populated + genuinely blank).
-        return _P2_BOT - (count / total) * span if total else _P2_BOT
+        return _F_BOT - (count / total) * span if total else _F_BOT
 
-    y_pop = _p2_y(populated)  # the "100% of populated" reference height
+    y_pop = _funnel_y(populated)  # the "100% of populated" reference height
     parts.append(
-        f'<line x1="{plot_l}" y1="{_P2_TOP}" x2="{plot_l}" y2="{_P2_BOT}" '
+        f'<line x1="{plot_l}" y1="{_F_TOP}" x2="{plot_l}" y2="{_F_BOT}" '
         f'stroke="#333" stroke-width="1.5"/>'
     )
     parts.append(
-        f'<line x1="{plot_l}" y1="{_P2_BOT}" x2="{plot_r}" y2="{_P2_BOT}" '
+        f'<line x1="{plot_l}" y1="{_F_BOT}" x2="{plot_r}" y2="{_F_BOT}" '
         f'stroke="#333" stroke-width="1.5"/>'
     )
     # Faint reference line at 100%-of-populated; the blank remainder lives
@@ -342,8 +291,8 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
     for i, (label, cum) in enumerate(funnel.cumulative):
         cx = plot_l + slot * (i + 0.5)
         x = cx - bar_w / 2
-        y = _p2_y(cum)
-        h = _P2_BOT - y
+        y = _funnel_y(cum)
+        h = _F_BOT - y
         pct = (cum / populated * 100.0) if populated else 0.0
         parts.append(
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
@@ -352,13 +301,13 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
         # Last bar carries the genuinely-blank remainder as an explicit
         # gray cap (981 resolved + 123 blank = 1104 total) — never hidden.
         if i == len(funnel.cumulative) - 1 and funnel.blank:
-            cap_h = y - _P2_TOP
+            cap_h = y - _F_TOP
             parts.append(
-                f'<rect x="{x:.1f}" y="{_P2_TOP:.1f}" width="{bar_w:.1f}" '
+                f'<rect x="{x:.1f}" y="{_F_TOP:.1f}" width="{bar_w:.1f}" '
                 f'height="{cap_h:.1f}" fill="#d9d9d9"/>'
             )
             parts.append(
-                f'<text x="{cx:.1f}" y="{(_P2_TOP + y) / 2 + 4:.1f}" '
+                f'<text x="{cx:.1f}" y="{(_F_TOP + y) / 2 + 4:.1f}" '
                 f'text-anchor="middle" font-size="11" fill="#777">'
                 f"{funnel.blank} blank</text>"
             )
@@ -376,17 +325,72 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
                 f"{cum} ({pct:.1f}%)</text>"
             )
         parts.append(
-            f'<text x="{cx:.1f}" y="{_P2_BOT + 22:.1f}" text-anchor="middle" '
+            f'<text x="{cx:.1f}" y="{_F_BOT + 22:.1f}" text-anchor="middle" '
             f'font-size="13" fill="#333">{_esc(label)}</text>'
         )
-    p2_mid = (_P2_TOP + _P2_BOT) / 2
+    f_mid = (_F_TOP + _F_BOT) / 2
     parts.append(
-        f'<text x="18" y="{p2_mid:.1f}" text-anchor="middle" font-size="13" '
-        f'fill="#333" transform="rotate(-90 18 {p2_mid:.1f})">cells resolved</text>'
+        f'<text x="18" y="{f_mid:.1f}" text-anchor="middle" font-size="13" '
+        f'fill="#333" transform="rotate(-90 18 {f_mid:.1f})">cells resolved</text>'
     )
     for j, line in enumerate(_FUNNEL_CAPTION):
         parts.append(
-            f'<text x="{plot_l}" y="{_P2_CAP_Y + j * 16:.1f}" '
+            f'<text x="{plot_l}" y="{_F_CAP_Y + j * 16:.1f}" '
+            f'font-size="11.5" fill="#555">{_esc(line)}</text>'
+        )
+
+    # ---- Bottom panel: F1 by cumulative stage ---------------------------
+    parts.append(
+        f'<text x="{_W / 2}" y="{_S_TITLE_Y}" text-anchor="middle" '
+        f'font-size="18" font-weight="bold">F1 by cumulative cascade '
+        f"stage (same run)</text>"
+    )
+    for t in range(6):
+        f = t / 5.0
+        y = _stage_y(f)
+        parts.append(
+            f'<line x1="{plot_l}" y1="{y:.1f}" x2="{plot_r}" y2="{y:.1f}" '
+            f'stroke="#e5e5e5" stroke-width="1"/>'
+        )
+        parts.append(
+            f'<text x="{plot_l - 10}" y="{y + 4:.1f}" text-anchor="end" '
+            f'font-size="12" fill="#555">{f:.1f}</text>'
+        )
+    parts.append(
+        f'<line x1="{plot_l}" y1="{_S_TOP}" x2="{plot_l}" y2="{_S_BOT}" '
+        f'stroke="#333" stroke-width="1.5"/>'
+    )
+    parts.append(
+        f'<line x1="{plot_l}" y1="{_S_BOT}" x2="{plot_r}" y2="{_S_BOT}" '
+        f'stroke="#333" stroke-width="1.5"/>'
+    )
+    for i, (label, f1) in enumerate(stages):
+        cx = plot_l + slot * (i + 0.5)
+        x = cx - bar_w / 2
+        y = _stage_y(f1)
+        h = _S_BOT - y
+        regressed = i > 0 and f1 < stages[i - 1][1]
+        fill = "#d62728" if regressed else "#1f77b4"
+        parts.append(
+            f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
+            f'height="{h:.1f}" fill="{fill}"/>'
+        )
+        parts.append(
+            f'<text x="{cx:.1f}" y="{y - 8:.1f}" text-anchor="middle" '
+            f'font-size="13" font-weight="bold" fill="{fill}">{f1:.3f}</text>'
+        )
+        parts.append(
+            f'<text x="{cx:.1f}" y="{_S_BOT + 22:.1f}" text-anchor="middle" '
+            f'font-size="13" fill="#333">{_esc(label)}</text>'
+        )
+    s_mid = (_S_TOP + _S_BOT) / 2
+    parts.append(
+        f'<text x="18" y="{s_mid:.1f}" text-anchor="middle" font-size="13" '
+        f'fill="#333" transform="rotate(-90 18 {s_mid:.1f})">F1 (micro)</text>'
+    )
+    for j, line in enumerate(_MECHANISM):
+        parts.append(
+            f'<text x="{plot_l}" y="{_S_NOTE_Y + j * 16:.1f}" '
             f'font-size="11.5" fill="#555">{_esc(line)}</text>'
         )
 
