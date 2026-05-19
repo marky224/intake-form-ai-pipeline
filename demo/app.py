@@ -12,7 +12,10 @@ Run locally on ``openclaw-pc``::
 
 Everything renders honestly:
 
-* The headline F1-over-time chart is the **Tier-1 stage** (it climbs as the
+* The headline by-stage chart shows the cascade is **not monotone** — the
+  Q4_K_M Tier 3 regresses — beside an escalation funnel whose cumulative
+  cells-resolved coverage *does* rise to 100%. Both readings, same run.
+* The F1-over-time chart below it is the **Tier-1 stage** (it climbs as the
   alias table fills). The end-to-end **cascade** F1 is shown right beside it,
   flat ≈0.78 — labeled the *robustness* stat, never relabeled as a climb.
 * Documents land in ``review_queue`` because the locked coerced-scalar
@@ -39,9 +42,12 @@ import streamlit as st  # noqa: E402
 from demo.data import (  # noqa: E402
     ESCALATION_GATE,
     GATE_TIER1_TO_TIER2,
+    ByStageSummary,
     CorrectionReplay,
     DemoRun,
     TwoStageF1,
+    by_stage_chart_svg,
+    by_stage_summary,
     f1_chart_svg,
     list_demo_docs,
     replay_review_queue_corrections,
@@ -69,6 +75,16 @@ def _two_stage() -> TwoStageF1:
 @st.cache_data
 def _chart_svg() -> str:
     return f1_chart_svg()
+
+
+@st.cache_data
+def _by_stage_chart_svg() -> str:
+    return by_stage_chart_svg()
+
+
+@st.cache_resource(show_spinner="Measuring the by-stage ablation (cached)…")
+def _by_stage() -> ByStageSummary:
+    return by_stage_summary()
 
 
 @st.cache_resource(show_spinner="Replaying the review queue (cached)…")
@@ -238,8 +254,52 @@ def _render_correction_loop(run: DemoRun) -> None:
                 )
 
 
+def _render_by_stage(bs: ByStageSummary) -> None:
+    st.subheader("By-stage ablation + escalation funnel — the headline result")
+    (_, f1_t1), (_, f1_t12), (_, f1_t123) = bs.stages
+    verdict = (
+        f"**not monotone**: the Q4_K_M Tier 3 *regresses* " f"({f1_t12:.3f} → {f1_t123:.3f})"
+        if bs.regresses
+        else "monotone"
+    )
+    st.markdown(
+        f"Ablating the cascade tier-by-tier on the 92-doc test split: "
+        f"**{f1_t1:.3f} → {f1_t12:.3f} → {f1_t123:.3f}**. The Qwen 7B Tier 2 "
+        f"does the real lift; the result is {verdict}. It ships as-is — the "
+        "honest-results gate, not a smoothed curve. What *does* rise "
+        "monotonically is the **escalation funnel**: cumulative cells "
+        f"resolved by tier ≤ N climbs to **100% of the {bs.populated} "
+        f"populated cells**, because Tier 3 still finalizes the residual the "
+        f"earlier tiers couldn't clear. The {bs.blank} genuinely-blank cells "
+        "are an explicit remainder, not hidden in the denominator."
+    )
+    left, right = st.columns([3, 2])
+    with left:
+        st.markdown("**Committed artifact — funnel (top) + F1 by stage (bottom)**")
+        st.image(_by_stage_chart_svg(), use_container_width=True)
+    with right:
+        st.markdown("**Cells resolved by tier ≤ N, live (this cached run)**")
+        st.dataframe(
+            [
+                {
+                    "stage": label,
+                    "F1": round(f1, 3),
+                    "cells resolved": cum,
+                    "% of populated": f"{cum / bs.populated * 100:.1f}%",
+                }
+                for (label, f1), (_, cum) in zip(bs.stages, bs.funnel_cumulative, strict=True)
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            f"{bs.populated} populated + {bs.blank} genuinely blank = "
+            f"{bs.total} scorable cells. F1 not monotone; coverage is."
+        )
+
+
 def _render_two_stage(ts: TwoStageF1) -> None:
-    st.subheader("F1 over time — the two-stage story")
+    st.subheader("F1 over time — the supporting two-stage story")
     st.markdown(
         "The portfolio chart below plots **Tier-1-stage F1**: it climbs from "
         f"**{ts.tier1_start:.3f}** to **{ts.tier1_end:.3f}** as the "
@@ -295,8 +355,9 @@ def main() -> None:
             format_func=lambda d: f"{d.label}  ·  {d.doc_id[:8]}",
         )
         st.caption(
-            "6 Synthea-rendered CMS-1500 forms (the Phase 6 fixtures "
-            "manifest). DocILE is local-only (CC-BY-NC-ND) and not shipped."
+            f"{len(docs)} Synthea-rendered CMS-1500 forms — the committed "
+            "92-doc held-out `test` split of the 584-doc corpus. DocILE is "
+            "local-only (CC-BY-NC-ND) and not shipped."
         )
 
     run = _run(choice.doc_id)
@@ -315,6 +376,8 @@ def main() -> None:
     _render_review_queue(run)
     st.divider()
     _render_correction_loop(run)
+    st.divider()
+    _render_by_stage(_by_stage())
     st.divider()
     _render_two_stage(_two_stage())
 
