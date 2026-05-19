@@ -10,6 +10,11 @@
             fresh cached Tier-1 sweep (no persistent DB write). The drift
             guard in ``test_evals_chart.py`` fails CI if the committed SVG
             is stale, so this is the "make it green again" command.
+``by-stage`` — regenerate only the committed by-stage SVG
+            (``docs/assets/f1-by-stage.svg``) from a fresh cached
+            by-stage measurement (F1 triple + escalation funnel). Drift-
+            guarded by ``test_evals_by_stage.py``; same "make it green"
+            shape as ``chart``.
 ``build-manifest`` — regenerate the committed ``manifest.json`` from the
             gitignored full local corpus (``CORPUS_RENDER_DIR``), patient-
             stratified train/dev/test. Local-only (the corpus is not in
@@ -28,6 +33,7 @@ import tempfile
 
 from cascade.store import DEFAULT_DB_PATH
 from evals.alias_partition import load_seed
+from evals.by_stage import compute_by_stage, write_by_stage_chart
 from evals.chart import write_chart
 from evals.harness import run_eval, write_fixtures_manifest
 from evals.manifest import build_corpus_manifest, load_manifest, write_manifest
@@ -56,11 +62,32 @@ def _build_manifest() -> int:
     return 0
 
 
+def _by_stage() -> int:
+    """Regenerate the committed by-stage SVG from a fresh cached measure."""
+    seed_version, _ = load_manifest()
+    result = compute_by_stage()
+    write_by_stage_chart(result, seed_version=seed_version)
+    f = result.funnel
+    (_, f1_t1), (_, f1_t12), (_, f1_t123) = result.stages
+    logging.info(
+        "by-stage F1: %.3f → %.3f → %.3f | funnel cells T1=%d T1+2=%d "
+        "T1+2+3=%d (of %d populated, %d blank)",
+        f1_t1,
+        f1_t12,
+        f1_t123,
+        *[c for _, c in f.cumulative],
+        f.populated,
+        f.blank,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m evals")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="sweep + persist to data/v1.db + regen artifacts")
     sub.add_parser("chart", help="regen committed SVG + fixtures manifest only")
+    sub.add_parser("by-stage", help="regen committed by-stage SVG only")
     sub.add_parser(
         "build-manifest",
         help="regen committed manifest.json from the local corpus (stratified)",
@@ -71,6 +98,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "build-manifest":
         return _build_manifest()
+
+    if args.cmd == "by-stage":
+        return _by_stage()
 
     if args.cmd == "run":
         series = run_eval(db_path=DEFAULT_DB_PATH)

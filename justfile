@@ -160,6 +160,12 @@ regen-fixtures:
 chart:
     uv run python -m evals chart
 
+# Regenerate only the committed by-stage SVG (docs/assets/f1-by-stage.svg):
+# the F1-by-cumulative-tier panel + the escalation-funnel panel, from a
+# fresh cached measurement (run this if the by-stage drift guard fails CI).
+by-stage:
+    uv run python -m evals by-stage
+
 # Phase 7-V1 local demo: Streamlit app on openclaw-pc. Runs the real cascade
 # on the committed CMS-1500 fixtures through the cached-replay path ($0, no
 # GPU, no Ollama/Paddle). Prefix `EVAL_LIVE=true` to drive the live models.

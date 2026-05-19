@@ -73,6 +73,22 @@ F1 is measured at **two stages** per alias batch:
 
 The defensible self-improvement claim is therefore: the alias loop measurably reduces escalation load (Tier-1 hit rate climbs), and end-to-end accuracy is robust to alias coverage because the cascade compensates. In V1 the secondary signal is escalation rate; in V2 that same reduction reads directly as cost-per-document. The naive "end-to-end F1 climbs" framing is *not* claimed. Measured on the 92-document patient-stratified `test` split (of the 584-document local corpus), the Tier-1 curve is 0.242 → 0.340 — modest and asymptoting by the second batch — and the cascade stays flat at 0.768. The shape is identical to the original 6-document slice: it is a property of alias coverage and cascade architecture, not of corpus size.
 
+### By-stage ablation (the cascade is not monotone)
+
+The two-stage measurement above plots Tier-1-stage F1 over alias batches. A separate, orthogonal question is *what each tier contributes* — answered by ablating the cascade tier-by-tier on the same 92-doc `test` split, cached and deterministic. The committed artifact is `docs/assets/f1-by-stage.svg` (two panels, drift-guarded by `tests/test_evals_by_stage.py`, regenerated via `just by-stage`).
+
+Three cumulative-stage F1 points:
+
+| Stage | F1 | Construction |
+|---|---|---|
+| Tier 1 | **0.340** | `harness._tier1_stage_form` (Tier 1 extract → route → re-parse) |
+| Tier 1+2 | **0.794** | `process_document(providers=(t1,t2,t2))` — Tier-3 slot duplicated as Tier 2, so a sub-0.80 escalation is just re-confirmed by the 7B; a faithful "Tier 3 disabled" ceiling without touching the frozen escalation logic |
+| Tier 1+2+3 | **0.768** | the real `(t1,t2,t3)` cascade |
+
+**The cascade is not monotone by tier: adding the Q4_K_M Tier 3 regresses −0.026.** The 7B Tier 2 does the real lift (0.340 → 0.794); the quantized 32B Tier 3 nets slightly worse than leaving the escalated fields at Tier 2. Mechanism, probed field-by-field: Tier 3 only ever re-extracts fields that escalated (confidence < 0.80). The locked 0.5-confidence heuristic on coerced scalars (date/int/float/bool — see *Partition discipline* and the Phase 5 review-queue rule) forces **every date field** below the 0.80 gate even when Tier 2 extracted it correctly, so every date escalates to Tier 3; the Q4_K_M 32B then re-extracts those dates worse than the 7B and overwrites the correct values. 29 of 31 changed fields are Tier 3 turning a correct value wrong, ≈all of them dates (`date_of_birth`, `date_signed`). This is the sharp form of the flat-cascade finding above, and it ships as-is under the honest-results gate — the locked 0.5-confidence heuristic and escalation predicate (Phase 5/6, frozen) are **not** altered to "fix" the dip. The sanctioned lever is a better Tier 3: the in-flight local Qwen3-VL Tier-3b (unquantized, reasoning) is the measured — not assumed — path to a monotone curve, and the chart updates if and only if that beats 0.794 honestly.
+
+**Escalation funnel (lower panel).** The same full `(t1,t2,t3)` run, counting each of the 1104 scorable cells (92 docs × 12 schema-mapped fields) by the tier that finally produced its value: Tier 1 **2**, Tier 2 **795**, Tier 3a **184**, genuinely blank **123**. Cumulative cells resolved by tier ≤ N — **2 → 797 → 981** — rises monotonically to 100% of the 981 populated cells, even though Tier 3's *slice* F1 is the worst. The two readings are consistent, not contradictory: Tier 3 only ever finalizes the 184-cell residual the earlier tiers couldn't clear (the forced-escalated dates), so coverage completes while that slice's accuracy is poor. Tier 1's funnel share is a deliberately undressed 2 cells — consistent with its 0.340 F1, not inflated. The 123 genuinely-blank cells (no value on the source form — true negatives) are drawn as an explicit remainder above the 100% line, not hidden in the denominator.
+
 ### Router spot-check (and a documented V1 limitation)
 
 The Stage-1 router was spot-checked on the broad set: all **92/92** CMS-1500 `test`-split docs classify `healthcare`, **91/92 (98.9%)** on distinctive vocabulary alone at Stage 1 (the one fallthrough still resolves correctly via Stage 2), so `N = 1.0` holds with margin on the positive class.
