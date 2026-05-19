@@ -1,6 +1,6 @@
 # intake-form-ai-pipeline
 
-> 🚧 **In active development.** A self-improving intake-form extraction pipeline. The V1 (local-first) cascade runs end-to-end on consumer GPUs; the broader evaluation corpus, the full F1-over-time measurement, and the local Tier-3b model are in progress. **V2 — the cloud rebuild (deployed demo at `ai-intake.markandrewmarquez.com`, BAA-eligible AWS tiers) — is the subsequent phase.** Last updated 2026-05-18.
+> 🚧 **In active development.** A self-improving intake-form extraction pipeline. The V1 (local-first) cascade runs end-to-end on consumer GPUs; the broader evaluation corpus, the full F1-over-time measurement, and the local Tier-3b model are in progress. **V2 — the cloud rebuild (deployed demo at `ai-intake.markandrewmarquez.com`, BAA-eligible AWS tiers) — is the subsequent phase.** Last updated 2026-05-19.
 
 ## What it is
 
@@ -10,19 +10,17 @@ V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB co
 
 ## The headline result
 
-![F1-over-time across progressive alias-table batches](docs/assets/f1-over-time.svg)
+![Escalation funnel, and F1 by cumulative cascade stage](docs/assets/f1-by-stage.svg)
 
-> **Measured on a 92-document held-out test split.** The chart is the patient-level-stratified `test` partition (92 docs) of a 584-document local corpus (500 Synthea patients → CMS-1500, rendered 1:1; `train` 394 / `dev` 98 / `test` 92, zero patient leakage). The early-saturating *shape* is a property of alias coverage and cascade architecture, not corpus size — it holds the same on 92 stratified docs as it did on the original 6. The Tier-3 model is still a documented consumer-VRAM quantization compromise (registry Q4_K_M); the local Tier-3b reasoning upgrade is the one remaining in-flight item.
+> **Measured on a 92-document held-out test split**, cached and deterministic ($0): the patient-level-stratified `test` partition of a 584-document local corpus (500 Synthea patients → CMS-1500, rendered 1:1; `train` 394 / `dev` 98 / `test` 92, zero patient leakage). Both panels are the same cascade run.
 
-The interesting part of this project is not that the curve goes up. It's that measurement contradicted the pitch and the repo reports the contradiction.
+The interesting part of this project is not that a curve goes up. It's that measurement contradicted the pitch and the repo reports the contradiction.
 
-The pre-build story was "end-to-end F1 climbs as the correction loop runs." Phase 6 measurement showed that's false for a cascade with strong escalation tiers, and the broader 92-document test split **confirms it at scale**: **end-to-end cascade F1 is flat at ≈0.77** (0.768, identical across all nine alias batches), invariant to alias coverage, because the Qwen Tier 2/3 tiers recover whatever the alias layer missed. What alias growth actually buys is fewer escalations — so the plotted headline curve is **Tier-1-stage F1** (0.242 → 0.340, climbing then asymptoting by the second batch), the layer the alias table governs, and the flat end-to-end number is persisted alongside as a cascade-robustness statistic rather than dressed up as a climbing curve. The defensible claim is the measured one: the alias loop demonstrably reduces escalation load (Tier 1 alias-matches ≥1 field on 91/92 docs; the router resolves 91/92 at Stage 1, classifies 92/92 correctly), and the cascade is robust to alias coverage. `docs/eval-methodology.md` has the mechanism and the full two-stage finding.
+**The cascade is not monotone.** Ablating it tier-by-tier (lower panel): Tier 1 → 0.340, Tier 1+2 → **0.794**, Tier 1+2+3 → **0.768**. The Qwen 7B Tier 2 does the real lift; adding the Q4_K_M-quantized 32B Tier 3 *regresses* −0.026. Tier 3 only ever re-extracts the fields that escalated (confidence < 0.80), and the locked 0.5-confidence heuristic on coerced scalars forces every date field below that gate even when Tier 2 had it right — so the quantized 32B re-extracts those dates and overwrites correct values (29 of 31 changed fields go correct → wrong, nearly all dates). It ships as-is rather than engineered monotone; a better (unquantized, reasoning) local Tier-3b is the *measured* lever to fix it, not a framing change.
 
-The same honesty applies to the cascade itself. Ablating it tier-by-tier shows it is **not monotone**:
+What *does* rise monotonically is the **escalation funnel** (upper panel): cumulative cells resolved by tier ≤ N climb to 100% of the populated cells (2 → 797 → 981), because Tier 3 still finalizes the residual the earlier tiers couldn't clear — its slice F1 is the worst while coverage stays complete. Both readings are honest and both are shown; the 123 genuinely-blank cells are an explicit remainder, not hidden in the denominator.
 
-![F1 by cumulative cascade stage, and the escalation funnel](docs/assets/f1-by-stage.svg)
-
-> **Tier 1 → 0.340, Tier 1+2 → 0.794, Tier 1+2+3 → 0.768.** The Qwen 7B Tier 2 does the real lift; adding the Q4_K_M-quantized 32B Tier 3 *regresses* −0.026. Tier 3 only ever re-extracts the fields that escalated (confidence < 0.80), and the locked 0.5-confidence heuristic on coerced scalars forces every date field below that gate even when Tier 2 had it right — so the quantized 32B re-extracts those dates and overwrites correct values (29 of 31 changed fields go correct → wrong, nearly all dates). It ships as-is rather than engineered monotone. The lower panel is the **escalation funnel**: the same cascade still drives cumulative coverage to 100% of populated cells (2 → 797 → 981), because Tier 3 finalizes the residual the earlier tiers couldn't clear — slice F1 worst, coverage still complete. This is the sanctioned motivation for the in-flight local Qwen3-VL Tier-3b: a better (unquantized, reasoning) Tier 3 is the measured lever to make the curve monotone *honestly*, not a framing change.
+The second contradiction is the self-improvement story. The pre-build pitch was "end-to-end F1 climbs as the correction loop runs." Phase 6 measurement showed that's false for a cascade with strong escalation tiers, and the 92-document split confirms it at scale: **end-to-end cascade F1 is flat at ≈0.77**, invariant to alias coverage, because the Qwen tiers recover whatever the alias layer missed. What alias growth actually buys is fewer escalations — the alias loop measurably reduces escalation load (Tier 1 alias-matches ≥1 field on 91/92 docs; the router resolves 91/92 at Stage 1, classifies 92/92 correctly) — so the defensible claim is the measured one, not the pitch. `docs/eval-methodology.md` has the full two-stage finding, the progressive-alias-partition mechanism, and the F1-over-time curve.
 
 That posture — measure honestly, publish what you find, build the guardrails that keep the published artifact from drifting — runs through the whole project.
 
@@ -83,7 +81,7 @@ The whole system persists to one SQLite file (extracted fields, eval log, ColQwe
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 547 tests (528 fast + 19 slow)
+just test           # 1075 tests (1056 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the 6
