@@ -2,7 +2,7 @@
 
 This document covers the local development environment — GPU configuration, Ollama model setup, the Synthea + rendering workflow, the DocILE workflow, and the Tier 1 PaddleOCR-VL setup.
 
-**The project is local-first (pivot locked 2026-05-14).** The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local; replaces V2's planned AWS Textract at the Tier 2-local slot) + Tier 3 (Qwen 2.5 VL 32B local; "Tier 3a" in V2 numbering). There is **no AWS in V1**: the Synthea + DocILE workflows below write (PNG, sidecar) pairs to a local content-addressable store under `synthetic_data/output/store/` — the S3 uploader was refactored to a filesystem store writer (PR #64, 2026-05-18). Restoring the S3 path is the documented V2 target; nothing in the V1 local build needs AWS credentials.
+**The project is complete as a local-first system (locked 2026-05-14).** This document is the *whole* setup story — there is no AWS step anywhere in it. The full cascade runs locally — Tier 1 (PaddleOCR-VL) + Tier 2 (Qwen 2.5 VL 7B local) + Tier 3 (Qwen 2.5 VL 32B local; "Tier 3a" in the optional-enhancement numbering). The Synthea + DocILE workflows below write (PNG, sidecar) pairs to a local content-addressable store under `synthetic_data/output/store/` — the S3 uploader was refactored to a filesystem store writer (PR #64, 2026-05-18). An S3 store path is part of the optional BAA-cloud enhancement (HIPAA-motivated, not built); nothing in the complete local build needs — or has ever needed — AWS credentials.
 
 ## Hardware overview
 
@@ -59,9 +59,9 @@ The model should produce a sensible description, not text-only output or garbage
 
 ### Contingency
 
-If Tier 3 validation reveals problems (vision broken, or F1 below the contingency-tree bar), the fallback path is defined in `architecture-locked.md` "Quantization choice and contingency tree": F1 ≥ 0.80 ship; 0.65–0.80 document the gap publicly and ship; < 0.65 or hallucinating → InternVL3.5-8B local → Tier 3 marked unavailable. In V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there's no V1 cloud fallback above Tier 3. In V2 the same contingency routes Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, so V2 stays operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
+If Tier 3 validation reveals problems (vision broken, or F1 below the contingency-tree bar), the fallback path is defined in `architecture-locked.md` "Quantization choice and contingency tree": F1 ≥ 0.80 ship; 0.65–0.80 document the gap publicly and ship; < 0.65 or hallucinating → InternVL3.5-8B local → Tier 3 marked unavailable. In the complete V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there is no cloud fallback above Tier 3, by design. The optional BAA-cloud enhancement would route Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, staying operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
 
-V2 also defines a broader operational failover via `EXTRACTION_MODE=degraded` in `.env.example`: triggered when the home-GPU bridge from deployed Lambda is unreachable, all local tiers (Tier 1, Tier 2-local, Tier 3) are skipped and every document escalates straight through Tier 2-cloud → Tier 3b. Not applicable in V1 — V1 has no Lambda, no bridge, and no degraded mode (the build machine runs everything in-process).
+The optional enhancement also defines a broader operational failover via `EXTRACTION_MODE=degraded` in `.env.example`: were the home-GPU bridge from a deployed endpoint unreachable, all local tiers would be skipped and every document would escalate straight through Tier 2-cloud → Tier 3b. It does not apply to the complete V1, which has no deployed endpoint, no bridge, and no degraded mode — the build machine runs everything in-process.
 
 ## Multi-GPU layer split details
 
@@ -137,11 +137,11 @@ git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 
 ### Validation set
 
-The checked-in validation corpus is CMS-1500 only (92 PNGs — the patient-stratified `test` split of the 584-doc Synthea→CMS-1500 local corpus; Synthea/MIT, redistributable). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). Phase 6 revisits whether DocILE-side fixtures need a separate redistribution-clean strategy.
+The checked-in validation corpus is CMS-1500 only (92 PNGs — the patient-stratified `test` split of the 584-doc Synthea→CMS-1500 local corpus; Synthea/MIT, redistributable). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). The committed CMS-1500 `test` split is the redistributable measured corpus; a separate redistribution-clean DocILE fixture strategy was considered and deliberately not pursued for the complete V1 (the licensing constraint is intrinsic, not a gap).
 
 ## Synthea workflow
 
-The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the store writer copies the pairs into a local content-addressable directory tree. V1 is local-first — no S3, no AWS (V2 restores the S3 uploader; same content-addressable scheme). Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
+The healthcare half of the synthetic corpus is generated end-to-end via three chained steps: Synthea generates FHIR patient bundles, the renderer rasterizes each bundle into a CMS-1500 PNG plus a bbox-sidecar JSON, and the store writer copies the pairs into a local content-addressable directory tree. The complete V1 is local — no S3, no AWS (an S3 uploader on the same content-addressable scheme is part of the optional BAA-cloud enhancement). Signature rendering parameters (Google Fonts handwriting fonts, SVG ink-bleed filter, ~70/30 typed/handwritten split, ±3° rotation) are locked in `RATIONALE.md` Section 1.
 
 ### Pre-requisites
 
@@ -212,7 +212,7 @@ Cross-Chromium-version PNG byte stability is not a project guarantee. Bumping th
 
 ## DocILE workflow
 
-The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and copy the (PNG, sidecar JSON) pairs into the local store under `synthetic/business/docile/` (V1 local-first; V2 restores the S3 path). The full KILE annotation set is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` (36 KILE fields, shipped Phase 4 / PR #46) consumes those annotations.
+The business-documents half of the synthetic corpus comes from the DocILE academic dataset (Rossum.ai, CC BY-NC-ND 4.0). Phase 3.5 wires up three chained steps: download the `annotated-trainval` archive (6680 annotated train+val docs combined; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 script commit), rasterize each PDF to per-page PNGs at 200 DPI, and copy the (PNG, sidecar JSON) pairs into the local store under `synthetic/business/docile/` (the complete V1 is local; an S3 path is part of the optional enhancement). The full KILE annotation set is staged into each sidecar's `docile.fields[]` block; the cascade's `BusinessDocumentForm` (36 KILE fields, shipped Phase 4 / PR #46) consumes those annotations.
 
 ### Pre-requisites
 
