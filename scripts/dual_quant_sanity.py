@@ -41,11 +41,14 @@ import time
 
 from ollama import Client
 
+from _paths import src_root
 from cascade.providers import _qwen_vl
 from intake_schemas import BusinessDocumentForm, HealthcareIntakeForm
 
-CMS1500_DIR = pathlib.Path("tests/fixtures/eval-validation/cms1500")
-DOCILE_RENDER_DIR = pathlib.Path("synthetic_data/output/docile/render")
+# tests/ and synthetic_data/ both moved under src/ in the 2026-05-19
+# src-layout refactor; was cwd-relative root paths. See memory project_src_layout.
+CMS1500_DIR = src_root() / "tests" / "fixtures" / "eval-validation" / "cms1500"
+DOCILE_RENDER_DIR = src_root() / "synthetic_data" / "output" / "docile" / "render"
 
 DEFAULT_TAG = "qwen2.5vl:32b"  # locked registry Q4_K_M
 

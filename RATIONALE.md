@@ -1,7 +1,7 @@
 # Intake Form Schema Design Rationale
 
 **Status:** Schema designed May 5, 2026 (gap fixes + SignatureCapture refactor applied then); unchanged through V1 completion (Phase 10, 2026-05-18). The Phase-4 vertical pivot landed exactly as Section 13 specified — see that section.
-**Files:** `intake_schemas.py`, `alias_table_seed.json`, `build_alias_seed.py`, `tests/test_intake_schemas.py`
+**Files:** `src/intake_schemas.py`, `alias_table_seed.json`, `src/build_alias_seed.py`, `src/tests/test_intake_schemas.py`
 **Author:** Mark Marquez
 **Date:** May 5, 2026 (revised from May 2, 2026 original)
 
@@ -63,9 +63,9 @@ The locked synthetic data pipeline (Phase 3) renders signatures in two modes —
 
 **Distribution.** 70% typed / 30% handwritten via a single seeded `random.random() < 0.7` check per signature instance. Reflects approximate real-world submission rates: most modern intake forms are submitted online with typed signatures; handwritten remains common for in-person and tablet-based workflows.
 
-**Reproducibility seed.** Single project-wide seed defined in `synthetic_data/render/config.py`. The synthetic dataset for any given commit + seed combination is reproducible byte-for-byte. Changing the seed regenerates the corpus; the same seed always produces the same documents.
+**Reproducibility seed.** Single project-wide seed defined in `src/synthetic_data/render/config.py`. The synthetic dataset for any given commit + seed combination is reproducible byte-for-byte. Changing the seed regenerates the corpus; the same seed always produces the same documents.
 
-**Phase 3 implementation effort.** ~1-2 hours total: ~50-80 lines of Python in `synthetic_data/render/signature.py`, ~15 lines of CSS/SVG filter definitions, integration with the existing Playwright template. Testing: visual sanity check that typed and handwritten outputs look genuinely distinct; programmatic check that the 70/30 distribution holds across a batch of ~500 generated documents.
+**Phase 3 implementation effort.** ~1-2 hours total: ~50-80 lines of Python in `src/synthetic_data/render/signature.py`, ~15 lines of CSS/SVG filter definitions, integration with the existing Playwright template. Testing: visual sanity check that typed and handwritten outputs look genuinely distinct; programmatic check that the 70/30 distribution holds across a batch of ~500 generated documents.
 
 These parameters are locked unless Phase 6 F1 measurement shows the cascade can't generalize from font-rendered handwriting to real handwriting. If that materializes, the upgrade path — public datasets like IAM, or a small handwriting GAN — is documented in `docs/production-roadmap.md`.
 
@@ -256,7 +256,7 @@ uv run python build_alias_seed.py                 # regenerates alias_table_seed
 uv run pytest tests/test_intake_schemas.py -v     # 40 schema tests, all pass
 ```
 
-The seed JSON is regenerated deterministically from the schema metadata plus the hand-curated `ALIASES` map in `build_alias_seed.py`. Editing aliases means editing that dict; editing canonical fields means editing `intake_schemas.py` and regenerating.
+The seed JSON is regenerated deterministically from the schema metadata plus the hand-curated `ALIASES` map in `src/build_alias_seed.py`. Editing aliases means editing that dict; editing canonical fields means editing `src/intake_schemas.py` and regenerating.
 
 ---
 
@@ -503,10 +503,10 @@ If Phase 6 F1 measurement shows the cascade can't generalize from font-rendered 
 
 The schema was designed around three verticals (Insurance, Healthcare, HR). The locked build plan called for a Phase-4 vertical pivot, and it shipped in PR #46:
 
-- **Insurance and HR dropped from the active cascade.** Both classes remain in `intake_schemas.py` as future-extensibility examples per the locked architectural decision — they are exercised by the schema test suite but never routed to by the cascade.
+- **Insurance and HR dropped from the active cascade.** Both classes remain in `src/intake_schemas.py` as future-extensibility examples per the locked architectural decision — they are exercised by the schema test suite but never routed to by the cascade.
 - **`BusinessDocumentForm` added**, anchored to DocILE's KILE annotation taxonomy *directly* (36 fields, sourced from the upstream `rossumai/docile@12f9502d1e` `KILE_FIELDTYPES`) rather than designing a separate canonical schema. DocILE provides 6,680 annotated real business documents; binding to their taxonomy preserves benchmark compatibility and saves a research cycle.
 - **Healthcare unchanged**, with synthetic data from Synthea rendered onto CMS-1500 templates via HTML+Playwright.
 
-As predicted, the pivot required **no changes** to `IntakeFormBase`, `ExtractedField`, `BoundingBox`, `SignatureCapture`, `PageMetadata`, `compute_form_confidence`, or any gap-fix construct — they were designed vertical-agnostic, and only the subclass roster changed. The shipped work added `BusinessDocumentForm`, extended `build_alias_seed.py` + regenerated `alias_table_seed.json` for the new vertical, and added covering tests.
+As predicted, the pivot required **no changes** to `IntakeFormBase`, `ExtractedField`, `BoundingBox`, `SignatureCapture`, `PageMetadata`, `compute_form_confidence`, or any gap-fix construct — they were designed vertical-agnostic, and only the subclass roster changed. The shipped work added `BusinessDocumentForm`, extended `src/build_alias_seed.py` + regenerated `alias_table_seed.json` for the new vertical, and added covering tests.
 
 One planned item was consciously **not** done, and the reason is itself the design decision: there is no parallel "DocILE field choices" rationale section to mirror the Insurance/Healthcare/HR sections in §5. Those three were hand-anchored to source standards (ACORD 125, CMS-1500, I-9/W-4) and each field choice needed justifying. `BusinessDocumentForm` deliberately makes no such choices — it adopts the upstream `KILE_FIELDTYPES` verbatim, so the *absence* of a bespoke taxonomy is the rationale: benchmark-comparable F1 numbers and zero schema-translation surface beat a hand-curated business schema that no published baseline could be compared against.

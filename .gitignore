@@ -62,11 +62,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Project-specific (regenerable artifacts)
-synthetic_data/output/
-evals/results/
+# Project-specific (regenerable artifacts) — paths relocated under src/ in the
+# 2026-05-19 src-layout refactor (see memory project_src_layout).
+src/synthetic_data/output/
+src/evals/results/
 # Phase 5-V1 orchestrator SQLite eval store (default cascade.store.DEFAULT_DB_PATH)
-data/
+src/data/
 
 # Local model files (Phase 1 prep downloads ~66 GB of GGUFs to ~/models/qwen-vl-32b/
 # outside the repo; this is belt-and-suspenders in case anyone copies one in)

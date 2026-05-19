@@ -54,12 +54,14 @@ format:
 pre-commit:
     uv run pre-commit run --all-files
 
-# Regenerate alias_table_seed.json from intake_schemas.py + the curated alias map
+# Regenerate alias_table_seed.json (at repo root) from src/intake_schemas.py +
+# the curated alias map. Invoked via `python -m` since build_alias_seed moved
+# to src/ as a top-level py-module in the 2026-05-19 src-layout refactor.
 alias-seed:
-    uv run python build_alias_seed.py
+    uv run python -m build_alias_seed
 
 # Generate Synthea FHIR patient bundles for the Phase 3 healthcare corpus.
-# Output: synthetic_data/output/synthea/fhir/*.json (gitignored).
+# Output: src/synthetic_data/output/synthea/fhir/*.json (gitignored).
 # Args: <count> [seed]. Default count=10, seed=42.
 #
 #   just synthetic-data-patients               # 10 patients, seed 42
@@ -80,12 +82,12 @@ synthetic-data-patients count="10" seed="42":
 # Chains the three steps end-to-end:
 #   1. Synthea Docker (via synthetic-data-patients 500 42) — ~3-5 min, ~1-2 GB on disk
 #   2. Playwright/Chromium render (one reused browser) — ~10 min, ~25 MB local output
-#   3. local-store copy into synthetic_data/output/store — sub-second, 1000 files
+#   3. local-store copy into src/synthetic_data/output/store — sub-second, 1000 files
 #
 # V1 is local-first: no S3, no AWS credentials. Re-running is safe —
 # content-addressable paths (<sha256>.{png,json}) land at the same store
 # location across runs, so a partial-failure retry resumes cleanly.
-# (V2 restores the S3 uploader; see synthetic_data/render/upload.py docstring.)
+# (V2 restores the S3 uploader; see src/synthetic_data/render/upload.py docstring.)
 #
 # Pre-reqs: Docker, Playwright + Chromium (see docs/local-development.md "Synthea
 # workflow"). No AWS.
@@ -94,11 +96,11 @@ synthetic-data-patients count="10" seed="42":
 [unix]
 synthetic-data-render-500: (synthetic-data-patients "500" "42")
     uv run python -m synthetic_data.render.batch \
-        --input synthetic_data/output/synthea/fhir \
-        --output synthetic_data/output/render
+        --input src/synthetic_data/output/synthea/fhir \
+        --output src/synthetic_data/output/render
     uv run python -m synthetic_data.render.upload \
-        --input synthetic_data/output/render \
-        --store-root synthetic_data/output/store
+        --input src/synthetic_data/output/render \
+        --store-root src/synthetic_data/output/store
 
 # Phase 3.5 DocILE business-document corpus: download annotated-trainval -> rasterize +
 # sidecar -> local-store copy under synthetic/business/docile/.
@@ -120,19 +122,19 @@ synthetic-data-render-500: (synthetic-data-patients "500" "42")
 [unix]
 synthetic-data-docile-build limit="0":
     uv run python -m synthetic_data.docile.download \
-        --dest synthetic_data/output/docile
+        --dest src/synthetic_data/output/docile
     uv run python -m synthetic_data.docile.ingest \
-        --dataset-root synthetic_data/output/docile \
-        --render-dir synthetic_data/output/docile/render \
+        --dataset-root src/synthetic_data/output/docile \
+        --render-dir src/synthetic_data/output/docile/render \
         --limit {{limit}}
     uv run python -m synthetic_data.render.upload \
-        --input synthetic_data/output/docile/render \
-        --store-root synthetic_data/output/store \
+        --input src/synthetic_data/output/docile/render \
+        --store-root src/synthetic_data/output/store \
         --prefix synthetic/business/docile
 
 # Phase 6 eval harness: progressive-batch sweep over the test split,
-# cached replay ($0, deterministic), persists to data/v1.db, regenerates
-# docs/assets/f1-over-time.svg + evals/fixtures_manifest.json.
+# cached replay ($0, deterministic), persists to src/data/v1.db, regenerates
+# docs/assets/f1-over-time.svg + src/evals/fixtures_manifest.json.
 eval:
     uv run python -m evals run
 
@@ -141,8 +143,8 @@ eval:
 eval-live:
     EVAL_LIVE=true uv run python -m evals run
 
-# Regenerate the committed evals/manifest.json from the full local corpus
-# (gitignored synthetic_data/output/render/), patient-stratified
+# Regenerate the committed src/evals/manifest.json from the full local corpus
+# (gitignored src/synthetic_data/output/render/), patient-stratified
 # train/dev/test. Local-only — run after `just synthetic-data-render-500`.
 build-manifest:
     uv run python -m evals build-manifest
@@ -175,7 +177,7 @@ demo:
 # Phase 8 (V1) correction-feedback loop: seeded-reviewer replay over the
 # parked CMS-1500 (cached/$0, no GPU). Logs corrections, learns new alias
 # phrasings into a throwaway overlay, re-embeds (no-op without ColQwen
-# fixtures). Never touches data/v1.db or data/corrections_aliases.json.
+# fixtures). Never touches src/data/v1.db or src/data/corrections_aliases.json.
 correct:
     uv run python -m rag correct
 

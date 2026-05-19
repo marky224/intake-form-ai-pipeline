@@ -96,18 +96,22 @@ The demo surfaces, per document: the rendered form, routed vertical and final ti
 
 ```
 intake-form-ai-pipeline/
-├── intake_schemas.py        # Pydantic v2 schemas (canonical artifact)
-├── build_alias_seed.py      # regenerates alias_table_seed.json
-├── alias_table_seed.json    # 465 aliases / 86 records, frozen v1.0.0
-├── cascade/                 # provider Protocol, tier1/2/3, orchestrator, router, store
-│   └── providers/           # tier1_paddleocr_local, tier2_qwen_7b_local, tier3_qwen_32b_local
-├── evals/                   # F1/latency metrics, manifest, progressive alias partition, chart
-├── rag/                     # ColQwen 2.5 retrieval + correction feedback loop
-├── finetune/                # QLoRA text post-corrector (Phase 9 experiment)
-├── demo/                    # Streamlit: data.py (testable core) + app.py (view)
-├── synthetic_data/          # synthea/, render/ (Playwright CMS-1500), docile/
+├── src/                     # installable editable package (uv sync)
+│   ├── intake_schemas.py    # Pydantic v2 schemas (canonical artifact)
+│   ├── build_alias_seed.py  # regenerates alias_table_seed.json
+│   ├── _paths.py            # repo_root() / src_root() — single path resolver
+│   ├── cascade/             # provider Protocol, tier1/2/3, orchestrator, router, store
+│   │   └── providers/       # tier1_paddleocr_local, tier2_qwen_7b_local, tier3_qwen_32b_local
+│   ├── evals/               # F1/latency metrics, manifest, progressive alias partition, chart
+│   ├── rag/                 # ColQwen 2.5 retrieval + correction feedback loop
+│   ├── finetune/            # QLoRA text post-corrector (Phase 9 experiment)
+│   ├── demo/                # Streamlit: data.py (testable core) + app.py (view)
+│   ├── synthetic_data/      # synthea/, render/ (Playwright CMS-1500), docile/
+│   ├── tests/               # 1077 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+│   └── data/                # SQLite v1.db + ColQwen .npy cache (gitignored runtime)
+├── alias_table_seed.json    # 465 aliases / 86 records, frozen v1.0.0 (canonical, repo root)
+├── scripts/                 # dev tooling (regen fixtures, dual-quant sanity)
 ├── infra/                   # terraform/ (optional-enhancement target; bootstrap live) + bicep/ (no-deploy parallel)
-├── tests/                   # 1077 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 └── docs/                    # architecture-deep-dive, hipaa-architecture, eval-methodology,
                              #   production-roadmap, local-development
 ```
