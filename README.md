@@ -1,12 +1,12 @@
 # intake-form-ai-pipeline
 
-> 🚧 **In active development.** A self-improving intake-form extraction pipeline. The V1 (local-first) cascade runs end-to-end on consumer GPUs; the broader evaluation corpus, the full F1-over-time measurement, and the local Tier-3b model are in progress. **V2 — the cloud rebuild (deployed demo at `ai-intake.markandrewmarquez.com`, BAA-eligible AWS tiers) — is the subsequent phase.** Last updated 2026-05-19.
+> ✅ **V1 complete.** A self-improving intake-form extraction pipeline that runs end-to-end, locally, on consumer GPUs — measured on a 92-document held-out test split, $0/1K inference, no cloud. **A cloud rebuild (V2) is a documented optional future enhancement, not active work:** its sole motivation is HIPAA — real PHI may only be processed through BAA-eligible providers, so the BAA-cloud cascade is the path a real-PHI deployment would take. The synthetic-data V1 needs no BAA and stands on its own as the portfolio deliverable. Last updated 2026-05-19.
 
 ## What it is
 
 Forms come in as PDFs or page images — healthcare patient intake (CMS-1500), business documents (invoices, POs) — and validated, typed JSON comes out. A three-tier extraction cascade routes each field to the cheapest model that can handle it confidently and escalates only when confidence is low. Reviewer corrections feed back into an alias table and a ColQwen 2.5 retrieval corpus, so later extractions on similar documents resolve at Tier 1 more often.
 
-V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB combined) — no cloud, no deployed URL, $0/1K inference. V2 reintroduces AWS in the middle and top of the cascade (Textract Queries, Bedrock Sonnet 4.6), wires the local tiers to a deployed Lambda over a Cloudflare Tunnel, and stands up the public demo. The in-tree Terraform (`infra/terraform/`) is the V2 target; its bootstrap stack stays live so V2 applies without re-bootstrapping IAM.
+V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB combined) — no cloud, no deployed URL, $0/1K inference — and is the complete deliverable. The optional V2 enhancement exists for one reason: processing real PHI requires BAA-eligible providers, so V2 would swap the middle and top tiers for BAA-cloud services (Textract Queries, Bedrock) behind the *same* provider Protocol, wire the local tiers to a deployed endpoint, and stand up a public demo. The in-tree Terraform (`infra/terraform/`) and the architecture docs describe that target so it's a credible, scoped enhancement rather than hand-waving — but it is not built and not scheduled.
 
 ## The headline result
 
@@ -81,16 +81,16 @@ The whole system persists to one SQLite file (extracted fields, eval log, ColQwe
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 1075 tests (1056 fast + 19 slow)
+just test           # 1077 tests (1058 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
-just demo           # Streamlit on :8501 — real 3-tier cascade over the 6
-                    # committed CMS-1500 via cached replay. $0, no GPU.
+just demo           # Streamlit on :8501 — real 3-tier cascade over the
+                    # 92-doc test split via cached replay. $0, no GPU.
 ```
 
 ![V1 local demo](docs/assets/demo-screenshot.png)
 
-The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and the two-stage F1 chart. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `chart` run the harness and regenerate the CI-drift-guarded F1 SVG; full task list in the `justfile`.
+The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.794 → 0.768` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run) with the supporting two-stage F1 chart below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `chart` / `by-stage` run the harness and regenerate the CI-drift-guarded SVGs; full task list in the `justfile`.
 
 ## Project structure
 
@@ -116,7 +116,7 @@ Python 3.11+, Pydantic v2, `uv`, pytest, ruff + black, pre-commit from Phase 1. 
 
 ## Scope boundaries
 
-V1 has no deployed demo URL and no cloud cascade tiers — local Streamlit only; the Textract / Bedrock tiers return with V2. No real PHI ever enters the system (Synthea synthetic data only). This is extraction, not a production claims-processing system; not multi-tenant SaaS; English only; no SOC 2 / HITRUST audits (V2 is HIPAA-mode-*capable*; certification is out of scope). The Phase 9 QLoRA adapter demonstrates the feedback loop and is not a productized model.
+V1 has no deployed demo URL and no cloud cascade tiers — local Streamlit only; the BAA-cloud Textract / Bedrock tiers belong to the optional V2 enhancement, which is documented but not built. No real PHI ever enters the system (Synthea synthetic data only) — which is also *why* V1 needs no BAA and is complete as-is. This is extraction, not a production claims-processing system; not multi-tenant SaaS; English only; no SOC 2 / HITRUST audits (the V2 enhancement is HIPAA-mode-*capable* by design; certification is out of scope either way). The Phase 9 QLoRA adapter demonstrates the feedback loop and is not a productized model.
 
 ## Further reading
 

@@ -14,12 +14,15 @@ import sys
 from cascade.orchestrator import RunRecord
 from demo.data import (
     ESCALATION_GATE,
+    ByStageSummary,
     CorrectionOutcome,
     CorrectionReplay,
     DemoDoc,
     DemoRun,
     FieldRow,
     TwoStageF1,
+    by_stage_chart_svg,
+    by_stage_summary,
     f1_chart_svg,
     list_demo_docs,
     replay_review_queue_corrections,
@@ -114,6 +117,34 @@ def test_f1_chart_svg_is_the_committed_artifact() -> None:
     svg = f1_chart_svg()
     assert svg.lstrip().startswith("<svg")
     assert "F1 over progressive alias-table batches" in svg
+
+
+def test_by_stage_chart_svg_is_the_committed_artifact() -> None:
+    svg = by_stage_chart_svg()
+    assert svg.lstrip().startswith("<svg")
+    # Funnel leads (top panel), F1 follows — both titles present.
+    assert "Escalation funnel" in svg
+    assert "F1 by cumulative cascade stage" in svg
+
+
+def test_by_stage_summary_is_honest_non_monotone_with_monotone_funnel() -> None:
+    """The headline result, asserted: F1 is NOT monotone (Q4_K_M Tier 3
+    regresses) while the cells-resolved funnel IS monotone to 100%.
+    Deterministic from the committed fixtures (memory
+    project_tier3_q4km_net_negative)."""
+    bs = by_stage_summary()
+    assert isinstance(bs, ByStageSummary)
+
+    f1s = [round(f, 3) for _, f in bs.stages]
+    assert f1s == [0.340, 0.794, 0.768], f"by-stage F1 drifted: {f1s}"
+    assert bs.regresses, "the honest non-monotone result must not be smoothed"
+
+    cum = [c for _, c in bs.funnel_cumulative]
+    assert cum == [2, 797, 981], f"funnel drifted: {cum}"
+    assert cum == sorted(cum), "the cells-resolved funnel must be monotone"
+    assert bs.populated == 981
+    assert bs.blank == 123
+    assert bs.total == 1104
 
 
 # ---- Phase 8: correction feedback loop ----------------------------------

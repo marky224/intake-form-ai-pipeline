@@ -65,9 +65,13 @@ from rag.store import load_corpus, load_embedding
 #: Repo root, resolved from this file so paths work regardless of cwd.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 
-#: The committed portfolio artifact. Phase 6 owns its regeneration
-#: (``just chart``); the demo only *surfaces* it — it never rewrites it.
+#: The committed portfolio artifacts. Their regeneration is owned by the
+#: eval harness (``just chart`` / ``just by-stage``); the demo only
+#: *surfaces* them — it never rewrites them. ``f1-by-stage.svg`` is the
+#: headline chart (funnel on top, F1 below); ``f1-over-time.svg`` is the
+#: supporting two-stage curve.
 F1_CHART_SVG_PATH = _REPO_ROOT / "docs" / "assets" / "f1-over-time.svg"
+BY_STAGE_CHART_SVG_PATH = _REPO_ROOT / "docs" / "assets" / "f1-by-stage.svg"
 
 #: The locked escalation gate the per-field panel highlights against. A
 #: populated value below this never reaches the final form unchallenged — it
@@ -139,6 +143,35 @@ class TwoStageF1:
         """The flat ≈0.78 robustness number (mean across batches)."""
         vals = [f1 for _, f1 in self.cascade_series]
         return sum(vals) / len(vals)
+
+
+@dataclass(frozen=True)
+class ByStageSummary:
+    """The headline by-stage ablation + escalation funnel (Phase 6 / the
+    by-stage artifact). Measured cached/$0 on the 92-doc ``test`` split.
+
+    ``stages`` is the cumulative-tier F1 triple — honestly **not monotone**
+    (the Q4_K_M Tier 3 regresses). ``funnel_cumulative`` is cells resolved
+    by tier ≤ N, which *does* rise monotonically to 100% of ``populated``;
+    ``blank`` is the genuinely-empty remainder (true negatives), surfaced
+    explicitly rather than hidden.
+    """
+
+    stages: list[tuple[str, float]]
+    funnel_cumulative: list[tuple[str, int]]
+    populated: int
+    blank: int
+
+    @property
+    def total(self) -> int:
+        return self.populated + self.blank
+
+    @property
+    def regresses(self) -> bool:
+        """True iff the final cumulative stage is below the previous one
+        (the honest non-monotone result this demo refuses to smooth)."""
+        f1s = [f for _, f in self.stages]
+        return len(f1s) >= 2 and f1s[-1] < max(f1s[:-1])
 
 
 def _sidecar_label(sidecar_path: Path) -> str:
@@ -253,6 +286,33 @@ def f1_chart_svg() -> str:
     Surfaced verbatim — the demo does not regenerate the portfolio artifact.
     """
     return F1_CHART_SVG_PATH.read_text(encoding="utf-8")
+
+
+def by_stage_summary() -> ByStageSummary:
+    """The by-stage ablation + escalation funnel, measured cached/$0.
+
+    Same computation the committed ``f1-by-stage.svg`` is rendered from
+    (``evals.by_stage.compute_by_stage``), surfaced as live numbers so the
+    demo states the honest non-monotone F1 *and* the monotone cells-resolved
+    coverage from the same run — never one without the other.
+    """
+    from evals.by_stage import compute_by_stage
+
+    result = compute_by_stage()
+    return ByStageSummary(
+        stages=[(label, float(f1)) for label, f1 in result.stages],
+        funnel_cumulative=[(label, int(c)) for label, c in result.funnel.cumulative],
+        populated=result.funnel.populated,
+        blank=result.funnel.blank,
+    )
+
+
+def by_stage_chart_svg() -> str:
+    """The committed by-stage SVG markup (funnel on top, F1 below).
+
+    Surfaced verbatim — the demo does not regenerate the portfolio artifact.
+    """
+    return BY_STAGE_CHART_SVG_PATH.read_text(encoding="utf-8")
 
 
 @dataclass(frozen=True)
@@ -432,12 +492,16 @@ __all__ = [
     "DemoRun",
     "FieldRow",
     "TwoStageF1",
+    "ByStageSummary",
     "ESCALATION_GATE",
     "GATE_TIER1_TO_TIER2",
     "GATE_TIER2_TO_TIER3",
     "F1_CHART_SVG_PATH",
+    "BY_STAGE_CHART_SVG_PATH",
     "list_demo_docs",
     "run_document",
     "two_stage_f1",
     "f1_chart_svg",
+    "by_stage_summary",
+    "by_stage_chart_svg",
 ]
