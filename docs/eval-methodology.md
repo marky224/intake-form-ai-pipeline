@@ -58,6 +58,16 @@ Two leakage paths exist in the synthetic + DocILE corpus and are addressed expli
 
 CI runs a partition-validation test that asserts no patient ID and no DocILE document ID appears in more than one of the three sets. The test runs in the standard CI suite on every PR; a partition-script edit that introduces leakage fails the build.
 
+## Human-in-the-loop review queue
+
+The review queue is the cascade's HITL surface — the *input* side of the self-improvement loop (the next section is what a human's correction then does). A field that is still below the 0.80 escalation gate after Tier 3 is exhausted is parked to the `review_queue` table (`cascade/store.py`) rather than silently accepted; the demo renders it under the "Human-in-the-loop review queue" heading with its per-tier error history.
+
+**The queue is populated by design, not by failure.** The locked 0.5-confidence heuristic scores any *coerced* scalar (date / int / float / bool) at exactly 0.5 — below the 0.80 gate — even when the value is extracted correctly (see *Partition discipline* and the same heuristic in *By-stage ablation*). Every form with a date field therefore parks at least one field for review. A non-empty queue is the intended operating point of a cascade built around human adjudication, not an error rate to drive to zero; the heuristic and gate are frozen (Phase 5/6) and are deliberately *not* tuned to empty the queue.
+
+**Measurement boundary (why this lives in the methodology doc).** Parking a field for review does **not** change its F1 contribution. F1 is computed over every populated `ExtractedField` against ground truth regardless of whether that field was also routed to `review_queue` — a wrong-but-parked value still counts as a false positive. This is the deliberate guard against the obvious gaming path: if "sent to review" excused a field from scoring, a cascade could inflate F1 simply by parking everything it was unsure of. The queue is operational triage layered on top of the metric, never a metric adjustment. This is distinct from the **confidently-blank exclusion** (see *Metrics → F1*): a `value=None`-with-`tier_used` field is excluded from precision/recall because there is nothing to score, whereas a parked *populated* field is fully scored — the two are different mechanisms and only the first touches the F1 denominator.
+
+The coupling to self-improvement: the fields the queue surfaces are exactly the fields a reviewer corrects, and those corrections are what grow the alias overlay described next. The queue is the surface; the loop is the learning.
+
 ## The self-improving loop (component)
 
 The self-improvement story has two halves: a **live runtime loop** (the component described here) and an **offline analogue** that measures it (the progressive alias-table sweep, next section). They share one mechanism — alias growth feeding the Tier 1 layout-to-fields post-processor and the Stage-1 router vocabulary — so the measured F1-over-time curve is a faithful proxy for the live loop, not a separate story.
