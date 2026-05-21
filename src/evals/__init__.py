@@ -2,8 +2,9 @@
 
 Measures the V1 cascade end-to-end against partitioned ground truth and
 produces the three portfolio metrics — F1 (headline), latency p50/p99, and
-cost-per-document (always $0 in V1) — plus the F1-over-time chart driven by
-the progressive alias-table partition.
+cost-per-document (always $0 in V1) — plus the F1-over-time *series* driven
+by the progressive alias-table partition (surfaced as live numbers in the
+demo; the committed SVG is the by-stage chart).
 
 Design decisions (surfaced to + approved by Mark at Phase 6 entry):
 
@@ -22,7 +23,7 @@ Design decisions (surfaced to + approved by Mark at Phase 6 entry):
   ``tests/fixtures/eval-cache/`` (6 CMS-1500 across all tiers + router),
   not a parallel ``evals/fixtures/`` store. ``evals/`` holds only the
   manifest, the thin fixtures manifest, results, the cost table, and the
-  chart.
+  by-stage chart.
 
 DocILE is local-only (CC-BY-NC-ND): no DocILE-derived fixtures are committed
 and the DocILE eval path is gated on local file presence exactly like the

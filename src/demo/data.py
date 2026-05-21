@@ -63,13 +63,11 @@ from rag.corrections import (
 from rag.retrieve import Neighbor, top_k
 from rag.store import load_corpus, load_embedding
 
-#: The committed portfolio artifacts. Their regeneration is owned by the
-#: eval harness (``just chart`` / ``just by-stage``); the demo only
-#: *surfaces* them — it never rewrites them. ``f1-by-stage.svg`` is the
-#: headline chart (funnel on top, F1 below); ``f1-over-time.svg`` is the
-#: supporting two-stage curve. ``docs/`` stays at the repo root (not under
-#: src/) — see memory project_src_layout.
-F1_CHART_SVG_PATH = repo_root() / "docs" / "assets" / "f1-over-time.svg"
+#: The committed portfolio artifact. Its regeneration is owned by the eval
+#: harness (``just by-stage``); the demo only *surfaces* it — it never
+#: rewrites it. ``f1-by-stage.svg`` is the headline chart (funnel on top,
+#: F1 below). ``docs/`` stays at the repo root (not under src/) — see memory
+#: project_src_layout.
 BY_STAGE_CHART_SVG_PATH = repo_root() / "docs" / "assets" / "f1-by-stage.svg"
 
 #: The locked escalation gate the per-field panel highlights against. A
@@ -264,7 +262,7 @@ def run_document(doc_id: str) -> DemoRun:
 
 def two_stage_f1() -> TwoStageF1:
     """Compute both F1 series the honest way — the same sweep ``just eval``
-    runs, cached, into a throwaway DB (mirrors ``python -m evals chart``).
+    runs, cached, into a throwaway DB.
 
     Returns the Tier-1-stage headline series (climbs) and the end-to-end
     cascade robustness series (flat ≈0.78). The committed SVG plots the
@@ -277,14 +275,6 @@ def two_stage_f1() -> TwoStageF1:
         tier1_series=[(int(b), float(f)) for b, f in series["tier1"]],
         cascade_series=[(int(b), float(f)) for b, f in series["cascade"]],
     )
-
-
-def f1_chart_svg() -> str:
-    """The committed F1-over-time SVG markup (Tier-1 headline curve).
-
-    Surfaced verbatim — the demo does not regenerate the portfolio artifact.
-    """
-    return F1_CHART_SVG_PATH.read_text(encoding="utf-8")
 
 
 def by_stage_summary() -> ByStageSummary:
@@ -495,12 +485,10 @@ __all__ = [
     "ESCALATION_GATE",
     "GATE_TIER1_TO_TIER2",
     "GATE_TIER2_TO_TIER3",
-    "F1_CHART_SVG_PATH",
     "BY_STAGE_CHART_SVG_PATH",
     "list_demo_docs",
     "run_document",
     "two_stage_f1",
-    "f1_chart_svg",
     "by_stage_summary",
     "by_stage_chart_svg",
 ]

@@ -1,20 +1,15 @@
-"""``python -m evals`` CLI — the ``just eval`` / ``just chart`` entrypoint.
+"""``python -m evals`` CLI — the ``just eval`` / ``just by-stage`` entrypoint.
 
 ``run``   — progressive-batch sweep over the ``test`` split, persisting
             per-doc + per-batch rows into ``data/v1.db`` (the shared SQLite
-            file; eval tables are harness-owned), then regenerates the
-            committed F1-over-time SVG + thin fixtures manifest from the
-            Tier-1 (headline) series. Default cached-replay = $0; set
+            file; eval tables are harness-owned), then regenerates the thin
+            fixtures manifest. Default cached-replay = $0; set
             ``EVAL_LIVE=true`` for a live on-GPU run.
-``chart``  — regenerate only the committed SVG + fixtures manifest from a
-            fresh cached Tier-1 sweep (no persistent DB write). The drift
-            guard in ``test_evals_chart.py`` fails CI if the committed SVG
-            is stale, so this is the "make it green again" command.
 ``by-stage`` — regenerate only the committed by-stage SVG
             (``docs/assets/f1-by-stage.svg``) from a fresh cached
             by-stage measurement (F1 triple + escalation funnel). Drift-
-            guarded by ``test_evals_by_stage.py``; same "make it green"
-            shape as ``chart``.
+            guarded by ``test_evals_by_stage.py``; the "make it green again"
+            command if that guard fails CI.
 ``build-manifest`` — regenerate the committed ``manifest.json`` from the
             gitignored full local corpus (``CORPUS_RENDER_DIR``), patient-
             stratified train/dev/test. Local-only (the corpus is not in
@@ -29,19 +24,16 @@ import argparse
 import collections
 import logging
 import sys
-import tempfile
 
 from cascade.store import DEFAULT_DB_PATH
 from evals.alias_partition import load_seed
 from evals.by_stage import compute_by_stage, write_by_stage_chart
-from evals.chart import write_chart
 from evals.harness import run_eval, write_fixtures_manifest
 from evals.manifest import build_corpus_manifest, load_manifest, write_manifest
 
 
-def _regenerate_artifacts(series_tier1: list[tuple[int, float]]) -> None:
+def _regenerate_fixtures_manifest() -> None:
     seed_version, entries = load_manifest()
-    write_chart(series_tier1, seed_version=seed_version)
     write_fixtures_manifest(seed_version=seed_version, entries=entries)
 
 
@@ -86,7 +78,6 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m evals")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="sweep + persist to data/v1.db + regen artifacts")
-    sub.add_parser("chart", help="regen committed SVG + fixtures manifest only")
     sub.add_parser("by-stage", help="regen committed by-stage SVG only")
     sub.add_parser(
         "build-manifest",
@@ -102,12 +93,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "by-stage":
         return _by_stage()
 
-    if args.cmd == "run":
-        series = run_eval(db_path=DEFAULT_DB_PATH)
-    else:  # chart
-        series = run_eval(db_path=tempfile.mktemp(suffix=".db"))
-
-    _regenerate_artifacts(series["tier1"])
+    # args.cmd == "run"
+    series = run_eval(db_path=DEFAULT_DB_PATH)
+    _regenerate_fixtures_manifest()
     tier1, cascade = series["tier1"], series["cascade"]
     print(
         f"headline Tier-1 F1: {tier1[0][1]:.3f} (batch 1) "

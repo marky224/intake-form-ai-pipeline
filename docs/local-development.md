@@ -133,7 +133,7 @@ PY
 git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 ```
 
-`EVAL_LIVE=true` bypasses the cache, runs live inference against the 92 CMS-1500 validation PNGs in `src/tests/fixtures/eval-validation/cms1500/` (the patient-stratified `test` split of the 584-doc local corpus), and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run. To regenerate all four replay namespaces (tier 1/2/3 + router stage 2) from scratch, use `just regen-fixtures` (resumable; ~2 h on the GPU box), then `just chart`.
+`EVAL_LIVE=true` bypasses the cache, runs live inference against the 92 CMS-1500 validation PNGs in `src/tests/fixtures/eval-validation/cms1500/` (the patient-stratified `test` split of the 584-doc local corpus), and writes the fresh responses back. The CI machine never sets `EVAL_LIVE`, so the committed fixtures drive every CI run. To regenerate all four replay namespaces (tier 1/2/3 + router stage 2) from scratch, use `just regen-fixtures` (resumable; ~2 h on the GPU box), then `just by-stage`.
 
 ### Validation set
 

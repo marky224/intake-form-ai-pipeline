@@ -15,9 +15,9 @@ Everything renders honestly:
 * The headline by-stage chart shows the cascade is **not monotone** — the
   Q4_K_M Tier 3 regresses — beside an escalation funnel whose cumulative
   cells-resolved coverage *does* rise to 100%. Both readings, same run.
-* The F1-over-time chart below it is the **Tier-1 stage** (it climbs as the
-  alias table fills). The end-to-end **cascade** F1 is shown right beside it,
-  flat ≈0.78 — labeled the *robustness* stat, never relabeled as a climb.
+* The two-stage F1 numbers below show the **Tier-1 stage** climbing as the
+  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.78) —
+  labeled the *robustness* stat, never relabeled as a climb.
 * Documents land in ``review_queue`` because the locked coerced-scalar
   confidence (0.5) sits under the 0.80 gate. That panel is presented as the
   intended human-in-the-loop surface, not an error.
@@ -51,7 +51,6 @@ from demo.data import (  # noqa: E402
     TwoStageF1,
     by_stage_chart_svg,
     by_stage_summary,
-    f1_chart_svg,
     list_demo_docs,
     replay_review_queue_corrections,
     run_document,
@@ -73,11 +72,6 @@ def _run(doc_id: str) -> DemoRun:
 @st.cache_resource(show_spinner="Sweeping the progressive alias table…")
 def _two_stage() -> TwoStageF1:
     return two_stage_f1()
-
-
-@st.cache_data
-def _chart_svg() -> str:
-    return f1_chart_svg()
 
 
 @st.cache_data
@@ -304,7 +298,7 @@ def _render_by_stage(bs: ByStageSummary) -> None:
 def _render_two_stage(ts: TwoStageF1) -> None:
     st.subheader("F1 over time — the supporting two-stage story")
     st.markdown(
-        "The portfolio chart below plots **Tier-1-stage F1**: it climbs from "
+        "**Tier-1-stage F1** climbs from "
         f"**{ts.tier1_start:.3f}** to **{ts.tier1_end:.3f}** as the "
         "progressive alias table fills in known phrasings — that is the "
         "self-improvement signal. End-to-end **cascade F1 stays flat at "
@@ -314,24 +308,19 @@ def _render_two_stage(ts: TwoStageF1) -> None:
         "the cascade is resilient regardless of alias-table maturity — *not* "
         "a climbing curve in disguise."
     )
-    left, right = st.columns([3, 2])
-    with left:
-        st.markdown("**Headline — Tier-1-stage F1 (committed artifact)**")
-        st.image(_chart_svg(), use_container_width=True)
-    with right:
-        st.markdown("**Both series, live (this cached run)**")
-        st.dataframe(
-            [
-                {
-                    "batch": b,
-                    "tier-1 (headline)": round(t1, 3),
-                    "cascade (robustness)": round(c1, 3),
-                }
-                for (b, t1), (_, c1) in zip(ts.tier1_series, ts.cascade_series, strict=True)
-            ],
-            use_container_width=True,
-            hide_index=True,
-        )
+    st.markdown("**Both series, live (this cached run)**")
+    st.dataframe(
+        [
+            {
+                "batch": b,
+                "tier-1 (headline)": round(t1, 3),
+                "cascade (robustness)": round(c1, 3),
+            }
+            for (b, t1), (_, c1) in zip(ts.tier1_series, ts.cascade_series, strict=True)
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
 
 
 def main() -> None:

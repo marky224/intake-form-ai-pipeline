@@ -23,7 +23,6 @@ from demo.data import (
     TwoStageF1,
     by_stage_chart_svg,
     by_stage_summary,
-    f1_chart_svg,
     list_demo_docs,
     replay_review_queue_corrections,
     run_document,
@@ -111,12 +110,6 @@ def test_two_stage_f1_headline_climbs_cascade_stays_flat() -> None:
     cascade_vals = [f1 for _, f1 in ts.cascade_series]
     assert max(cascade_vals) - min(cascade_vals) < 0.02
     assert 0.75 <= ts.cascade_mean <= 0.82
-
-
-def test_f1_chart_svg_is_the_committed_artifact() -> None:
-    svg = f1_chart_svg()
-    assert svg.lstrip().startswith("<svg")
-    assert "F1 over progressive alias-table batches" in svg
 
 
 def test_by_stage_chart_svg_is_the_committed_artifact() -> None:
