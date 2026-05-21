@@ -1,6 +1,6 @@
 """Deterministic by-stage SVG + committed-artifact drift guard.
 
-Mirrors ``test_evals_chart.py``. The by-stage measurement is fully
+The by-stage measurement is fully
 cached/deterministic from the committed 92-doc fixtures, so both the
 measured numbers and the rendered SVG are pinned: a change to the
 cascade, the fixtures, or the renderer that moves either is a deliberate,

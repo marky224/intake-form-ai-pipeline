@@ -16,13 +16,13 @@ V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB co
 
 The interesting part of this project is not that a curve goes up. It's that measurement contradicted the pitch and the repo reports the contradiction.
 
-**The cascade is not monotone.** Ablating it tier-by-tier (lower panel): Tier 1 → 0.340, Tier 1+2 → **0.794**, Tier 1+2+3 → **0.768**. The Qwen 7B Tier 2 does the real lift; adding the Q4_K_M-quantized 32B Tier 3 *regresses* −0.026. Tier 3 only ever re-extracts the fields that escalated (confidence < 0.80), and the locked 0.5-confidence heuristic on coerced scalars forces every date field below that gate even when Tier 2 had it right — so the quantized 32B re-extracts those dates and overwrites correct values (29 of 31 changed fields go correct → wrong, nearly all dates). It ships as-is rather than engineered monotone; a better (unquantized, reasoning) local Tier-3b is the *measured* lever to fix it, not a framing change.
+| Cascade stage | End-to-end F1 | What the tier adds |
+|---|---|---|
+| Tier 1 — PaddleOCR-VL | 0.340 | layout parse + alias-table match |
+| + Tier 2 — Qwen 2.5 VL 7B | **0.794** | the real lift |
+| + Tier 3 — Qwen 2.5 VL 32B · Q4_K_M | 0.768 | **−0.026 — regresses** |
 
-What *does* rise monotonically is the **escalation funnel** (upper panel): cumulative cells resolved by tier ≤ N climb to 100% of the populated cells (2 → 797 → 981), because Tier 3 still finalizes the residual the earlier tiers couldn't clear — its slice F1 is the worst while coverage stays complete. Both readings are honest and both are shown; the 123 genuinely-blank cells are an explicit remainder, not hidden in the denominator.
-
-The second contradiction is the self-improvement story. The pre-build pitch was "end-to-end F1 climbs as the correction loop runs." Phase 6 measurement showed that's false for a cascade with strong escalation tiers, and the 92-document split confirms it at scale: **end-to-end cascade F1 is flat at ≈0.77**, invariant to alias coverage, because the Qwen tiers recover whatever the alias layer missed. What alias growth actually buys is a higher Tier-1 *hit rate* — the Tier-1-stage F1 climbs 0.242 → 0.340 as more on-form labels are recognized (Tier 1 alias-matches ≥1 field on 91/92 docs; the router resolves 91/92 at Stage 1, classifies 92/92 correctly). It does *not* measurably reduce escalation count: at the locked 0.85 gate the escalation rate is corpus-flat at ≈0.998 (Tier 1's confidence model keeps populated cells below the gate regardless), so escalation-as-cost is a V2 property, not a V1 measured trend. The defensible claim is that measured Tier-1 curve, not the pitch. `docs/eval-methodology.md` has the full two-stage finding, the progressive-alias-partition mechanism, and the F1-over-time curve.
-
-That posture — measure honestly, publish what you find, build the guardrails that keep the published artifact from drifting — runs through the whole project.
+**The cascade is not monotone** (lower panel; numbers above). The Qwen 7B Tier 2 does the real lift; adding the Q4_K_M-quantized 32B Tier 3 *regresses* −0.026. Tier 3 only ever re-extracts the fields that escalated (confidence < 0.80), and the locked 0.5-confidence heuristic on coerced scalars forces every date field below that gate even when Tier 2 had it right — so the quantized 32B re-extracts those dates and overwrites correct values (29 of 31 changed fields go correct → wrong, nearly all dates). It ships as-is rather than engineered monotone; a better (unquantized, reasoning) local Tier-3b is the *measured* lever to fix it, not a framing change.
 
 ## How it works
 
@@ -65,7 +65,7 @@ The review queue is the cascade's HITL surface — where any populated field sti
 
 **Park ≠ fix.** Parking a field for review does *not* change its F1 contribution: a wrong-but-parked value still counts as a false positive against ground truth. This is the deliberate guard against the obvious gaming path — if "sent to review" excused a field from scoring, the headline could be inflated by parking anything the cascade was unsure of. The queue is operational triage layered on top of the metric, never a metric adjustment.
 
-Corrections submitted from the queue flow back through `src/rag/aliases.py`: any on-form label phrasing the cascade missed is appended to a runtime overlay (`src/data/corrections_aliases.json`, gitignored), unioned onto the frozen v1.0.0 seed at load time and taking effect for the *next* extraction. The committed seed and the F1-over-time chart are never mutated — the progressive-alias-partition sweep calls `rag.aliases.suppress_overlay()` so the published artifact can't silently drift from accumulated live corrections. `docs/eval-methodology.md` "## Human-in-the-loop review queue" has the full methodology framing.
+Corrections submitted from the queue flow back through `src/rag/aliases.py`: any on-form label phrasing the cascade missed is appended to a runtime overlay (`src/data/corrections_aliases.json`, gitignored), unioned onto the frozen v1.0.0 seed at load time and taking effect for the *next* extraction. The committed seed is never mutated — the progressive-alias-partition sweep calls `rag.aliases.suppress_overlay()` so the published artifact can't silently drift from accumulated live corrections. `docs/eval-methodology.md` "## Human-in-the-loop review queue" has the full methodology framing.
 
 ![Per-field correction input panel from the local demo](docs/assets/demo-human-in-the-loop.png)
 
@@ -94,7 +94,7 @@ just demo           # Streamlit on :8501 — real 3-tier cascade over the
 
 ![V1 local demo — by-stage ablation + escalation-funnel headline over the cached 92-doc cascade](docs/assets/demo-screenshot.png)
 
-The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.794 → 0.768` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run) with the supporting two-stage F1 chart below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `chart` / `by-stage` run the harness and regenerate the CI-drift-guarded SVGs; full task list in the `justfile`.
+The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.794 → 0.768` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run), with the supporting two-stage F1 numbers below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `by-stage` run the harness and regenerate the CI-drift-guarded SVG; full task list in the `justfile`.
 
 ## Project structure
 
@@ -106,7 +106,7 @@ intake-form-ai-pipeline/
 │   ├── _paths.py            # repo_root() / src_root() — single path resolver
 │   ├── cascade/             # provider Protocol, tier1/2/3, orchestrator, router, store
 │   │   └── providers/       # tier1_paddleocr_local, tier2_qwen_7b_local, tier3_qwen_32b_local
-│   ├── evals/               # F1/latency metrics, manifest, progressive alias partition, chart
+│   ├── evals/               # F1/latency metrics, manifest, progressive alias partition, by-stage chart
 │   ├── rag/                 # ColQwen 2.5 retrieval + correction feedback loop
 │   ├── finetune/            # QLoRA text post-corrector (Phase 9 experiment)
 │   ├── demo/                # Streamlit: data.py (testable core) + app.py (view)
@@ -121,10 +121,6 @@ intake-form-ai-pipeline/
 ```
 
 Python 3.11+, Pydantic v2, `uv`, pytest, ruff + black, pre-commit from Phase 1. GitHub Actions runs four required checks on every PR — Lint, Test, Secret scan (gitleaks), IaC scan (checkov against the in-tree Terraform).
-
-## Scope boundaries
-
-V1 has no deployed demo URL and no cloud cascade tiers — local Streamlit only; the BAA-cloud Textract / Bedrock tiers belong to the optional V2 enhancement, which is documented but not built. No real PHI ever enters the system (Synthea synthetic data only) — which is also *why* V1 needs no BAA and is complete as-is. This is extraction, not a production claims-processing system; not multi-tenant SaaS; English only; no SOC 2 / HITRUST audits (the V2 enhancement is HIPAA-mode-*capable* by design; certification is out of scope either way). The Phase 9 QLoRA adapter demonstrates the feedback loop and is not a productized model.
 
 ## Further reading
 

@@ -134,7 +134,7 @@ synthetic-data-docile-build limit="0":
 
 # Phase 6 eval harness: progressive-batch sweep over the test split,
 # cached replay ($0, deterministic), persists to src/data/v1.db, regenerates
-# docs/assets/f1-over-time.svg + src/evals/fixtures_manifest.json.
+# src/evals/fixtures_manifest.json.
 eval:
     uv run python -m evals run
 
@@ -153,14 +153,9 @@ build-manifest:
 # test-split doc across all 4 replay namespaces (tier1/2/3 + router
 # stage 2). GPU box only (PaddleOCR-VL + Ollama Qwen 7B/32B). ~2 h.
 # Resumable — re-run to fill gaps after a partial pass. Run this, then
-# `just chart` (cached) regenerates the SVG CI reproduces.
+# `just by-stage` (cached) regenerates the SVG CI reproduces.
 regen-fixtures:
     EVAL_LIVE=true uv run python -m scripts.regen_eval_fixtures
-
-# Regenerate only the committed F1-over-time SVG + fixtures manifest from a
-# fresh cached Tier-1 sweep (run this if the chart drift guard fails CI).
-chart:
-    uv run python -m evals chart
 
 # Regenerate only the committed by-stage SVG (docs/assets/f1-by-stage.svg):
 # the F1-by-cumulative-tier panel + the escalation-funnel panel, from a
