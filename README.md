@@ -59,6 +59,16 @@ An in-process Python orchestrator (no state machine in V1; V2 wraps it in Step F
 
 The whole system persists to one SQLite file (extracted fields, eval log, ColQwen multivectors), intentionally Aurora-compatible so the V2 migration is a row-copy rather than a redesign. `docs/architecture-deep-dive.md` covers the orchestrator, persistence model, and the optional enhancement's cloud edge.
 
+## Human in the loop
+
+The review queue is the cascade's HITL surface — where any populated field still below the 0.80 confidence gate after Tier 3 is parked rather than silently accepted. **It is populated by design.** The locked 0.5-confidence heuristic scores every *coerced* scalar (date / int / float / bool) at exactly 0.5 — below the gate — even when the value is extracted correctly, so every form with a date field reaches a human. A non-empty queue is the intended operating point of a cascade built around adjudication, not an error rate to drive to zero; the heuristic and gate are frozen (Phase 5/6) and deliberately not tuned to empty it.
+
+**Park ≠ fix.** Parking a field for review does *not* change its F1 contribution: a wrong-but-parked value still counts as a false positive against ground truth. This is the deliberate guard against the obvious gaming path — if "sent to review" excused a field from scoring, the headline could be inflated by parking anything the cascade was unsure of. The queue is operational triage layered on top of the metric, never a metric adjustment.
+
+Corrections submitted from the queue flow back through `src/rag/aliases.py`: any on-form label phrasing the cascade missed is appended to a runtime overlay (`src/data/corrections_aliases.json`, gitignored), unioned onto the frozen v1.0.0 seed at load time and taking effect for the *next* extraction. The committed seed and the F1-over-time chart are never mutated — the progressive-alias-partition sweep calls `rag.aliases.suppress_overlay()` so the published artifact can't silently drift from accumulated live corrections. `docs/eval-methodology.md` "## Human-in-the-loop review queue" has the full methodology framing.
+
+![Per-field correction input panel from the local demo](docs/assets/demo-human-in-the-loop.png)
+
 ## What's worth a closer look
 
 **The economics.** V1's cost is $0/1K — local inference on owned hardware, where latency is the meaningful metric, not dollars. The cost-routing argument is what the optional BAA-cloud enhancement would realize: BAA-cloud tiers in the middle and top would take the cascade to ~$9.50/1K, ~32× cheaper than putting every field through a single frontier model (~$300/1K at typical densities). V1 is not a prototype waiting on that number — it is complete, and it produces the measured escalation rates that make the projection credible rather than hypothetical.
@@ -68,12 +78,6 @@ The whole system persists to one SQLite file (extracted fields, eval log, ColQwe
 **The consumer-hardware reality.** Tier 3's locked higher-precision plan (a Mungert Q8_0/Q6_K import) turned out infeasible on 31.2 GB of usable VRAM — Q8_0 spills, Q6_K hits an open llama.cpp M-RoPE assert. V1 ships the registry Q4_K_M build, the only configuration that runs, and documents the measured accuracy cost (≈0.77 on a 20-doc cross-vertical check) as a trade-off rather than burying it. `docs/local-development.md` has the full empirical decision.
 
 **HIPAA as a deployment posture.** The V2 provider surface is BAA-eligible by design, so `HIPAA_MODE` is a startup-time assertion plus raised audit verbosity — not a parallel codebase or a provider-routing fork. V1's flag is a no-op (synthetic data only, no cloud routing surface). `docs/hipaa-architecture.md` covers the V2 BAA boundary.
-
-## Honest results, stated plainly
-
-- **Flat cascade F1 ≈0.78** is the robustness result, not a defect — escalation compensates for alias misses.
-- **Phase 9 QLoRA delta is `+0.0000` at committed scale, by design** — the leakage guard working as intended; the reproducible pipeline and harness are the deliverable, and "QLoRA doesn't move the needle at portfolio scale" is itself a credible finding.
-- **The review queue is populated by design** — the locked confidence heuristic scores a coerced date/int/float/bool field at 0.5, under the 0.80 gate, so any such form reaches a human. The demo presents this as the intended human-in-the-loop surface.
 
 ## Running it
 

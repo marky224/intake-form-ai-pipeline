@@ -172,7 +172,7 @@ by-stage:
 # on the committed CMS-1500 fixtures through the cached-replay path ($0, no
 # GPU, no Ollama/Paddle). Prefix `EVAL_LIVE=true` to drive the live models.
 demo:
-    uv run streamlit run demo/app.py
+    uv run streamlit run src/demo/app.py
 
 # Phase 8 (V1) correction-feedback loop: seeded-reviewer replay over the
 # parked CMS-1500 (cached/$0, no GPU). Logs corrections, learns new alias
