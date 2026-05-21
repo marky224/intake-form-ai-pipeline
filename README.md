@@ -1,6 +1,6 @@
 # intake-form-ai-pipeline
 
-> ✅ **V1 complete.** A self-improving intake-form extraction pipeline that runs end-to-end, locally, on consumer GPUs — measured on a 92-document held-out test split, $0/1K inference, no cloud. **A cloud rebuild (V2) is a documented optional future enhancement, not active work:** its sole motivation is HIPAA — real PHI may only be processed through BAA-eligible providers, so the BAA-cloud cascade is the path a real-PHI deployment would take. The synthetic-data V1 needs no BAA and stands on its own as the portfolio deliverable. Last updated 2026-05-19.
+> ✅ **V1 complete** — a self-improving intake-form extraction pipeline that runs end-to-end, locally, on consumer GPUs: measured on a 92-document held-out test split, $0/1K inference, no cloud. *Last updated 2026-05-21.*
 
 ## What it is
 
