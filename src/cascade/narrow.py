@@ -2,9 +2,10 @@
 
 Phase 5's orchestrator escalates *fields*, not whole documents: when Tier 1
 populates a form but some fields land below the 0.85 confidence gate, only
-those fields go to Tier 2; only the still-weak ones after Tier 2 go to
-Tier 3. The frozen ``CascadeProvider`` Protocol is ``extract(png, form_cls)``
-— there is no field-subset argument and the providers must not change.
+those fields go to Tier 2, and Tier 3 then re-reads the same fields (the
+second read; see ``cascade.orchestrator``). The frozen ``CascadeProvider``
+Protocol is ``extract(png, form_cls)`` — there is no field-subset argument
+and the providers must not change.
 
 The Protocol-preserving lever: build a **dynamic Pydantic sub-model** of
 ``form_cls`` carrying only the escalated fields (plus ``metadata``), and hand
@@ -118,8 +119,9 @@ def merge_fields(
     ``higher`` is a narrowed sub-model instance a higher tier just produced.
     Only the escalated names are copied — fields the higher tier was never
     asked about don't exist on ``higher`` and are left untouched on
-    ``running`` (so a confident Tier 1 value is never clobbered by a Tier 3
-    that didn't see that field).
+    ``running`` (so a confident Tier 1 value is never clobbered by a higher
+    tier that didn't see that field). Tier 3's second read does not use this:
+    it goes through ``orchestrator._reconcile_second_read``.
 
     Mutates ``running`` in place. ``running``'s model_config has
     ``validate_assignment=True``; each assigned value is already a valid

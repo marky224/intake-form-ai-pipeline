@@ -12,14 +12,14 @@ Run locally on ``openclaw-pc``::
 
 Everything renders honestly:
 
-* The headline by-stage chart shows the cascade is **not monotone** — the
-  Q4_K_M Tier 3 regresses — beside an escalation funnel whose cumulative
-  cells-resolved coverage *does* rise to 100%. Both readings, same run.
+* The headline by-stage chart shows F1 by cumulative tier, exactly as
+  measured, beside an escalation funnel whose cumulative cells-resolved
+  coverage rises to 100%. Both readings, same run.
 * The two-stage F1 numbers below show the **Tier-1 stage** climbing as the
-  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.77) —
+  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.85) —
   labeled the *robustness* stat, never relabeled as a climb.
-* Documents land in ``review_queue`` because the locked coerced-scalar
-  confidence (0.5) sits under the 0.80 gate. That panel is presented as the
+* Documents land in ``review_queue`` when Tier 2 and Tier 3 read a field
+  differently (the Tier 3 second read). That panel is presented as the
   intended human-in-the-loop surface, not an error.
 """
 
@@ -115,9 +115,9 @@ def _render_fields(run: DemoRun) -> None:
     st.subheader("Per-field extraction")
     st.caption(
         f"Confidence is read through the schema; a populated value below the "
-        f"**{ESCALATION_GATE:.2f}** Tier-2→3 gate (highlighted) escalates "
-        f"rather than landing in the form unchallenged. The Tier-1→2 gate is "
-        f"{GATE_TIER1_TO_TIER2:.2f}."
+        f"**{ESCALATION_GATE:.2f}** review gate (highlighted) is a Tier 2 / "
+        f"Tier 3 disagreement and parks for review rather than landing in the "
+        f"form unchallenged. The Tier-1→2 gate is {GATE_TIER1_TO_TIER2:.2f}."
     )
     rows = [
         {
@@ -141,7 +141,7 @@ def _render_fields(run: DemoRun) -> None:
             "value": st.column_config.TextColumn("Extracted value", width="large"),
             "confidence": st.column_config.ProgressColumn(
                 "Confidence",
-                help=f"Tier-2→3 gate is {ESCALATION_GATE:.2f}",
+                help=f"Review gate after the Tier 3 second read: {ESCALATION_GATE:.2f}",
                 format="%.3f",
                 min_value=0.0,
                 max_value=1.0,
@@ -160,12 +160,11 @@ def _render_review_queue(run: DemoRun) -> None:
         return
     st.warning(
         "This document is parked in `review_queue` — **by design, not by "
-        "failure.** The locked Tier-2/3 confidence heuristic scores a coerced "
-        "date/int/float/bool field at 0.5, under the 0.80 gate, so any form "
-        "with such a field necessarily reaches a human after Tier 3. This is "
-        "the intended human-in-the-loop surface the V1 cascade is built "
-        "around — Phase 8 wires reviewer corrections back into the alias "
-        "table and the retrieval corpus."
+        "failure.** Tier 3 re-reads every field Tier 2 handled; where the two "
+        "readings differ (or only one found a value) the field gets 0.5, "
+        "under the 0.80 gate, so a human decides. This is the intended "
+        "human-in-the-loop surface the V1 cascade is built around — Phase 8 "
+        "wires reviewer corrections back into the alias table."
     )
     if run.review_drivers:
         st.markdown(
@@ -262,12 +261,14 @@ def _render_by_stage(bs: ByStageSummary) -> None:
     st.markdown(
         f"Ablating the cascade tier-by-tier on the 92-doc test split: "
         f"**{f1_t1:.3f} → {f1_t12:.3f} → {f1_t123:.3f}**. The Qwen 7B Tier 2 "
-        f"does the real lift; the result is {verdict}. It ships as-is — the "
-        "honest-results gate, not a smoothed curve. What *does* rise "
-        "monotonically is the **escalation funnel**: cumulative cells "
-        f"resolved by tier ≤ N climbs to **100% of the {bs.populated} "
-        f"populated cells**, because Tier 3 still finalizes the residual the "
-        f"earlier tiers couldn't clear. The empty cells are an explicit "
+        f"does the big lift; the result is {verdict}. Tier 3 is a second "
+        "reader: where its reading matches Tier 2's the field is accepted, "
+        "where it differs the field goes to review, and a Tier-2 value that "
+        "passes its validator is never overwritten. Most of Tier 3's gain is "
+        "Synthea's digit-suffixed names, partly offset by street addresses — "
+        "see the methodology doc. The **escalation funnel** counts cells by "
+        f"the tier whose value was kept and climbs to **100% of the "
+        f"{bs.populated} populated cells**. The empty cells are an explicit "
         f"remainder, not hidden in the denominator: {bs.missed} missed (a value "
         f"on the form, none extracted) and {bs.true_negative} blank on the form."
     )
@@ -292,7 +293,7 @@ def _render_by_stage(bs: ByStageSummary) -> None:
         )
         st.caption(
             f"{bs.populated} populated + {bs.missed} missed + {bs.true_negative} "
-            f"blank on form = {bs.total} scorable cells. F1 not monotone; coverage is."
+            f"blank on form = {bs.total} scorable cells."
         )
 
 

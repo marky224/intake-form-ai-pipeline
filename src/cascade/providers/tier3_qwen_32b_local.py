@@ -26,8 +26,9 @@ infeasible on the build box** (`openclaw-pc`, RTX 4080 + RTX 4060 Ti ≈
   - Mungert **Q8_0** (~35 GB) exceeds 31.2 GB → heavy CPU spill →
     multi-minute/doc (impractical latency).
   - Registry **Q4_K_M** ``qwen2.5vl:32b`` is the only config that runs
-    correctly: ~52 s/doc, clean schema-constrained JSON, ~18 fields/doc on a
-    CMS-1500 (verified on `openclaw-pc` 2026-05-17).
+    correctly: ~117 s/doc for the full-field read (mean of the 92 committed
+    replay fixtures, 107-161 s), clean schema-constrained JSON, ~18
+    fields/doc on a CMS-1500 (verified on `openclaw-pc` 2026-05-17).
 
 The rescoped "dual-quant" deliverable is therefore: document the Mungert
 infeasibility + ship Q4_K_M with its measured validation F1, applying the

@@ -7,37 +7,45 @@ the committed replay cache ($0, deterministic — CI reproduces it):
 
 - **Tier 1** — the orchestrator's pre-escalation form (Tier 1 extract →
   route → re-parse), exactly ``harness._tier1_stage_form``.
-- **Tier 1+2** — the cascade with the Tier-3 slot filled by Tier 2, so a
-  sub-0.80 field that escalates is just re-confirmed by the 7B (no 32B).
-  A faithful "Tier 3 disabled" ceiling without touching the frozen
-  orchestrator escalation logic.
+- **Tier 1+2** — the cascade with the Tier-3 slot filled by Tier 2, so
+  the second read is the 7B again and every field agrees with itself (no
+  32B). A faithful "Tier 3 disabled" ceiling without touching the
+  orchestrator.
 - **Tier 1+2+3** — the real cascade.
 
-The honest result is **not** monotone: ``0.340 → 0.791 → 0.765``. The 7B
-Tier 2 does the real lift; the **Q4_K_M Tier 3 regresses -0.026**.
-Mechanism (probed field-by-field): Tier 3 only ever re-extracts the
-fields that *escalated* (confidence < 0.80). The locked 0.5-confidence
-heuristic on coerced scalars (`project_phase5_coerced_review_queue`)
-forces **every date field** below that gate, so every date escalates
-even when Tier 2 had it right — and the quantized 32B re-extracts those
-dates worse than the 7B, overwriting correct values. 29 of 31 changed
-fields are Tier 3 turning a correct value wrong; ~all are dates. This is
-the sharp form of the flat-cascade finding, shipped as-is (honest-results
-gate) — it motivates the step-4 local Qwen3-VL Tier-3b.
+Result since 2026-10-16: ``0.340 → 0.791 → 0.853``. The 7B Tier 2 does
+the big lift; Tier 3 is a second reader whose agreement with Tier 2 sets
+the final confidence. On a disagreement Tier 2's value is kept if it
+passes its validator or Tier 3 read nothing; otherwise Tier 3's value is
+taken, so a validated Tier-2 date is never overwritten. Read the +0.062
+carefully: most of it is Synthea's
+digit-suffixed names. Of the 107 first/last-name cells Tier 3 turns from
+wrong to right, 74 are names Tier 2 read without their digit suffix (for
+38 first names the digits went into ``middle_name``), 23 are first/last
+swaps by Tier 2, 6 are Tier-2 blanks
+and 4 are other misreads; Tier 3 turns 4 right names wrong, for +56 net
+``first_name`` and +47 net ``last_name`` cells. It is offset by
+``address_street`` (-37: Tier 3 drops the apartment suffix), which is kept
+as measured. The rule was chosen after
+test-split per-field outcomes had been inspected — see
+``docs/eval-methodology.md``. Until 2026-10-16 the curve was **not**
+monotone (``0.791 → 0.765``): a type heuristic (strings 1.0, dates 0.5)
+sent every date to Tier 3, and the quantized 32B overwrote 29 correct
+dates.
 
 **Panel 2 — escalation funnel.** The same full ``(t1,t2,t3)`` cascade
-run, counting each scorable cell by the tier that finally produced its
-value. Cumulative cells resolved by tier ≤ N **rises monotonically** to
-100% of the populated cells (2 → 797 → 981 of 981) even though Tier 3's
-*slice* F1 is the worst: Tier 3 only ever finalizes the residual the
-earlier tiers couldn't clear (the forced-escalated dates), so the
-cascade still drives every populated cell to a resolved state. The 123
-empty cells are shown as an explicit remainder, split by ground truth:
-100 **missed** (the form has a value, the cascade produced none — 92
-``signature`` cells no tier attempts, 8 ``first_name`` cells Tier 2 left
-blank) and 23 **true negatives** (absent on the source form). Tier 1's
-funnel share is a tiny 2 cells, consistent with its 0.34 F1; it is not
-dressed up.
+run, counting each scorable cell by the tier whose value the cascade
+kept. Cumulative cells resolved by tier ≤ N rises to 100% of the
+populated cells (2 → 822 → 989 of 989). Tier 3 reads every Tier-2 field,
+but its value is kept only where the readings differ, Tier 3 read
+something, and Tier 2's value doesn't pass a validator — 167 cells: 158
+free-text cells (no validator exists for them), 8 cells Tier 2 left blank,
+1 cell whose Tier-2 value failed its validator. The 115 empty
+cells are shown as an explicit remainder, split by ground truth: 92
+**missed** (the form has a value, the cascade produced none — the
+``signature`` field, which no tier attempts) and 23 **true negatives**
+(absent on the source form). Tier 1's funnel share is a tiny 2 cells,
+consistent with its 0.34 F1; it is not dressed up.
 """
 
 from __future__ import annotations
@@ -48,9 +56,10 @@ from pathlib import Path
 from _paths import repo_root
 from cascade import store
 from cascade.orchestrator import build_cascade, process_document
+from cascade.validators import validate
 from evals.ground_truth import FIELD_KIND, GroundTruth, load_cms1500_ground_truth
 from evals.harness import _tier1_stage_form
-from evals.manifest import CMS1500_VALIDATION_DIR, load_manifest
+from evals.manifest import CMS1500_VALIDATION_DIR, CORPUS_RENDER_DIR, load_manifest
 from evals.metrics import aggregate, score_form
 
 #: Committed by-stage chart artifact under repo-root ``docs/assets/`` (docs/
@@ -73,6 +82,11 @@ class Funnel:
     explicit remainder rather than hidden. The cascade is monotone *here*:
     every populated cell is resolved by some tier, so the cumulative-by-tier
     curve rises to 100% of ``populated`` even where the F1 panel dips.
+
+    The ``tier3a_*`` counts say why Tier 3's value was kept in each
+    ``tier3a`` cell (they sum to ``tier3a``): Tier 2's value was free text
+    with no validator, Tier 2 read nothing, or Tier 2's value failed its
+    validator.
     """
 
     tier1: int
@@ -80,6 +94,9 @@ class Funnel:
     tier3a: int
     missed: int
     true_negative: int
+    tier3a_free_text: int = 0
+    tier3a_tier2_blank: int = 0
+    tier3a_failed_validator: int = 0
 
     @property
     def total(self) -> int:
@@ -132,35 +149,77 @@ def _funnel_from_form(form: object, truth: GroundTruth) -> tuple[int, int, int, 
             t1 += 1
         elif tier == 2:
             t2 += 1
-        else:  # "3a" (or any Tier-3 label) — the forced-escalation residual
+        else:  # "3a" — Tier 3's reading was kept (a disagreement it won)
             t3 += 1
     return t1, t2, t3, missed, true_negative
 
 
-def compute_by_stage() -> ByStage:
-    """Measure both panels in one cached pass over the test split.
+def _tier3_reasons(final: object, first: object) -> tuple[int, int, int]:
+    """Why Tier 3's value was kept in each ``"3a"`` cell of ``final``:
+    ``(free_text, tier2_blank, failed_validator)``. ``first`` is the
+    Tier-1+2 form, i.e. Tier 2's reading of the same document.
+    """
+    free_text = tier2_blank = failed = 0
+    for name in _SCORABLE:
+        ef = getattr(final, name, None)
+        if ef is None or ef.value is None or ef.tier_used != "3a":
+            continue
+        tier2_value = getattr(getattr(first, name, None), "value", None)
+        if tier2_value is None:
+            tier2_blank += 1
+        elif validate(name, tier2_value) is None:
+            free_text += 1
+        else:
+            failed += 1
+    return free_text, tier2_blank, failed
 
-    Cached replay only — deterministic and $0, so the committed SVG has a
-    CI drift guard exactly like the F1-over-time chart. ``EVAL_LIVE`` is
-    honored transparently by the providers if a caller sets it (the live
-    regen path), but CI never does. The funnel reuses the *same* full
+
+def compute_by_stage(split: str = "test", image_dir: Path | str | None = None) -> ByStage:
+    """Measure both panels in one cached pass over a manifest split.
+
+    ``split`` defaults to ``test``, the committed measurement. Only the
+    ``test`` images and replay fixtures are committed: for ``dev`` (the
+    held-out confirmation run) the images come from the gitignored local
+    corpus (``CORPUS_RENDER_DIR``), and the run is cache-through — leave
+    ``EVAL_LIVE`` unset, keep the models up, and each provider reads a dev
+    document live once on its first cache miss and saves it, so all three
+    stages are scored from the same reading. ``image_dir`` overrides where
+    the ``<doc_id>.png`` / ``<doc_id>.json`` pairs are read.
+
+    On the committed test split this is cached replay — deterministic and
+    $0, so the committed SVG has a CI drift guard. ``EVAL_LIVE`` is honored
+    transparently by the providers if a caller sets it (it skips the cache
+    on every call), but CI never does. The funnel reuses the *same* full
     ``(t1,t2,t3)`` RunRecord scored for the Tier-1+2+3 F1 point, so the
     two panels can never disagree about the cascade.
     """
+    if image_dir is None:
+        image_dir = CMS1500_VALIDATION_DIR if split == "test" else CORPUS_RENDER_DIR
+    image_dir = Path(image_dir)
     _, entries = load_manifest()
-    test = [e for e in entries if e.split == "test"]
+    docs = [e for e in entries if e.split == split]
+    if not docs:
+        raise ValueError(f"no {split!r} documents in the manifest")
+    missing = [e.doc_id for e in docs if not (image_dir / f"{e.doc_id}.png").is_file()]
+    if missing:
+        raise FileNotFoundError(
+            f"{len(missing)} of {len(docs)} {split!r} documents have no PNG in {image_dir} "
+            "(dev images live in the gitignored local corpus — run "
+            "`just synthetic-data-render-500` first)"
+        )
     t1, t2, t3 = build_cascade()
 
     rows: dict[str, list] = {label: [] for label in STAGE_LABELS}
     fn_t1 = fn_t2 = fn_t3 = fn_missed = fn_tn = 0
+    why_free = why_blank = why_failed = 0
     conn12 = store.connect(":memory:")
     store.init_db(conn12)
     conn123 = store.connect(":memory:")
     store.init_db(conn123)
     try:
-        for e in test:
-            png = (CMS1500_VALIDATION_DIR / f"{e.doc_id}.png").read_bytes()
-            truth = load_cms1500_ground_truth(CMS1500_VALIDATION_DIR / f"{e.doc_id}.json")
+        for e in docs:
+            png = (image_dir / f"{e.doc_id}.png").read_bytes()
+            truth = load_cms1500_ground_truth(image_dir / f"{e.doc_id}.json")
 
             form1, vert1, _ = _tier1_stage_form(png, (t1, t2, t3))
             rows["Tier 1"].append((vert1, score_form(form1, truth, _SCORABLE), 0.0))
@@ -176,6 +235,10 @@ def compute_by_stage() -> ByStage:
             fn_t3 += d3
             fn_missed += dm
             fn_tn += dn
+            w_free, w_blank, w_failed = _tier3_reasons(r123.form, r12.form)
+            why_free += w_free
+            why_blank += w_blank
+            why_failed += w_failed
     finally:
         conn12.close()
         conn123.close()
@@ -184,7 +247,14 @@ def compute_by_stage() -> ByStage:
     return ByStage(
         stages=stages,
         funnel=Funnel(
-            tier1=fn_t1, tier2=fn_t2, tier3a=fn_t3, missed=fn_missed, true_negative=fn_tn
+            tier1=fn_t1,
+            tier2=fn_t2,
+            tier3a=fn_t3,
+            missed=fn_missed,
+            true_negative=fn_tn,
+            tier3a_free_text=why_free,
+            tier3a_tier2_blank=why_blank,
+            tier3a_failed_validator=why_failed,
         ),
     )
 
@@ -193,8 +263,8 @@ def compute_by_stage() -> ByStage:
 
 
 def _esc(text: str) -> str:
-    """XML-escape text-node content (the mechanism note carries a literal
-    ``<`` in ``confidence < 0.80``, which must not break well-formedness)."""
+    """XML-escape text-node content so a ``<``, ``>`` or ``&`` in a caption
+    or label can't break well-formedness."""
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
@@ -204,9 +274,8 @@ _M_L, _M_R = 70, 30  # left / right plot margins (shared by both panels)
 # Top panel — escalation funnel. Axis 0 … total scorable cells; the empty
 # remainder is two stacked caps on the final bar — missed (magenta) under
 # true negatives (gray) — an explicit remainder, never a thin full-width
-# band the value labels collide with. The funnel leads — it is the
-# monotone coverage story; the F1 panel below is the honest non-monotone
-# counterpoint.
+# band the value labels collide with. The funnel leads (coverage); the F1
+# panel below shows accuracy by stage, exactly as measured.
 _F_TITLE_Y = 28
 _F_TOP = 52  # y for count == total (top of plot)
 _F_BOT = 248  # zero baseline
@@ -222,12 +291,12 @@ _H = 778
 
 #: The mechanism, wrapped to fit — Mark's ask: the logic lives in the graph.
 _MECHANISM = (
-    "Tier 3 only re-extracts fields that escalated (confidence < 0.80).",
-    "The locked 0.5-confidence heuristic on coerced scalars forces every",
-    "date field to escalate even when Tier 2 had it right — and the",
-    "Q4_K_M 32B re-extracts those dates worse than the 7B, overwriting",
-    "correct values (29/31 changed fields: correct → wrong, ~all dates).",
-    "Shipped honest: motivates the local Qwen3-VL Tier-3b upgrade.",
+    "Tier 3 re-reads every field Tier 2 handled; agreement sets confidence.",
+    "A mismatch parks for review and keeps Tier 2's value if it validates",
+    "(date, ZIP, state, phone) or Tier 3 read nothing, else Tier 3's. Most of",
+    'the gain is Synthea\'s number-suffixed names (Tier 3 copies "Ramona980"',
+    "literally), offset by street addresses (-37 cells, kept). The rule was",
+    "chosen after test-split results were seen. Before 2026-10-16: 0.765.",
 )
 
 #: "Missed" cap color — validated against the green bar and the gray cap
@@ -239,10 +308,13 @@ def _funnel_caption(funnel: Funnel) -> tuple[str, ...]:
     """Top-panel caption — the funnel reading, honest about Tier 1's tiny
     share and about the empty cells (counts formatted from ``funnel``)."""
     return (
-        "Cells resolved by tier ≤ N (cumulative). Tier 3 only ever finalizes the",
-        "residual the earlier tiers couldn't clear (the forced-escalated dates), so",
-        "coverage still climbs to 100% of populated cells even though its slice F1 is",
-        f"worst. Tier 1's share is a tiny {funnel.tier1} cells — consistent with its 0.34 F1.",
+        "Cells resolved by tier ≤ N (cumulative), by the tier whose value was kept. Tier 1's",
+        f"share is a tiny {funnel.tier1} cells — consistent with its 0.34 F1. Tier 3 re-reads "
+        "every Tier-2",
+        "field; its value is kept where the readings differ, it read something, and Tier 2's",
+        f"value doesn't validate ({funnel.tier3a} cells: {funnel.tier3a_free_text} free text "
+        f"with no validator, {funnel.tier3a_tier2_blank} Tier-2",
+        f"blanks, {funnel.tier3a_failed_validator} failed validator).",
         f"Empty cells, shown explicitly: {funnel.missed} missed (value on the form, none "
         f"extracted) + {funnel.true_negative} blank on the form.",
     )
@@ -257,11 +329,9 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
 
     Top: the escalation funnel — cumulative cells resolved by tier ≤ N
     against the total scorable cells, the empty remainder drawn explicitly
-    as missed + true-negative caps. Bottom: the 3 cumulative-tier F1 bars (the
-    Tier-1+2+3 regression tinted) with the embedded mechanism annotation.
-    The monotone coverage story leads; the honest non-monotone F1
-    counterpoint follows. No timestamp / git SHA — committed-artifact
-    stability.
+    as missed + true-negative caps. Bottom: the 3 cumulative-tier F1 bars (a
+    stage below its predecessor is tinted red) with the embedded mechanism
+    annotation. No timestamp / git SHA — committed-artifact stability.
     """
     stages = result.stages
     if not stages:

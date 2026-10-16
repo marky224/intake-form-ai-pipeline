@@ -12,6 +12,7 @@ from __future__ import annotations
 import sys
 
 from cascade.orchestrator import RunRecord
+from cascade.providers import _qwen_vl
 from demo.data import (
     ESCALATION_GATE,
     ByStageSummary,
@@ -29,6 +30,7 @@ from demo.data import (
     submit_correction,
     two_stage_f1,
 )
+from intake_schemas import HealthcareIntakeForm
 from rag import aliases as rag_aliases
 
 
@@ -38,7 +40,7 @@ def test_no_streamlit_dependency_in_data_layer() -> None:
 
 
 def test_escalation_gate_matches_locked_cascade_value() -> None:
-    """The demo reads the locked Tier-2→3 gate, it does not redeclare it."""
+    """The demo reads the cascade's review gate, it does not redeclare it."""
     assert ESCALATION_GATE == 0.80
 
 
@@ -78,11 +80,21 @@ def test_unknown_doc_id_raises() -> None:
         raise AssertionError("expected KeyError for an uncommitted doc_id")
 
 
-def test_phase5_coerced_scalar_review_queue_reality() -> None:
-    """At least one CMS-1500 necessarily parks for review on a coerced
-    date/scalar (locked 0.5 heuristic < 0.80 gate). When it does, the demo
-    must expose the driving fields — that is the human-in-the-loop surface,
-    not a hidden failure."""
+def _free_text_fields() -> set[str]:
+    """String-typed promptable fields — the ones the old type heuristic
+    scored 1.0 and therefore never parked."""
+    return {
+        name
+        for name, (inner, _meta) in _qwen_vl._extractable_fields(HealthcareIntakeForm).items()
+        if _qwen_vl._scalar_kind(inner) == "string_like"
+    }
+
+
+def test_second_read_disagreement_review_queue_reality() -> None:
+    """CMS-1500s park for review on Tier 2 / Tier 3 disagreements, and the
+    demo exposes the driving fields — the human-in-the-loop surface, not a
+    hidden failure. Free-text fields park too: the pre-2026-10-16 type
+    heuristic only ever parked dates and bools."""
     parked = []
     for doc in list_demo_docs():
         run = run_document(doc.doc_id)
@@ -92,12 +104,16 @@ def test_phase5_coerced_scalar_review_queue_reality() -> None:
             for name in run.review_drivers:
                 row = next(f for f in run.fields if f.name == name)
                 assert row.below_gate and not row.blank
-    assert parked, "Phase 5 reality: a coerced-scalar doc must reach review"
+    assert parked, "a second-read disagreement must reach review"
+    free_text = _free_text_fields()
+    assert any(
+        set(run.review_drivers) & free_text for run in parked
+    ), "a free-text disagreement must park, not only dates/bools"
 
 
 def test_two_stage_f1_headline_climbs_cascade_stays_flat() -> None:
     """Phase 6 finding, asserted: Tier-1 stage F1 climbs as the alias table
-    fills; end-to-end cascade F1 is flat ≈0.77 (the robustness stat)."""
+    fills; end-to-end cascade F1 is flat ≈0.85 (the robustness stat)."""
     ts = two_stage_f1()
     assert isinstance(ts, TwoStageF1)
     assert len(ts.tier1_series) == len(ts.cascade_series) >= 2
@@ -109,7 +125,7 @@ def test_two_stage_f1_headline_climbs_cascade_stays_flat() -> None:
     # Robustness: cascade barely moves across the whole sweep.
     cascade_vals = [f1 for _, f1 in ts.cascade_series]
     assert max(cascade_vals) - min(cascade_vals) < 0.02
-    assert 0.75 <= ts.cascade_mean <= 0.82
+    assert 0.80 <= ts.cascade_mean <= 0.90
 
 
 def test_by_stage_chart_svg_is_the_committed_artifact() -> None:
@@ -120,23 +136,24 @@ def test_by_stage_chart_svg_is_the_committed_artifact() -> None:
     assert "F1 by cumulative cascade stage" in svg
 
 
-def test_by_stage_summary_is_honest_non_monotone_with_monotone_funnel() -> None:
-    """The headline result, asserted: F1 is NOT monotone (Q4_K_M Tier 3
-    regresses) while the cells-resolved funnel IS monotone to 100%.
-    Deterministic from the committed fixtures (memory
-    project_tier3_q4km_net_negative)."""
+def test_by_stage_summary_matches_measured_result_and_monotone_funnel() -> None:
+    """The headline result, asserted exactly as measured, beside a
+    cells-resolved funnel that is monotone to 100%. Deterministic from the
+    committed fixtures. Until 2026-10-16 Tier 3 regressed (0.791 → 0.765);
+    the Tier 3 second read changed the cascade, not the chart, so the F1
+    triple is pinned rather than asserted to have any shape."""
     bs = by_stage_summary()
     assert isinstance(bs, ByStageSummary)
 
     f1s = [round(f, 3) for _, f in bs.stages]
-    assert f1s == [0.340, 0.791, 0.765], f"by-stage F1 drifted: {f1s}"
-    assert bs.regresses, "the honest non-monotone result must not be smoothed"
+    assert f1s == [0.340, 0.791, 0.853], f"by-stage F1 drifted: {f1s}"
+    assert not bs.regresses
 
     cum = [c for _, c in bs.funnel_cumulative]
-    assert cum == [2, 797, 981], f"funnel drifted: {cum}"
+    assert cum == [2, 822, 989], f"funnel drifted: {cum}"
     assert cum == sorted(cum), "the cells-resolved funnel must be monotone"
-    assert bs.populated == 981
-    assert (bs.missed, bs.true_negative) == (100, 23)
+    assert bs.populated == 989
+    assert (bs.missed, bs.true_negative) == (92, 23)
     assert bs.total == 1104
 
 
@@ -145,11 +162,15 @@ def test_by_stage_summary_is_honest_non_monotone_with_monotone_funnel() -> None:
 
 def test_replay_runs_cached_and_logs_corrections() -> None:
     """The seeded-reviewer replay runs end-to-end ($0, cached) and logs at
-    least one correction — Phase 5 guarantees a coerced-scalar doc parks."""
+    least one correction — a second-read disagreement parks a doc."""
     rp = replay_review_queue_corrections()
     assert isinstance(rp, CorrectionReplay)
-    assert rp.docs, "Phase 5 reality: at least one CMS-1500 parks for review"
+    assert rp.docs, "at least one CMS-1500 parks for review"
     assert rp.corrections_applied >= 1
+    # Second-read disagreements put free-text fields in front of the
+    # reviewer; the old type heuristic only ever parked dates and bools.
+    corrected = {c.field_name for d in rp.docs for c in d.corrections}
+    assert corrected & _free_text_fields(), f"only non-text fields corrected: {corrected}"
     for d in rp.docs:
         assert d.in_review_queue
         assert all(isinstance(c, CorrectionOutcome) for c in d.corrections)

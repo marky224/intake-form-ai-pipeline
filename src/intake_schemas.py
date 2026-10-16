@@ -192,7 +192,10 @@ class TierAttempt(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     raw_value: str | None = None
     reason_escalated: (
-        Literal["low_confidence", "schema_violation", "validator_failed", "manual_review"] | None
+        Literal[
+            "low_confidence", "schema_violation", "validator_failed", "manual_review", "second_read"
+        ]
+        | None
     ) = None
     timestamp: datetime | None = None
 

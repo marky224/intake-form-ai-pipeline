@@ -44,6 +44,11 @@ from intake_schemas import (
 #: Confidence for a string-like field used verbatim (no coercion). The inner
 #: type decides this statically so the cached-replay path is reproducible
 #: from the fixture alone (no runtime value-comparison heuristics).
+#:
+#: Both values here are *provisional*: a type label, not evidence. Since
+#: 2026-10-16 the orchestrator replaces them with the Tier 2 / Tier 3
+#: agreement confidence (``orchestrator._reconcile_second_read``); they
+#: survive only if Tier 3 fails.
 CLEAN_VALUE_CONFIDENCE = 1.0
 
 #: Confidence for a non-string scalar that had to be format-coerced from the

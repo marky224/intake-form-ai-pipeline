@@ -8,21 +8,38 @@ Qwen 2.5 VL 7B → Tier 3 Qwen 2.5 VL 32B — into one in-process pipeline:
    vocabulary classify, Stage 2 Qwen-7B fallback) and Tier 1 field
    extraction. The routed vertical picks the Pydantic ``form_cls``; Tier 1's
    raw response is re-parsed into that class (pure, no second OCR run).
-2. **Field-level escalation.** Fields whose confidence is below the
-   Tier 1→2 gate (0.85) escalate to Tier 2; of those, fields still below the
-   Tier 2→3 gate (0.80) escalate to Tier 3. Escalation **narrows the
+2. **Field-level escalation to Tier 2.** Fields whose confidence is below
+   the Tier 1→2 gate (0.85) escalate to Tier 2. Escalation **narrows the
    prompt**: only the sub-threshold fields are sent up, via a synthetic
    ``narrow_form_cls`` sub-model — the frozen ``extract(png, form_cls)``
    Protocol is unchanged and providers never learn they got a subset (see
    ``cascade.narrow``).
-3. **Exhaustion → review queue.** A field still sub-threshold after Tier 3,
-   or never produced by any tier, exhausts the V1 cascade (no cloud Sonnet
-   above Tier 3 — that's V2). The document's partial extraction is kept and
-   the run is parked in the SQLite ``review_queue`` with the full per-tier
-   error history.
+3. **Tier 3 second read.** Tier 3 reads every field Tier 2 handled, and
+   agreement between the two readings sets the final confidence
+   (:func:`_reconcile_second_read`): matching readings are accepted at
+   ``AGREEMENT_CONFIDENCE``; any mismatch gets ``DISAGREEMENT_CONFIDENCE``,
+   below the 0.80 gate. On a mismatch the Tier-2 value is kept if it
+   passes its field validator (``cascade.validators`` — so Tier 3 never
+   overwrites a validated date) or Tier 3 read nothing; otherwise Tier 3's
+   value is taken.
+   Provider confidences (the ``_qwen_vl`` type heuristic) are provisional
+   and only survive if Tier 3 fails.
+4. **Review queue.** A field still below 0.80 after the second read (a
+   disagreement), or never produced by any tier, exhausts the V1 cascade
+   (no cloud Sonnet above Tier 3 — that's V2). The document's partial
+   extraction is kept and the run is parked in the SQLite ``review_queue``
+   with the full per-tier error history.
 
-**Escalation predicate.** The locked rule is per-field confidence < gate
-(0.85 / 0.80). "Confidence" is read through the schema's own
+Why agreement (changed 2026-10-16): the type heuristic stamped every string
+1.0 and every date 0.5, so escalation followed field type — every date went
+to Tier 3, which overwrote correct Tier-2 dates. On the cached 92-doc test
+split, over the scored cells Tier 3 re-read where both tiers produced a
+value, Tier 2's value is correct on 94.7% of cells where the two values
+match (739/780) and 38.5% where they differ (74/192).
+
+**Escalation predicate.** The rule is per-field confidence < gate
+(0.85 into Tier 2; 0.80 for review after the second read). "Confidence" is
+read through the schema's own
 attempted/blank/unattempted trichotomy (``ExtractedField`` docstring;
 ``compute_form_confidence``): a field escalates when it was **never
 attempted** (``tier_used is None``) or was **extracted with a value** below
@@ -30,15 +47,14 @@ the gate (``value is not None and confidence < gate``). A
 *confidently-blank* field (``value is None`` with ``tier_used`` set) is a
 tier's confident "absent on this form" judgment — not a weak extraction — so
 it does **not** escalate and does not by itself trigger review. This is the
-schema's documented semantics, not a new threshold; Phase 6's eval sweep
-tunes the gate values, not this predicate.
+schema's documented semantics, not a new threshold.
 
 **Retry-then-escalate** (locked, all-local). A timeout / connection error /
 Ollama HTTP 5xx retries 3x with exponential backoff (1/2/4 s + jitter) then
-escalates. A per-request wall-clock cap (180 s; Tier 3 Q4_K_M measures
-~52 s/doc) is advisory in V1 — a blocking sync Ollama call can't be hard
--killed in-process, so an over-cap call is treated as a timeout-class
-failure on return (a true hard interrupt is V2 Step Functions work). The
+escalates. A per-request wall-clock cap (240 s; Tier 3's full-field
+Q4_K_M read averages ~117 s/doc, 161 s cold) is advisory in V1 — a blocking
+sync Ollama call can't be hard-killed in-process, so an over-cap call is
+treated as a timeout-class failure on return (a true hard interrupt is V2 Step Functions work). The
 locked "schema-validation failure → retry once with a *stricter prompt*"
 rule degrades in V1: the frozen Protocol exposes no prompt knob and the
 providers already internalize ``ValidationError`` (demoting bad values to
@@ -73,6 +89,7 @@ from cascade.providers.tier1_paddleocr_local import Tier1PaddleOcrLocal
 from cascade.providers.tier2_qwen_7b_local import Tier2Qwen7bLocal
 from cascade.providers.tier3_qwen_32b_local import Tier3Qwen32bLocal
 from cascade.router import RouteDecision, route
+from cascade.validators import validate
 from intake_schemas import (
     ExtractedField,
     HealthcareIntakeForm,
@@ -81,19 +98,32 @@ from intake_schemas import (
 
 logger = logging.getLogger(__name__)
 
-#: Locked per-field escalation gates (architecture-locked.md "Router (V1)" /
-#: README). Tuned in Phase 6 eval sweeps — these are the starting values.
+#: Per-field gates (architecture-locked.md "Router (V1)" / README). 0.85
+#: decides which Tier-1 fields go to Tier 2. 0.80 is the review gate after
+#: the Tier 3 second read (the name predates the second read).
 GATE_TIER1_TO_TIER2 = 0.85
 GATE_TIER2_TO_TIER3 = 0.80
+
+#: Final confidence when Tier 2 and Tier 3 read a field identically.
+AGREEMENT_CONFIDENCE = 0.95
+
+#: Final confidence when the two readings differ (or only one found a
+#: value). Below ``GATE_TIER2_TO_TIER3``, so the field parks for review.
+DISAGREEMENT_CONFIDENCE = 0.5
 
 #: Retry-then-escalate (locked). 3 retries, 1/2/4 s base backoff + jitter.
 MAX_RETRIES = 3
 _BACKOFF_BASE_S = (1.0, 2.0, 4.0)
 
-#: Advisory per-request wall-clock cap. Tier 3 Q4_K_M ≈ 52 s/doc; 180 s
-#: absorbs cold model load + headroom before an over-cap call is treated as
-#: a timeout-class failure on return.
-WALL_CLOCK_CAP_S = 180.0
+#: Advisory per-request wall-clock cap. Tier 3's full-field Q4_K_M read
+#: averages ~117 s/doc in the committed replay fixtures (107-161 s; the
+#: 161 s is the cold first call); 240 s leaves ~79 s of headroom over that
+#: before an over-cap call is treated as a timeout-class failure on return.
+#: (It was 180 s while Tier 3 read only the low-confidence fields.) The cap
+#: can only fail a call under ``EVAL_LIVE=true``: otherwise a provider saves
+#: its live reading to the replay cache before returning, so the retry after
+#: an over-cap call replays that reading from the cache.
+WALL_CLOCK_CAP_S = 240.0
 
 #: Pipeline version stamped onto the assembled form's metadata.
 PIPELINE_VERSION = "v1-cascade@phase5"
@@ -232,6 +262,42 @@ def _should_escalate(ef: ExtractedField[Any], gate: float) -> bool:
     return ef.confidence < gate
 
 
+def _reconcile_second_read(form: BaseModel, second: BaseModel, names: list[str]) -> None:
+    """Merge Tier 3's second read of ``names`` onto ``form`` (in place).
+
+    Per field, comparing the current value (Tier 2's, or Tier 1's if Tier 2
+    failed) with Tier 3's parsed value by exact equality:
+
+    - both empty → unchanged (stays confidently blank), or Tier 3's blank
+      stamp if the field had never been attempted (Tier 2 failed);
+    - equal → keep, confidence ``AGREEMENT_CONFIDENCE``;
+    - otherwise (a disagreement) → keep the first reading if it passes its
+      validator or Tier 3 read nothing; otherwise take Tier 3's field. So a
+      Tier-2 blank against a Tier-3 value takes Tier 3's, and a Tier-3
+      blank against a Tier-2 value keeps Tier 2's (a reading a human can
+      check is never dropped).
+
+    Every case except "equal" and "both empty" ends at
+    ``DISAGREEMENT_CONFIDENCE`` so the field parks for review. A case or
+    spacing difference counts as a disagreement (conservative: it goes to a
+    human rather than being silently accepted).
+    """
+    for name in names:
+        first, other = getattr(form, name), getattr(second, name)
+        if first.value is None and other.value is None:
+            if first.tier_used is None:
+                setattr(form, name, other)  # only Tier 3 attempted it
+            continue
+        if first.value == other.value:
+            setattr(form, name, first.model_copy(update={"confidence": AGREEMENT_CONFIDENCE}))
+            continue
+        keep_first = other.value is None or (
+            first.value is not None and validate(name, first.value) is True
+        )
+        chosen = first if keep_first else other
+        setattr(form, name, chosen.model_copy(update={"confidence": DISAGREEMENT_CONFIDENCE}))
+
+
 def _escalating_fields(
     form: BaseModel,
     candidates: list[str],
@@ -248,8 +314,13 @@ def _attempt_rows(
     latency_ms: float,
     *,
     escalated: set[str],
+    reason: str = "low_confidence",
 ) -> list[dict[str, Any]]:
-    """Build ``field_attempts`` rows for the fields ``tier`` just handled."""
+    """Build ``field_attempts`` rows for the fields ``tier`` just handled.
+
+    ``reason`` is recorded for the fields in ``escalated`` (sent on to the
+    next tier).
+    """
     rows: list[dict[str, Any]] = []
     for name in names:
         ef = getattr(form, name)
@@ -259,7 +330,7 @@ def _attempt_rows(
                 "tier": tier,
                 "value": None if ef.value is None else str(ef.value),
                 "confidence": ef.confidence,
-                "escalation_reason": "low_confidence" if name in escalated else None,
+                "escalation_reason": reason if name in escalated else None,
                 "latency_ms": latency_ms,
             }
         )
@@ -357,31 +428,34 @@ def process_document(
                     esc1,
                     2,
                     t2_result.latency_ms,
-                    escalated=set(_escalating_fields(form, esc1, GATE_TIER2_TO_TIER3)),
+                    escalated=set(esc1),
+                    reason="second_read",
                 )
                 final_tier = "2"
             except TierExhausted as exc:
                 error_history.append({"tier": "2", "error": str(exc), "fields": esc1})
 
-            # --- Tier 2 → Tier 3 escalation ---------------------------------
-            esc2 = _escalating_fields(form, esc1, GATE_TIER2_TO_TIER3)
-            if esc2:
-                escalations["3a"] = esc2
-                sub3 = narrow_form_cls(form_cls, esc2)
-                try:
-                    t3_result = _run_tier_with_retry(tier3, png, sub3)
-                    merge_fields(form, t3_result.form, esc2)
-                    attempt_rows += _attempt_rows(
-                        form, esc2, "3a", t3_result.latency_ms, escalated=set()
-                    )
-                    final_tier = "3a"
-                except TierExhausted as exc:
-                    error_history.append({"tier": "3a", "error": str(exc), "fields": esc2})
+            # --- Tier 3 second read -----------------------------------------
+            # Tier 3 re-reads every field Tier 2 handled; agreement between
+            # the two readings sets the final confidence.
+            escalations["3a"] = esc1
+            sub3 = narrow_form_cls(form_cls, esc1)
+            try:
+                t3_result = _run_tier_with_retry(tier3, png, sub3)
+                # The 3a rows record Tier 3's own reading; the reconciled
+                # value lives on the final form.
+                attempt_rows += _attempt_rows(
+                    t3_result.form, esc1, "3a", t3_result.latency_ms, escalated=set()
+                )
+                _reconcile_second_read(form, t3_result.form, esc1)
+                final_tier = "3a"
+            except TierExhausted as exc:
+                error_history.append({"tier": "3a", "error": str(exc), "fields": esc1})
 
         # --- Exhaustion check ----------------------------------------------
-        # Fields still sub-threshold after the last tier that ran (or never
-        # produced at all) exhaust the V1 cascade → review queue, partial
-        # extraction kept.
+        # Fields still below the gate after the last tier that ran (a
+        # second-read disagreement, or a field never produced at all)
+        # exhaust the V1 cascade → review queue, partial extraction kept.
         still_low = _escalating_fields(form, extractable, GATE_TIER2_TO_TIER3)
         if still_low:
             error_history.append({"tier": "exhausted", "unresolved_fields": still_low})

@@ -12,20 +12,19 @@ phases and surfaced honestly by the demo rather than hidden:
 
 1. **The F1-over-time story is two-stage** (Phase 6, memory
    ``project_phase6_two_stage_f1``). The *headline* curve is **Tier-1-stage**
-   F1 — it climbs as the progressive alias table fills (0.222 → 0.322 then
-   asymptotes on the 6 CMS-1500). End-to-end **cascade** F1 is **flat
-   ≈0.78**: strong Tier 2/3 escalation compensates, so the alias table barely
-   moves the merged result. The flat number is the *robustness* stat, not a
+   F1 — it climbs as the progressive alias table fills (0.242 → 0.340 then
+   asymptotes on the 92-doc test split). End-to-end **cascade** F1 is **flat
+   ≈0.85**: Tier 2 and the Tier 3 second read compensate, so the alias table
+   barely moves the merged result. The flat number is the *robustness* stat, not a
    failed climb — :func:`two_stage_f1` returns both series and the demo
    presents both.
 
-2. **Coerced scalars route to human review** (Phase 5, memory
-   ``project_phase5_coerced_review_queue``). The locked Tier-2/3 confidence
-   heuristic scores a coerced date/int/float/bool at 0.5, below the locked
-   0.80 escalation gate, so any CMS-1500 with such a field necessarily ends
-   in ``review_queue`` after Tier 3. That is the *intended* human-in-the-loop
-   surface — :func:`run_document` exposes it as a feature to show off, not a
-   bug to hide.
+2. **Second-read disagreements route to human review.** Tier 3 re-reads
+   every field Tier 2 handled; a field the two read differently gets 0.5,
+   below the 0.80 gate, and the document ends in ``review_queue``. (Until
+   2026-10-16 a type heuristic parked every date instead.) That is the
+   *intended* human-in-the-loop surface — :func:`run_document` exposes it as
+   a feature to show off, not a bug to hide.
 
 The demo never writes the real ``data/v1.db``: each cascade run and each eval
 sweep uses a throwaway temp database, so the demo is idempotent and safe to
@@ -70,10 +69,10 @@ from rag.store import load_corpus, load_embedding
 #: project_src_layout.
 BY_STAGE_CHART_SVG_PATH = repo_root() / "docs" / "assets" / "f1-by-stage.svg"
 
-#: The locked escalation gate the per-field panel highlights against. A
-#: populated value below this never reaches the final form unchallenged — it
-#: escalates, and if it survives Tier 3 still below gate the doc parks for
-#: review. Imported, not redeclared, so the demo can't drift from the cascade.
+#: The review gate the per-field panel highlights against (the cascade's
+#: ``GATE_TIER2_TO_TIER3``). After the Tier 3 second read, a populated value
+#: below it is a Tier 2 / Tier 3 disagreement and the doc parks for review.
+#: Imported, not redeclared, so the demo can't drift from the cascade.
 ESCALATION_GATE = GATE_TIER2_TO_TIER3
 
 
@@ -97,8 +96,8 @@ class FieldRow:
     value: str
     confidence: float
     tier_used: str | None
-    #: True iff a populated value landed below the escalation gate — the
-    #: locked coerced-scalar (0.5) case is the common driver here.
+    #: True iff a populated value landed below the escalation gate — a
+    #: Tier 2 / Tier 3 disagreement is the driver here.
     below_gate: bool
     #: True iff the field was never populated by any tier (confident blank or
     #: genuinely absent — ``tier_used`` set, ``value`` empty).
@@ -137,7 +136,7 @@ class TwoStageF1:
 
     @property
     def cascade_mean(self) -> float:
-        """The flat ≈0.77 robustness number (mean across batches)."""
+        """The flat ≈0.85 robustness number (mean across batches)."""
         vals = [f1 for _, f1 in self.cascade_series]
         return sum(vals) / len(vals)
 
@@ -147,9 +146,10 @@ class ByStageSummary:
     """The headline by-stage ablation + escalation funnel (Phase 6 / the
     by-stage artifact). Measured cached/$0 on the 92-doc ``test`` split.
 
-    ``stages`` is the cumulative-tier F1 triple — honestly **not monotone**
-    (the Q4_K_M Tier 3 regresses). ``funnel_cumulative`` is cells resolved
-    by tier ≤ N, which *does* rise monotonically to 100% of ``populated``.
+    ``stages`` is the cumulative-tier F1 triple, exactly as measured (Tier 3
+    regressed until the 2026-10-16 second read; it no longer does).
+    ``funnel_cumulative`` is cells resolved by tier ≤ N, which rises
+    monotonically to 100% of ``populated``.
     The empty remainder is surfaced explicitly rather than hidden, split by
     ground truth: ``missed`` (a value on the form, none extracted) and
     ``true_negative`` (empty on the form too).
@@ -168,7 +168,8 @@ class ByStageSummary:
     @property
     def regresses(self) -> bool:
         """True iff the final cumulative stage is below the previous one
-        (the honest non-monotone result this demo refuses to smooth)."""
+        (it was until the 2026-10-16 Tier 3 second read; the demo reports
+        the shape either way rather than smoothing it)."""
         f1s = [f for _, f in self.stages]
         return len(f1s) >= 2 and f1s[-1] < max(f1s[:-1])
 
@@ -267,9 +268,8 @@ def two_stage_f1() -> TwoStageF1:
     runs, cached, into a throwaway DB.
 
     Returns the Tier-1-stage headline series (climbs) and the end-to-end
-    cascade robustness series (flat ≈0.77). The committed SVG plots the
-    former; the demo shows the latter alongside it so the flat number is
-    never relabeled as a climbing curve.
+    cascade robustness series (flat ≈0.85). The demo shows both side by
+    side so the flat number is never relabeled as a climbing curve.
     """
     with tempfile.NamedTemporaryFile(suffix=".db", delete=True) as tmp:
         series = run_eval(db_path=tmp.name)
@@ -284,8 +284,8 @@ def by_stage_summary() -> ByStageSummary:
 
     Same computation the committed ``f1-by-stage.svg`` is rendered from
     (``evals.by_stage.compute_by_stage``), surfaced as live numbers so the
-    demo states the honest non-monotone F1 *and* the monotone cells-resolved
-    coverage from the same run — never one without the other.
+    demo states the measured F1 *and* the cells-resolved coverage from the
+    same run — never one without the other.
     """
     from evals.by_stage import compute_by_stage
 

@@ -24,8 +24,11 @@ Shipped:
   - ``cascade.store`` — normalized SQLite eval store (``runs`` +
     ``field_attempts`` + ``review_queue``; ``corrections`` + ``embeddings``
     reserved for Phase 8)
-  - ``cascade.orchestrator`` — chains the three providers per the locked
-    0.85 / 0.80 confidence gates with prompt-narrowing escalation +
-    retry-then-escalate failure handling; Tier 3 exhaustion → review queue;
-    ``HIPAA_MODE`` no-op (no V1 provider-routing surface)
+  - ``cascade.orchestrator`` — chains the three providers: Tier-1 fields
+    under 0.85 escalate to Tier 2 (prompt-narrowing), Tier 3 second-reads
+    every Tier-2 field and agreement sets the final confidence, a field
+    under 0.80 after that → review queue; retry-then-escalate failure
+    handling; ``HIPAA_MODE`` no-op (no V1 provider-routing surface)
+  - ``cascade.validators`` — format / plausibility checks (date range, ZIP,
+    state, phone); a validated Tier-2 value is never overwritten by Tier 3
 """
