@@ -52,10 +52,18 @@ def test_missing_extraction_with_truth_is_fn():
     assert (c.tp, c.fp, c.fn) == (0, 0, 1)
 
 
-def test_confidently_blank_excluded_from_pr():
-    # value None but tier_used set → affirmative absence → excluded.
+def test_confidently_blank_with_truth_is_fn():
+    # value None, tier_used set, but the form has a value: the "absent"
+    # judgment was wrong → a miss, counted in recall.
     form = _form(first_name=ExtractedField(value=None, confidence=0.95, tier_used=2))
     c = score_form(form, {"first_name": "jane"}, ["first_name"])
+    assert (c.tp, c.fp, c.fn, c.blank_excluded) == (0, 0, 1, 0)
+
+
+def test_confidently_blank_without_truth_is_true_negative():
+    # value None, tier_used set, no ground truth → correct absence, out of P/R.
+    form = _form(first_name=ExtractedField(value=None, confidence=0.95, tier_used=2))
+    c = score_form(form, {}, ["first_name"])
     assert (c.tp, c.fp, c.fn, c.blank_excluded) == (0, 0, 0, 1)
 
 

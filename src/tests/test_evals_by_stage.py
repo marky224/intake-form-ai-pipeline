@@ -19,15 +19,17 @@ from evals.by_stage import (
     render_by_stage_svg,
 )
 
-# Measured 2026-05-18, cached, $0 (memory project_tier3_q4km_net_negative).
-# The Q4_K_M Tier-3 regression (0.768 < 0.794) is intentional and shipped.
-_EXPECTED_F1 = (0.340, 0.794, 0.768)
-_EXPECTED_FUNNEL = Funnel(tier1=2, tier2=795, tier3a=184, blank=123)
+# Re-measured 2026-10-16, cached, $0, after confidently-blank cells with
+# ground truth became false negatives. The Q4_K_M Tier-3 regression
+# (0.765 < 0.791) is intentional and shipped. Of the 123 empty cells, 100
+# are missed (92 signature + 8 first_name) and 23 are true negatives.
+_EXPECTED_F1 = (0.340, 0.791, 0.765)
+_EXPECTED_FUNNEL = Funnel(tier1=2, tier2=795, tier3a=184, missed=100, true_negative=23)
 
 
 def _sample() -> ByStage:
     return ByStage(
-        stages=[("Tier 1", 0.340), ("Tier 1+2", 0.794), ("Tier 1+2+3", 0.768)],
+        stages=[("Tier 1", 0.340), ("Tier 1+2", 0.791), ("Tier 1+2+3", 0.765)],
         funnel=_EXPECTED_FUNNEL,
     )
 
@@ -37,13 +39,18 @@ def test_render_is_deterministic_and_has_no_timestamp():
     b = render_by_stage_svg(_sample(), seed_version="1.0.0")
     assert a == b
     assert "<svg" in a and a.endswith("</svg>\n")
-    assert "0.340" in a and "0.794" in a and "0.768" in a
+    assert "0.340" in a and "0.791" in a and "0.765" in a
     assert "alias_table_seed v1.0.0" in a
     # Both panels present.
     assert "F1 by cumulative cascade stage" in a
     assert "Escalation funnel" in a
-    # Funnel remainder shown explicitly, not hidden.
-    assert "123 genuinely-blank cells" in a
+    # Funnel remainder shown explicitly, not hidden — and split by truth.
+    assert "100 missed" in a and "23 blank on form" in a
+    assert "100 missed (value on the form, none extracted)" in a
+    # Every stage label is drawn under both panels (cap labels must not
+    # replace the last bar's axis label).
+    for stage in ("Tier 1", "Tier 1+2", "Tier 1+2+3"):
+        assert a.count(f">{stage}</text>") == 2, stage
     # No churn vectors in a committed artifact ("720"/"786" dims are fine).
     for token in ("generated_at", "git", "T00:"):
         assert token not in a

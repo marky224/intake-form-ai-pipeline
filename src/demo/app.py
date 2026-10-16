@@ -16,7 +16,7 @@ Everything renders honestly:
   Q4_K_M Tier 3 regresses — beside an escalation funnel whose cumulative
   cells-resolved coverage *does* rise to 100%. Both readings, same run.
 * The two-stage F1 numbers below show the **Tier-1 stage** climbing as the
-  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.78) —
+  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.77) —
   labeled the *robustness* stat, never relabeled as a climb.
 * Documents land in ``review_queue`` because the locked coerced-scalar
   confidence (0.5) sits under the 0.80 gate. That panel is presented as the
@@ -267,8 +267,9 @@ def _render_by_stage(bs: ByStageSummary) -> None:
         "monotonically is the **escalation funnel**: cumulative cells "
         f"resolved by tier ≤ N climbs to **100% of the {bs.populated} "
         f"populated cells**, because Tier 3 still finalizes the residual the "
-        f"earlier tiers couldn't clear. The {bs.blank} genuinely-blank cells "
-        "are an explicit remainder, not hidden in the denominator."
+        f"earlier tiers couldn't clear. The empty cells are an explicit "
+        f"remainder, not hidden in the denominator: {bs.missed} missed (a value "
+        f"on the form, none extracted) and {bs.true_negative} blank on the form."
     )
     left, right = st.columns([3, 2])
     with left:
@@ -290,8 +291,8 @@ def _render_by_stage(bs: ByStageSummary) -> None:
             hide_index=True,
         )
         st.caption(
-            f"{bs.populated} populated + {bs.blank} genuinely blank = "
-            f"{bs.total} scorable cells. F1 not monotone; coverage is."
+            f"{bs.populated} populated + {bs.missed} missed + {bs.true_negative} "
+            f"blank on form = {bs.total} scorable cells. F1 not monotone; coverage is."
         )
 
 

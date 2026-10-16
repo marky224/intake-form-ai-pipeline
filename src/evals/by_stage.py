@@ -13,7 +13,7 @@ the committed replay cache ($0, deterministic — CI reproduces it):
   orchestrator escalation logic.
 - **Tier 1+2+3** — the real cascade.
 
-The honest result is **not** monotone: ``0.340 → 0.794 → 0.768``. The 7B
+The honest result is **not** monotone: ``0.340 → 0.791 → 0.765``. The 7B
 Tier 2 does the real lift; the **Q4_K_M Tier 3 regresses -0.026**.
 Mechanism (probed field-by-field): Tier 3 only ever re-extracts the
 fields that *escalated* (confidence < 0.80). The locked 0.5-confidence
@@ -32,9 +32,12 @@ value. Cumulative cells resolved by tier ≤ N **rises monotonically** to
 *slice* F1 is the worst: Tier 3 only ever finalizes the residual the
 earlier tiers couldn't clear (the forced-escalated dates), so the
 cascade still drives every populated cell to a resolved state. The 123
-genuinely-blank cells (no value on the source form) are shown as an
-explicit remainder, not hidden — Tier 1's funnel share is a tiny 2 cells,
-consistent with its 0.34 F1; it is not dressed up.
+empty cells are shown as an explicit remainder, split by ground truth:
+100 **missed** (the form has a value, the cascade produced none — 92
+``signature`` cells no tier attempts, 8 ``first_name`` cells Tier 2 left
+blank) and 23 **true negatives** (absent on the source form). Tier 1's
+funnel share is a tiny 2 cells, consistent with its 0.34 F1; it is not
+dressed up.
 """
 
 from __future__ import annotations
@@ -45,7 +48,7 @@ from pathlib import Path
 from _paths import repo_root
 from cascade import store
 from cascade.orchestrator import build_cascade, process_document
-from evals.ground_truth import FIELD_KIND, load_cms1500_ground_truth
+from evals.ground_truth import FIELD_KIND, GroundTruth, load_cms1500_ground_truth
 from evals.harness import _tier1_stage_form
 from evals.manifest import CMS1500_VALIDATION_DIR, load_manifest
 from evals.metrics import aggregate, score_form
@@ -63,22 +66,25 @@ class Funnel:
     """Scorable-cell escalation funnel from the full cascade run.
 
     ``tier1``/``tier2``/``tier3a`` count populated cells by the tier that
-    finally produced their value; ``blank`` is the genuinely-empty cells
-    (no value on the source form — true negatives, shown as an explicit
-    remainder rather than hidden). The cascade is monotone *here*: every
-    populated cell is resolved by some tier, so the cumulative-by-tier
+    finally produced their value. Empty cells split by ground truth:
+    ``missed`` has a value on the form but none extracted (unattempted or
+    confidently blank — a false negative in ``score_form``);
+    ``true_negative`` is empty on the form too. Both are drawn as an
+    explicit remainder rather than hidden. The cascade is monotone *here*:
+    every populated cell is resolved by some tier, so the cumulative-by-tier
     curve rises to 100% of ``populated`` even where the F1 panel dips.
     """
 
     tier1: int
     tier2: int
     tier3a: int
-    blank: int
+    missed: int
+    true_negative: int
 
     @property
     def total(self) -> int:
-        """All scorable cells (populated + genuinely blank)."""
-        return self.tier1 + self.tier2 + self.tier3a + self.blank
+        """All scorable cells (populated + missed + true negatives)."""
+        return self.tier1 + self.tier2 + self.tier3a + self.missed + self.true_negative
 
     @property
     def populated(self) -> int:
@@ -102,20 +108,24 @@ class ByStage:
     funnel: Funnel
 
 
-def _funnel_from_form(form: object) -> tuple[int, int, int, int]:
-    """Bucket one form's scorable cells: ``(tier1, tier2, tier3a, blank)``.
+def _funnel_from_form(form: object, truth: GroundTruth) -> tuple[int, int, int, int, int]:
+    """Bucket one form's scorable cells: ``(tier1, tier2, tier3a, missed, true_negative)``.
 
-    A cell with no value is ``blank`` (genuinely absent on the source
-    form, a true negative). A populated cell is attributed to the tier
-    that produced its value — ``ExtractedField.tier_used`` is ``1`` /
-    ``2`` for Tier 1/2 and the lettered ``"3a"`` for Tier 3.
+    A cell with no value is ``missed`` when ground truth has a value for it
+    (the cascade missed it) and ``true_negative`` when it doesn't (absent on
+    the source form). A populated cell is attributed to the tier that
+    produced its value — ``ExtractedField.tier_used`` is ``1`` / ``2`` for
+    Tier 1/2 and the lettered ``"3a"`` for Tier 3.
     """
-    t1 = t2 = t3 = blank = 0
+    t1 = t2 = t3 = missed = true_negative = 0
     for name in _SCORABLE:
         ef = getattr(form, name, None)
         value = getattr(ef, "value", None) if ef is not None else None
         if value is None:
-            blank += 1
+            if truth.get(name) is not None:
+                missed += 1
+            else:
+                true_negative += 1
             continue
         tier = getattr(ef, "tier_used", None)
         if tier == 1:
@@ -124,7 +134,7 @@ def _funnel_from_form(form: object) -> tuple[int, int, int, int]:
             t2 += 1
         else:  # "3a" (or any Tier-3 label) — the forced-escalation residual
             t3 += 1
-    return t1, t2, t3, blank
+    return t1, t2, t3, missed, true_negative
 
 
 def compute_by_stage() -> ByStage:
@@ -142,7 +152,7 @@ def compute_by_stage() -> ByStage:
     t1, t2, t3 = build_cascade()
 
     rows: dict[str, list] = {label: [] for label in STAGE_LABELS}
-    fn_t1 = fn_t2 = fn_t3 = fn_blank = 0
+    fn_t1 = fn_t2 = fn_t3 = fn_missed = fn_tn = 0
     conn12 = store.connect(":memory:")
     store.init_db(conn12)
     conn123 = store.connect(":memory:")
@@ -160,11 +170,12 @@ def compute_by_stage() -> ByStage:
 
             r123 = process_document(png, doc_id=e.doc_id, conn=conn123, providers=(t1, t2, t3))
             rows["Tier 1+2+3"].append((r123.vertical, score_form(r123.form, truth, _SCORABLE), 0.0))
-            d1, d2, d3, db = _funnel_from_form(r123.form)
+            d1, d2, d3, dm, dn = _funnel_from_form(r123.form, truth)
             fn_t1 += d1
             fn_t2 += d2
             fn_t3 += d3
-            fn_blank += db
+            fn_missed += dm
+            fn_tn += dn
     finally:
         conn12.close()
         conn123.close()
@@ -172,7 +183,9 @@ def compute_by_stage() -> ByStage:
     stages = [(label, aggregate(rows[label]).f1) for label in STAGE_LABELS]
     return ByStage(
         stages=stages,
-        funnel=Funnel(tier1=fn_t1, tier2=fn_t2, tier3a=fn_t3, blank=fn_blank),
+        funnel=Funnel(
+            tier1=fn_t1, tier2=fn_t2, tier3a=fn_t3, missed=fn_missed, true_negative=fn_tn
+        ),
     )
 
 
@@ -188,11 +201,12 @@ def _esc(text: str) -> str:
 _W = 720
 _M_L, _M_R = 70, 30  # left / right plot margins (shared by both panels)
 
-# Top panel — escalation funnel. Axis 0 … total scorable cells; the
-# genuinely-blank remainder is a stacked gray cap on the final bar (an
-# explicit remainder, never a thin full-width band the value labels
-# collide with). The funnel leads — it is the monotone coverage story;
-# the F1 panel below is the honest non-monotone counterpoint.
+# Top panel — escalation funnel. Axis 0 … total scorable cells; the empty
+# remainder is two stacked caps on the final bar — missed (magenta) under
+# true negatives (gray) — an explicit remainder, never a thin full-width
+# band the value labels collide with. The funnel leads — it is the
+# monotone coverage story; the F1 panel below is the honest non-monotone
+# counterpoint.
 _F_TITLE_Y = 28
 _F_TOP = 52  # y for count == total (top of plot)
 _F_BOT = 248  # zero baseline
@@ -216,14 +230,22 @@ _MECHANISM = (
     "Shipped honest: motivates the local Qwen3-VL Tier-3b upgrade.",
 )
 
-#: Top-panel caption — the funnel reading, honest about Tier 1's tiny share.
-_FUNNEL_CAPTION = (
-    "Cells resolved by tier ≤ N (cumulative). Tier 3 only ever finalizes the",
-    "residual the earlier tiers couldn't clear (the forced-escalated dates), so",
-    "coverage still climbs to 100% of populated cells even though its slice F1 is",
-    "worst. Tier 1's share is a tiny 2 cells — consistent with its 0.34 F1, not",
-    "dressed up. The 123 genuinely-blank cells are an explicit remainder.",
-)
+#: "Missed" cap color — validated against the green bar and the gray cap
+#: (deutan ΔE 16.9, normal ΔE 32.5); the gray cap is a neutral remainder.
+_MISSED_FILL = "#a05195"
+
+
+def _funnel_caption(funnel: Funnel) -> tuple[str, ...]:
+    """Top-panel caption — the funnel reading, honest about Tier 1's tiny
+    share and about the empty cells (counts formatted from ``funnel``)."""
+    return (
+        "Cells resolved by tier ≤ N (cumulative). Tier 3 only ever finalizes the",
+        "residual the earlier tiers couldn't clear (the forced-escalated dates), so",
+        "coverage still climbs to 100% of populated cells even though its slice F1 is",
+        f"worst. Tier 1's share is a tiny {funnel.tier1} cells — consistent with its 0.34 F1.",
+        f"Empty cells, shown explicitly: {funnel.missed} missed (value on the form, none "
+        f"extracted) + {funnel.true_negative} blank on the form.",
+    )
 
 
 def _stage_y(f1: float) -> float:
@@ -234,8 +256,8 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
     """Render both panels to one deterministic SVG string.
 
     Top: the escalation funnel — cumulative cells resolved by tier ≤ N
-    against the total scorable cells, the genuinely-blank remainder drawn
-    explicitly as a gray cap. Bottom: the 3 cumulative-tier F1 bars (the
+    against the total scorable cells, the empty remainder drawn explicitly
+    as missed + true-negative caps. Bottom: the 3 cumulative-tier F1 bars (the
     Tier-1+2+3 regression tinted) with the embedded mechanism annotation.
     The monotone coverage story leads; the honest non-monotone F1
     counterpoint follows. No timestamp / git SHA — committed-artifact
@@ -268,7 +290,7 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
     span = _F_BOT - _F_TOP
 
     def _funnel_y(count: int) -> float:
-        # Axis 0 … total scorable cells (populated + genuinely blank).
+        # Axis 0 … total scorable cells (populated + missed + true negatives).
         return _F_BOT - (count / total) * span if total else _F_BOT
 
     y_pop = _funnel_y(populated)  # the "100% of populated" reference height
@@ -280,7 +302,7 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
         f'<line x1="{plot_l}" y1="{_F_BOT}" x2="{plot_r}" y2="{_F_BOT}" '
         f'stroke="#333" stroke-width="1.5"/>'
     )
-    # Faint reference line at 100%-of-populated; the blank remainder lives
+    # Faint reference line at 100%-of-populated; the empty remainder lives
     # above it and is drawn explicitly as a cap on the final bar.
     parts.append(
         f'<line x1="{plot_l}" y1="{y_pop:.1f}" x2="{plot_r}" y2="{y_pop:.1f}" '
@@ -300,19 +322,36 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" '
             f'height="{h:.1f}" fill="#2ca02c"/>'
         )
-        # Last bar carries the genuinely-blank remainder as an explicit
-        # gray cap (981 resolved + 123 blank = 1104 total) — never hidden.
-        if i == len(funnel.cumulative) - 1 and funnel.blank:
-            cap_h = y - _F_TOP
-            parts.append(
-                f'<rect x="{x:.1f}" y="{_F_TOP:.1f}" width="{bar_w:.1f}" '
-                f'height="{cap_h:.1f}" fill="#d9d9d9"/>'
-            )
-            parts.append(
-                f'<text x="{cx:.1f}" y="{(_F_TOP + y) / 2 + 4:.1f}" '
-                f'text-anchor="middle" font-size="11" fill="#777">'
-                f"{funnel.blank} blank</text>"
-            )
+        # Last bar carries the empty remainder as two explicit caps —
+        # missed, then true negatives (populated + missed + true negatives
+        # = total) — never hidden. Labels sit left of the bar in muted ink
+        # (the caps are too thin to hold text); a 2px surface line
+        # separates the stacked fills.
+        if i == len(funnel.cumulative) - 1 and (funnel.missed or funnel.true_negative):
+            y_missed = _funnel_y(cum + funnel.missed)
+            for top, bottom, fill in (
+                (y_missed, y, _MISSED_FILL),
+                (_F_TOP, y_missed, "#d9d9d9"),
+            ):
+                parts.append(
+                    f'<rect x="{x:.1f}" y="{top:.1f}" width="{bar_w:.1f}" '
+                    f'height="{bottom - top:.1f}" fill="{fill}"/>'
+                )
+            for edge in (y, y_missed):
+                parts.append(
+                    f'<line x1="{x:.1f}" y1="{edge:.1f}" x2="{x + bar_w:.1f}" '
+                    f'y2="{edge:.1f}" stroke="#ffffff" stroke-width="2"/>'
+                )
+            missed_y = (y_missed + y) / 2 + 4
+            tn_y = min((_F_TOP + y_missed) / 2 + 4, missed_y - 12)
+            for cap_y, cap_label in (
+                (missed_y, f"{funnel.missed} missed"),
+                (tn_y, f"{funnel.true_negative} blank on form"),
+            ):
+                parts.append(
+                    f'<text x="{x - 6:.1f}" y="{cap_y:.1f}" text-anchor="end" '
+                    f'font-size="11" fill="#777">{cap_label}</text>'
+                )
         # Value label inside a tall bar (white), else above a short one.
         if h > 30:
             parts.append(
@@ -335,7 +374,7 @@ def render_by_stage_svg(result: ByStage, *, seed_version: str) -> str:
         f'<text x="18" y="{f_mid:.1f}" text-anchor="middle" font-size="13" '
         f'fill="#333" transform="rotate(-90 18 {f_mid:.1f})">cells resolved</text>'
     )
-    for j, line in enumerate(_FUNNEL_CAPTION):
+    for j, line in enumerate(_funnel_caption(funnel)):
         parts.append(
             f'<text x="{plot_l}" y="{_F_CAP_Y + j * 16:.1f}" '
             f'font-size="11.5" fill="#555">{_esc(line)}</text>'

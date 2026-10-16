@@ -63,13 +63,14 @@ def _by_stage() -> int:
     (_, f1_t1), (_, f1_t12), (_, f1_t123) = result.stages
     logging.info(
         "by-stage F1: %.3f → %.3f → %.3f | funnel cells T1=%d T1+2=%d "
-        "T1+2+3=%d (of %d populated, %d blank)",
+        "T1+2+3=%d (of %d populated; %d missed, %d true negatives)",
         f1_t1,
         f1_t12,
         f1_t123,
         *[c for _, c in f.cumulative],
         f.populated,
-        f.blank,
+        f.missed,
+        f.true_negative,
     )
     return 0
 

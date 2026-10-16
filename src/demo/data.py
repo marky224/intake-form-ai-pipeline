@@ -137,7 +137,7 @@ class TwoStageF1:
 
     @property
     def cascade_mean(self) -> float:
-        """The flat ≈0.78 robustness number (mean across batches)."""
+        """The flat ≈0.77 robustness number (mean across batches)."""
         vals = [f1 for _, f1 in self.cascade_series]
         return sum(vals) / len(vals)
 
@@ -149,19 +149,21 @@ class ByStageSummary:
 
     ``stages`` is the cumulative-tier F1 triple — honestly **not monotone**
     (the Q4_K_M Tier 3 regresses). ``funnel_cumulative`` is cells resolved
-    by tier ≤ N, which *does* rise monotonically to 100% of ``populated``;
-    ``blank`` is the genuinely-empty remainder (true negatives), surfaced
-    explicitly rather than hidden.
+    by tier ≤ N, which *does* rise monotonically to 100% of ``populated``.
+    The empty remainder is surfaced explicitly rather than hidden, split by
+    ground truth: ``missed`` (a value on the form, none extracted) and
+    ``true_negative`` (empty on the form too).
     """
 
     stages: list[tuple[str, float]]
     funnel_cumulative: list[tuple[str, int]]
     populated: int
-    blank: int
+    missed: int
+    true_negative: int
 
     @property
     def total(self) -> int:
-        return self.populated + self.blank
+        return self.populated + self.missed + self.true_negative
 
     @property
     def regresses(self) -> bool:
@@ -265,7 +267,7 @@ def two_stage_f1() -> TwoStageF1:
     runs, cached, into a throwaway DB.
 
     Returns the Tier-1-stage headline series (climbs) and the end-to-end
-    cascade robustness series (flat ≈0.78). The committed SVG plots the
+    cascade robustness series (flat ≈0.77). The committed SVG plots the
     former; the demo shows the latter alongside it so the flat number is
     never relabeled as a climbing curve.
     """
@@ -292,7 +294,8 @@ def by_stage_summary() -> ByStageSummary:
         stages=[(label, float(f1)) for label, f1 in result.stages],
         funnel_cumulative=[(label, int(c)) for label, c in result.funnel.cumulative],
         populated=result.funnel.populated,
-        blank=result.funnel.blank,
+        missed=result.funnel.missed,
+        true_negative=result.funnel.true_negative,
     )
 
 

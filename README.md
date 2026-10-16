@@ -19,8 +19,8 @@ The interesting part of this project is not that a curve goes up. It's that meas
 | Cascade stage | End-to-end F1 | What the tier adds |
 |---|---|---|
 | Tier 1 — PaddleOCR-VL | 0.340 | layout parse + alias-table match |
-| + Tier 2 — Qwen 2.5 VL 7B | **0.794** | the real lift |
-| + Tier 3 — Qwen 2.5 VL 32B · Q4_K_M | 0.768 | **−0.026 — regresses** |
+| + Tier 2 — Qwen 2.5 VL 7B | **0.791** | the real lift |
+| + Tier 3 — Qwen 2.5 VL 32B · Q4_K_M | 0.765 | **−0.026 — regresses** |
 
 **The cascade is not monotone** (lower panel; numbers above). The Qwen 7B Tier 2 does the real lift; adding the Q4_K_M-quantized 32B Tier 3 *regresses* −0.026. Tier 3 only ever re-extracts the fields that escalated (confidence < 0.80), and the locked 0.5-confidence heuristic on coerced scalars forces every date field below that gate even when Tier 2 had it right — so the quantized 32B re-extracts those dates and overwrites correct values (29 of 31 changed fields go correct → wrong, nearly all dates). It ships as-is rather than engineered monotone; a better (unquantized, reasoning) local Tier-3b is the *measured* lever to fix it, not a framing change.
 
@@ -94,7 +94,7 @@ just demo           # Streamlit on :8501 — real 3-tier cascade over the
 
 ![V1 local demo — by-stage ablation + escalation-funnel headline over the cached 92-doc cascade](docs/assets/demo-screenshot.png)
 
-The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.794 → 0.768` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run), with the supporting two-stage F1 numbers below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `by-stage` run the harness and regenerate the CI-drift-guarded SVG; full task list in the `justfile`.
+The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (the honest non-monotone F1 `0.340 → 0.791 → 0.765` shown beside the monotone *cells-resolved* coverage rising to 100%, both from the same cached run), with the supporting two-stage F1 numbers below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `by-stage` run the harness and regenerate the CI-drift-guarded SVG; full task list in the `justfile`.
 
 ## Project structure
 
