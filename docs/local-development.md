@@ -137,7 +137,7 @@ git add tests/fixtures/eval-cache/tier1_paddleocr_local/
 
 ### Validation set
 
-The checked-in validation corpus is CMS-1500 only (92 PNGs — the patient-stratified `test` split of the 584-doc Synthea→CMS-1500 local corpus; Synthea/MIT, redistributable). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this MIT public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). The committed CMS-1500 `test` split is the redistributable measured corpus; a separate redistribution-clean DocILE fixture strategy was considered and deliberately not pursued for the complete V1 (the licensing constraint is intrinsic, not a gap).
+The checked-in validation corpus is CMS-1500 only (92 PNGs — the patient-stratified `test` split of the 584-doc Synthea→CMS-1500 local corpus; Synthea-generated synthetic data with no PHI, safe to commit). DocILE PDFs are CC-BY-NC-ND 4.0 and cannot be redistributed in this public repo, so DocILE-side Tier 1 validation runs on the GPU build machine against the downloaded DocILE `annotated-trainval` corpus and the generated eval-cache fixtures stay local (gitignored). The committed CMS-1500 `test` split is the redistributable measured corpus; a separate redistribution-clean DocILE fixture strategy was considered and deliberately not pursued for the complete V1 (the licensing constraint is intrinsic, not a gap).
 
 ## Synthea workflow
 
@@ -180,19 +180,19 @@ For development you usually want fewer patients than 500. Run each step individu
 ```bash
 # 1. Synthea: generate 10 FHIR bundles with seed 42 (matches the committed test fixture).
 just synthetic-data-patients 10 42
-# Output: synthetic_data/output/synthea/fhir/*.json
+# Output: src/synthetic_data/output/synthea/fhir/*.json
 
 # 2. Render: walk the FHIR dir and produce one (PNG, sidecar JSON) pair per patient.
 uv run python -m synthetic_data.render.batch \
-    --input synthetic_data/output/synthea/fhir \
-    --output synthetic_data/output/render
-# Output: synthetic_data/output/render/<patient-id>-<sha8>.{png,json}
+    --input src/synthetic_data/output/synthea/fhir \
+    --output src/synthetic_data/output/render
+# Output: src/synthetic_data/output/render/<patient-id>-<sha8>.{png,json}
 
 # 3. Store: copy the pairs into the local content-addressable store.
 uv run python -m synthetic_data.render.upload \
-    --input synthetic_data/output/render \
-    --store-root synthetic_data/output/store
-# Store paths: synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.{png,json}
+    --input src/synthetic_data/output/render \
+    --store-root src/synthetic_data/output/store
+# Store paths: src/synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.{png,json}
 ```
 
 `synthetic-data-patients` accepts a count and seed (`just synthetic-data-patients 500 1337`). The render and store CLIs always process whatever's in the input directory — there's no built-in limit flag on the store step, and `--limit N` on `render.batch` renders the first N patients in sorted-by-filename order.
@@ -202,8 +202,8 @@ uv run python -m synthetic_data.render.upload \
 The store writer derives each file's path from the PNG's `image_sha256` (already computed by the renderer and recorded in the sidecar — it does not re-hash). PNG and sidecar share the hash and differ only in extension:
 
 ```text
-synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.png
-synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.json
+src/synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.png
+src/synthetic_data/output/store/synthetic/healthcare/cms1500/<image_sha256>.json
 ```
 
 The source record (a Synthea `patient_id` for healthcare, a DocILE `<doc_id>-p<page>` slug for business documents) lives in the stored sidecar's `source_id` field — co-located on the local filesystem, so no separate object-metadata stamp is needed (the S3 path's `x-amz-meta-source-id` HEAD optimization was moot once the sidecar is local). Re-runs land at the same paths (the renderer is deterministic for a given Chromium version) and overwrite the identical bytes in place, so partial-failure retries resume cleanly without external bookkeeping.
@@ -247,22 +247,22 @@ just synthetic-data-docile-build 5     # 5 documents from the train split
 ### Step-by-step (debugging)
 
 ```bash
-# 1. Download annotated-trainval (~1.1 GB zip, extracts into synthetic_data/output/docile/).
+# 1. Download annotated-trainval (~1.1 GB zip, extracts into src/synthetic_data/output/docile/).
 #    Idempotent: skips if annotations/ is already populated.
 uv run python -m synthetic_data.docile.download \
-    --dest synthetic_data/output/docile
+    --dest src/synthetic_data/output/docile
 
 # 2. Ingest: parse + rasterize + build sidecar per page. No store surface.
-#    Output: synthetic_data/output/docile/render/<doc_id>-p<N>.{png,json}
+#    Output: src/synthetic_data/output/docile/render/<doc_id>-p<N>.{png,json}
 uv run python -m synthetic_data.docile.ingest \
-    --dataset-root synthetic_data/output/docile \
-    --render-dir synthetic_data/output/docile/render \
+    --dataset-root src/synthetic_data/output/docile \
+    --render-dir src/synthetic_data/output/docile/render \
     --limit 5
 
 # 3. Store: copy pairs into the local content-addressable store.
 uv run python -m synthetic_data.render.upload \
-    --input synthetic_data/output/docile/render \
-    --store-root synthetic_data/output/store \
+    --input src/synthetic_data/output/docile/render \
+    --store-root src/synthetic_data/output/store \
     --prefix synthetic/business/docile
 ```
 
@@ -271,8 +271,8 @@ uv run python -m synthetic_data.render.upload \
 Identical to the healthcare path; only the prefix differs:
 
 ```text
-synthetic_data/output/store/synthetic/business/docile/<image_sha256>.png
-synthetic_data/output/store/synthetic/business/docile/<image_sha256>.json
+src/synthetic_data/output/store/synthetic/business/docile/<image_sha256>.png
+src/synthetic_data/output/store/synthetic/business/docile/<image_sha256>.json
 ```
 
 The stored sidecar's `source_id` is `<doc_id>-p<page_number>` (1-indexed page), recovering both the DocILE document id and the specific page — read straight from the co-located sidecar (no object-metadata stamp needed on a local filesystem).

@@ -1,8 +1,8 @@
 # Evaluation methodology
 
-The eval harness is the project's measurement instrument. It produces three numbers per batch — F1, cost-per-document, and latency p50/p99 — across a partitioned document corpus. F1 is the headline metric; the README's headline visual is the **by-stage ablation + escalation funnel** (`docs/assets/f1-by-stage.svg`), with the F1-over-time self-improvement chart and the full two-stage finding documented here in this methodology doc. The other two numbers are secondary signals showing that self-improvement reduces cost and latency in lockstep with accuracy gains.
+The eval harness is the project's measurement instrument. It produces three numbers per batch — F1, cost-per-document, and latency p50/p99 — across a partitioned document corpus. F1 is the headline metric; the README's headline visual is the **by-stage ablation + escalation funnel** (`docs/assets/f1-by-stage.svg`), with the Tier-1 F1 series over alias batches (the self-improvement measurement, no longer charted since PR #79) and the full two-stage finding documented here in this methodology doc. The other two numbers are secondary signals showing that self-improvement reduces cost and latency in lockstep with accuracy gains.
 
-This document covers how those numbers are computed, where the corpus comes from, how the partitions prevent train/test leakage, and the progressive alias-table mechanism that makes the F1-over-time chart move.
+This document covers how those numbers are computed, where the corpus comes from, how the partitions prevent train/test leakage, and the progressive alias-table mechanism that moves the Tier-1 F1 series.
 
 ## Metrics
 
@@ -24,7 +24,7 @@ Cost per document is actual inference spend divided by document count, computed 
 
 In cached-fixture mode (the default), cost per document is computed from the cached fixture's recorded provider/tier metadata, not from live calls. Live mode (`EVAL_LIVE=true`) pulls real provider invoices via the cost-tagging system on each cascade run.
 
-**V1 cost-per-doc reads $0 for every document** — V1's cascade has no cloud-provider surface, so there's no inference spend to divide. The harness still emits the column for schema continuity, but **F1 is the only primary signal in V1**. There is deliberately no latency-over-time or escalation-over-time companion chart: cached replay is ~1 ms/doc regardless of tier (replay overhead, not wall-clock), and a live run is non-deterministic, so neither can be a committed CI-drift-guarded artifact the way the F1 SVGs are. The operational reading of self-improvement is the Tier-1 *hit rate*, and that *is* the F1-over-time curve itself (see *Two-stage measurement* below) — not a separate artifact. V1's measured escalation rates still make the optional BAA-cloud enhancement's cost projection credible — the harness can model "what this batch would have cost under the BAA-cloud cascade" by multiplying V1 escalation rates against `src/evals/cost_table.json`, which is the strongest cost-engineering signal a complete-as-local portfolio can carry; that is a one-off modeled number, not a charted trend.
+**V1 cost-per-doc reads $0 for every document** — V1's cascade has no cloud-provider surface, so there's no inference spend to divide. The harness still emits the column for schema continuity, but **F1 is the only primary signal in V1**. There is deliberately no latency-over-time or escalation-over-time companion chart: cached replay is ~1 ms/doc regardless of tier (replay overhead, not wall-clock), and a live run is non-deterministic, so neither can be a committed CI-drift-guarded artifact the way the F1 SVGs are. The operational reading of self-improvement is the Tier-1 *hit rate*, and that *is* the Tier-1 F1 series itself (see *Two-stage measurement* below) — not a separate artifact. V1's measured escalation rates still make the optional BAA-cloud enhancement's cost projection credible — the harness can model "what this batch would have cost under the BAA-cloud cascade" by multiplying V1 escalation rates against `src/evals/cost_table.json`, which is the strongest cost-engineering signal a complete-as-local portfolio can carry; that is a one-off modeled number, not a charted trend.
 
 ### Latency p50/p99
 
@@ -43,10 +43,10 @@ CI never runs in live mode (V1 or V2). Live runs require the `EVAL_LIVE=true` en
 `src/evals/manifest.json` partitions every document in the corpus into one of three sets:
 
 - **train:** used for prompt engineering, threshold tuning during development, and Phase 9's QLoRA fine-tuning. Looking at these documents to inform extraction logic is allowed.
-- **dev:** used for the Phase 5 router calibration spot-check (~50 hand-classified documents, roughly 25 healthcare + 25 business) and for sanity-checking changes before running test. Looking at these documents during development is allowed but should be rare.
+- **dev:** 98 healthcare (CMS-1500) documents, used for sanity-checking changes before running test. Looking at these documents during development is allowed but should be rare. (The router spot-check documents are a separate local run — see *Router spot-check* — not a dev-split slice: the manifest holds no business documents.)
 - **test:** held out. The eval harness reports F1 on test only. Documents in test are never inspected during cascade development; threshold tuning never reads test.
 
-The partition is stratified across verticals (healthcare and business documents both appear in all three splits at consistent ratios) and across document complexity (single-page forms, multi-page forms, rotation-corrected pages, and mostly-blank pages all appear proportionally in each split).
+The partition is stratified at the patient level only. The committed manifest is 584 of 584 healthcare documents (CMS-1500 rendered from Synthea; `train` 394 / `dev` 98 / `test` 92), all single-page renders, so there is no cross-vertical or document-complexity stratification to report. DocILE business documents are never in the manifest (CC-BY-NC-ND, local-only); the business-vertical numbers in this doc come from separate local runs.
 
 ## Leakage mitigations
 
@@ -54,7 +54,7 @@ Two leakage paths exist in the synthetic + DocILE corpus and are addressed expli
 
 **Synthea patient leakage.** A single Synthea-generated patient produces multiple documents (different visit dates, different facility templates). If the same patient appears in both train and test, an extractor that memorized the patient's idiosyncratic data could appear to generalize when it has not. Partitioning is therefore done at the *patient* level, not the document level: every document for a given Synthea patient lands in the same partition. This is enforced in the partition-generation script by hashing on patient ID, not document ID.
 
-**DocILE annotation leakage.** DocILE provides its own train/val/test split. The project's `src/evals/manifest.json` test partition for the business-documents vertical is a strict subset of DocILE's val + test (never DocILE's train). DocILE train is used for prompt examples and few-shot retrieval corpus seeding only — never as eval ground truth.
+**DocILE annotation leakage.** DocILE provides its own train/val/test split. The committed `src/evals/manifest.json` holds no DocILE documents (see *Partition discipline*), so there is no business test partition to leak into; any local DocILE evaluation draws from DocILE's val + test, never its train, and DocILE train is never used as eval ground truth.
 
 CI runs a partition-validation test that asserts no patient ID and no DocILE document ID appears in more than one of the three sets. The test runs in the standard CI suite on every PR; a partition-script edit that introduces leakage fails the build.
 
@@ -70,9 +70,9 @@ The coupling to self-improvement: the fields the queue surfaces are exactly the 
 
 ## The self-improving loop (component)
 
-The self-improvement story has two halves: a **live runtime loop** (the component described here) and an **offline analogue** that measures it (the progressive alias-table sweep, next section). They share one mechanism — alias growth feeding the Tier 1 layout-to-fields post-processor and the Stage-1 router vocabulary — so the measured F1-over-time curve is a faithful proxy for the live loop, not a separate story.
+The self-improvement story has two halves: a **live runtime loop** (the component described here) and an **offline analogue** that measures it (the progressive alias-table sweep, next section). They share one mechanism — alias growth feeding the Tier 1 layout-to-fields post-processor and the Stage-1 router vocabulary — so the measured Tier-1 F1 series is a faithful proxy for the live loop, not a separate story.
 
-The live loop runs in the demo's *reviewer correction feedback* surface. When a reviewer corrects a parked field, three things happen: (1) the correction is logged to the `corrections` table; (2) the on-form label the cascade missed is appended to a **live alias overlay** (`src/data/corrections_aliases.json`) — the frozen v1.0.0 seed and the committed F1 chart are never mutated, so the overlay is a pure runtime extension that the Tier 1 + router alias consumers union on top of the seed at load time, taking effect for the *next* extraction; (3) the document is re-embedded into the ColQwen retrieval corpus. In the portfolio demo there are no live reviewers, so corrections are *seeded* from the schema-design alias work and replayed — the mechanism is identical, only the source of corrections differs (stated plainly, not dressed up as live reviewer data). Every demo action runs against a throwaway DB + overlay; persistent state is never mutated.
+The live loop runs in the demo's *reviewer correction feedback* surface. When a reviewer corrects a parked field, three things happen: (1) the correction is logged to the `corrections` table; (2) the on-form label the cascade missed is appended to a **live alias overlay** (`src/data/corrections_aliases.json`) — the frozen v1.0.0 seed and the committed F1 chart are never mutated, so the overlay is a pure runtime extension that the Tier 1 + router alias consumers union on top of the seed at load time, taking effect for the *next* extraction; (3) the document is re-embedded into the ColQwen retrieval corpus (demo-only: it feeds the nearest-neighbor panel, not extraction, and is a no-op on the cached path, since no `.npy` fixtures are committed). In the portfolio demo there are no live reviewers, so corrections are *seeded* from the schema-design alias work and replayed — the mechanism is identical, only the source of corrections differs (stated plainly, not dressed up as live reviewer data). Every demo action runs against a throwaway DB + overlay; persistent state is never mutated.
 
 ![The self-improving loop in the V1 demo — submit-a-correction form plus the seeded-reviewer replay over the parked 92-doc corpus (corrections logged → live alias overlay), cached and $0](assets/demo-self-improving-loop.png)
 
@@ -80,17 +80,17 @@ The live loop runs in the demo's *reviewer correction feedback* surface. When a 
 
 The seeded replay over the committed 92-doc corpus logs **200 corrections** and learns **4 new aliases** (184 and 1 before the 2026-10-16 Tier 3 second read changed which fields park; most missed phrasings are already recognized at seed v1.0.0 — the loop never fabricates a phantom alias, so "new aliases learned" is honestly low). The crucial honest point, carried through from *Two-stage measurement*: this loop's measurable V1 payoff is the Tier-1 hit-rate climb, **not** a falling escalation count (escalation is corpus-flat at ≈0.998 — see above) and **not** an end-to-end F1 gain (the cascade is alias-invariant at 0.853). The loop is real and the mechanism is production-shaped; what V1 honestly claims for it is exactly the Tier-1 curve and no more.
 
-## Progressive alias-table partition for F1-over-time
+## Progressive alias-table partition (the Tier-1 F1 series)
 
-The F1-over-time chart demonstrates the cascade's self-improvement loop: as the alias table grows, fewer fields require escalation. (Since PR #71 the README's headline visual is the by-stage ablation + escalation funnel; the F1-over-time artifact, `just chart`, and its CI drift guard all remain live, and this is its full treatment.) It is still the most semantically loaded measurement in the repo.
+The Tier-1 F1 series measures the cascade's self-improvement loop: as the alias table grows, Tier 1 extracts more fields correctly (0.242 → 0.340) — though, as *Two-stage measurement* records, escalation does not fall. (PR #79 removed the F1-over-time chart, its `just chart` recipe and its CI drift guard; `just eval` still measures and prints the series, and the README's headline visual is the by-stage ablation + escalation funnel.) It is still the most semantically loaded measurement in the repo.
 
 ### Two-stage measurement (Phase 6 finding — supersedes the naive model)
 
-The pre-build mental model was "fewer recognized phrasings → more escalations → lower *end-to-end* F1; more phrasings → higher end-to-end F1." Phase 6 measurement on the committed corpus showed that model is wrong for a cascade with strong escalation tiers, and the honest result is documented here rather than the chart being engineered to fit the original story.
+The pre-build mental model was "fewer recognized phrasings → more escalations → lower *end-to-end* F1; more phrasings → higher end-to-end F1." Phase 6 measurement on the committed corpus showed that model is wrong for a cascade with strong escalation tiers, and the honest result is documented here rather than the measurement being engineered to fit the original story.
 
 F1 is measured at **two stages** per alias batch:
 
-- **Tier-1 stage** — the pre-escalation form (Tier 1 extract → route → re-parse). This is the layer the alias table directly governs. Its F1 climbs as alias coverage grows, then asymptotes — the desired shape, and **this is the plotted headline curve**.
+- **Tier-1 stage** — the pre-escalation form (Tier 1 extract → route → re-parse). This is the layer the alias table directly governs. Its F1 climbs as alias coverage grows, then asymptotes — the desired shape, and **this is the headline self-improvement series** (measured and printed by `just eval`; not charted since PR #79).
 - **Cascade stage** — the end-to-end assembled form after escalation. This F1 is **invariant to alias coverage** (flat at 0.853, identical across all nine alias batches on the 92-doc test split): the Qwen Tier 2/3 tiers are alias-independent and recover whatever the alias layer missed. It is persisted as a *cascade-robustness* statistic, not the headline curve.
 
 The defensible self-improvement claim is therefore: the alias loop measurably improves the Tier-1 hit rate (more on-form labels are recognized, so more fields are correctly populated pre-escalation), and end-to-end accuracy is robust to alias coverage because the cascade compensates. The "Tier-1 hit rate" *is* the Tier-1-stage F1 curve — it is not a separate measurement and there is no separate chart for it. In V2 that same hit-rate gain reads directly as fewer escalations and therefore lower cost-per-document; in V1 it does not, and the honest reason is recorded below. The naive "end-to-end F1 climbs" framing is *not* claimed. Measured on the 92-document patient-stratified `test` split (of the 584-document local corpus), the Tier-1 curve is 0.242 → 0.340 — modest and asymptoting by the second batch — and the cascade stays flat at 0.853. The shape is identical to the original 6-document slice: it is a property of alias coverage and cascade architecture, not of corpus size.
@@ -99,7 +99,7 @@ The defensible self-improvement claim is therefore: the alias loop measurably im
 
 ### By-stage ablation (Tier 3 as a second reader)
 
-The two-stage measurement above plots Tier-1-stage F1 over alias batches. A separate, orthogonal question is *what each tier contributes* — answered by ablating the cascade tier-by-tier on the same 92-doc `test` split, cached and deterministic. The committed artifact is `docs/assets/f1-by-stage.svg` — two panels (the escalation funnel on top, F1-by-cumulative-stage below), drift-guarded by `src/tests/test_evals_by_stage.py`, regenerated via `just by-stage`.
+The two-stage measurement above measures Tier-1-stage F1 over alias batches. A separate, orthogonal question is *what each tier contributes* — answered by ablating the cascade tier-by-tier on the same 92-doc `test` split, cached and deterministic. The committed artifact is `docs/assets/f1-by-stage.svg` — two panels (the escalation funnel on top, F1-by-cumulative-stage below), drift-guarded by `src/tests/test_evals_by_stage.py`, regenerated via `just by-stage`.
 
 Three cumulative-stage F1 points:
 
@@ -154,7 +154,7 @@ Concrete batch math against the current seed:
 
 Records with fewer aliases than the current batch index contribute their full list and no further. The exact alias counts above will drift as the seed evolves; the partition definition — "Batch N includes positions 0 through N–1 of every record's `aliases` array" — is the stable contract.
 
-The natural batch count is around 8 given the current seed (the longest `aliases` lists have 8 entries). The chart plateaus naturally as later batches add fewer marginal aliases, which is the desired shape — F1 should climb sharply early, then asymptote.
+The natural batch count is around 8 given the current seed (the longest `aliases` lists have 8 entries). The series plateaus naturally as later batches add fewer marginal aliases, which is the desired shape — F1 should climb sharply early, then asymptote.
 
 ### Why position-based ordering
 
@@ -166,23 +166,23 @@ Three alternatives were considered and rejected.
 
 **Measured frequency from the rendered corpus** would be the most rigorous option but breaks down on synthetic data. Frequency in the Synthea + DocILE corpus is determined by the rendering templates and DocILE's source distribution, not by real-world prevalence on intake forms in the wild. Measuring template diversity and calling it "alias frequency" misrepresents what is being computed. If a CMS-1500 template uses "Patient Name" exclusively, then "Patient's Name" has frequency 0 in the corpus regardless of how common it is on real intake forms — the measurement reflects the template author's choices, not the field's actual prevalence.
 
-**Source-standard priority** (introducing all aliases from records with a `source_standard` value first, then the rest) partitions records but does not graduate aliases. About 50% of seed records have a `source_standard` value, so this approach produces one big batch and one big "everything else" — a step function, not a curve, and the chart loses its expressive power.
+**Source-standard priority** (introducing all aliases from records with a `source_standard` value first, then the rest) partitions records but does not graduate aliases. About 50% of seed records have a `source_standard` value, so this approach produces one big batch and one big "everything else" — a step function, not a curve, and the series loses its expressive power.
 
 **Random with fixed seed** is reproducible but tells no story. A chart that climbs because of randomness is not a meaningful self-improvement narrative; it is a sleight-of-hand visual that would invite legitimate skepticism from anyone reading the code.
 
 ### Reproducibility
 
-The partition is deterministic given a frozen seed. `alias_table_seed.json`'s top-level `version` field (currently `"1.0.0"`) is recorded in `src/evals/fixtures_manifest.json` and in `src/evals/manifest.json` (the partition-validation CI test asserts the two agree, so a seed bump that isn't propagated fails the build). F1-over-time runs against a given fixture set are directly comparable only to runs against the same seed version — comparing across seed versions requires regenerating the chart from scratch.
+The partition is deterministic given a frozen seed. `alias_table_seed.json`'s top-level `version` field (currently `"1.0.0"`) is recorded in `src/evals/fixtures_manifest.json` and in `src/evals/manifest.json` (the partition-validation CI test asserts the two agree, so a seed bump that isn't propagated fails the build). Tier-1 F1 series runs against a given fixture set are directly comparable only to runs against the same seed version — comparing across seed versions requires re-running the sweep from scratch.
 
-When seed v2.0.0 ships (e.g., from Phase 8 correction feedback adding new aliases, or from a deliberate reordering of existing aliases in light of new evidence), the F1-over-time chart can be regenerated against the new seed for that version's self-improvement curve. The v1.0.0 chart is not backward-extended. The README documents whichever version produced the live chart.
+When seed v2.0.0 ships (e.g., from Phase 8 correction feedback adding new aliases, or from a deliberate reordering of existing aliases in light of new evidence), the sweep can be re-run against the new seed for that version's self-improvement series. The v1.0.0 series is not backward-extended. The docs report whichever seed version produced the published numbers.
 
 ### Phase 8 implication (shipped)
 
-The Phase 8 correction feedback loop introduces new aliases from reviewer corrections. As shipped, those aliases are **not** written into `alias_table_seed.json` — the seed is frozen at v1.0.0 (it is what the F1-over-time chart is plotted from), and an in-place edit would silently alter the chart. Instead a reviewer correction appends the missed phrasing to a gitignored runtime overlay (`src/data/corrections_aliases.json`, same runtime-state convention as `src/data/v1.db`). The two alias consumers — the Tier 1 layout-to-fields post-processor and the Stage 1 router vocabulary — union the overlay on top of the seed at load time, so live corrections take effect immediately for subsequent extractions.
+The Phase 8 correction feedback loop introduces new aliases from reviewer corrections. As shipped, those aliases are **not** written into `alias_table_seed.json` — the seed is frozen at v1.0.0 (it is what the Tier-1 F1 series is measured from), and an in-place edit would silently alter the published numbers. Instead a reviewer correction appends the missed phrasing to a gitignored runtime overlay (`src/data/corrections_aliases.json`, same runtime-state convention as `src/data/v1.db`). The two alias consumers — the Tier 1 layout-to-fields post-processor and the Stage 1 router vocabulary — union the overlay on top of the seed at load time, so live corrections take effect immediately for subsequent extractions.
 
-The progressive-partition sweep explicitly **suppresses** the overlay (`rag.aliases.suppress_overlay`, entered by `evals.alias_partition.active_alias_batch`): the F1-over-time chart is the *offline analogue* of the loop and must reflect the v1.0.0 seed alone, so runtime corrections never leak into it. The live loop and the offline analogue therefore share one mechanism (alias growth → Tier 1 + router) while the measured artifact stays honest — this is the "seeded vs. live, identical mechanism" claim made concrete in code.
+The progressive-partition sweep explicitly **suppresses** the overlay (`rag.aliases.suppress_overlay`, entered by `evals.alias_partition.active_alias_batch`): the Tier-1 F1 series is the *offline analogue* of the loop and must reflect the v1.0.0 seed alone, so runtime corrections never leak into it. The live loop and the offline analogue therefore share one mechanism (alias growth → Tier 1 + router) while the measured artifact stays honest — this is the "seeded vs. live, identical mechanism" claim made concrete in code.
 
-A genuine reseed — promoting a variant to an earlier position, or folding accumulated overlay corrections into the canonical seed — remains a deliberate **v2.0.0 seed bump**, not an in-place edit to v1.0.0, and the version bump is still the explicit signal to regenerate the chart from scratch (per the `src/build_alias_seed.py` position convention).
+A genuine reseed — promoting a variant to an earlier position, or folding accumulated overlay corrections into the canonical seed — remains a deliberate **v2.0.0 seed bump**, not an in-place edit to v1.0.0, and the version bump is still the explicit signal to re-run the sweep from scratch (per the `src/build_alias_seed.py` position convention).
 
 ### Phase 8 storage + scope deviations (recorded honestly)
 

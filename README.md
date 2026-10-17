@@ -4,7 +4,7 @@
 
 ## What it is
 
-Forms come in as PDFs or page images — healthcare patient intake (CMS-1500), business documents (invoices, POs) — and validated, typed JSON comes out. A three-tier extraction cascade starts every field at a layout parser, sends the ones it can't settle to a 7B vision-language model, and then has a 32B model read those same fields a second time: where the two readings agree the field is accepted, and where they disagree it goes to a human. Reviewer corrections feed back into an alias table and a ColQwen 2.5 retrieval corpus, so later extractions on similar documents resolve at Tier 1 more often.
+Forms come in as PDFs or page images — healthcare patient intake (CMS-1500), business documents (invoices, POs) — and validated, typed JSON comes out. A three-tier extraction cascade starts every field at a layout parser, sends the ones it can't settle to a 7B vision-language model, and then has a 32B model read those same fields a second time: where the two readings agree the field is accepted, and where they disagree it goes to a human. Reviewer corrections feed back into an alias table, so later extractions on similar documents resolve at Tier 1 more often. Corrected documents are also embedded with ColQwen 2.5 for a nearest-neighbor panel in the demo; that retrieval does not feed extraction in V1.
 
 V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB combined) — no cloud, no deployed URL, $0/1K inference — and is the complete deliverable. The optional V2 enhancement exists for one reason: processing real PHI requires BAA-eligible providers, so V2 would swap the middle and top tiers for BAA-cloud services (Textract Queries, Bedrock) behind the *same* provider Protocol, wire the local tiers to a deployed endpoint, and stand up a public demo. The in-tree Terraform (`infra/terraform/`) and the architecture docs describe that target so it's a credible, scoped enhancement rather than hand-waving — but it is not built and not scheduled.
 
@@ -12,7 +12,7 @@ V1 runs the entire cascade locally on two GPUs (RTX 4080 + RTX 4060 Ti, 32 GB co
 
 ![Escalation funnel, and F1 by cumulative cascade stage](docs/assets/f1-by-stage.svg)
 
-> **Measured on a 92-document held-out test split**, cached and deterministic ($0): the patient-level-stratified `test` partition of a 584-document local corpus (500 Synthea patients → CMS-1500, rendered 1:1; `train` 394 / `dev` 98 / `test` 92, zero patient leakage). Both panels are the same cascade run.
+> **Measured on a 92-document test split**, cached and deterministic ($0): the patient-level-stratified `test` partition of a 584-document local corpus (500 Synthea patients → CMS-1500, rendered 1:1; `train` 394 / `dev` 98 / `test` 92, zero patient leakage). Both panels are the same cascade run. Per-field results on this split were looked at before the Tier 3 rule was chosen, so it is no longer untouched held-out data — see the third caveat below.
 
 The interesting part of this project is not that a curve goes up. It's that measurement contradicted the pitch, and the repo reports what it found and what changing it did — including where the gain comes from.
 
@@ -48,7 +48,7 @@ flowchart TD
     GATE -->|no| RQ[Review queue<br/>human-in-the-loop]
     RQ --> CORR[Reviewer correction]
     CORR -->|missed phrasing| OVL[Runtime alias overlay<br/>seed frozen v1.0.0]
-    CORR -->|re-embed| COL[ColQwen 2.5 corpus]
+    CORR -->|re-embed · demo panel only| COL[ColQwen 2.5 corpus]
     OVL -.unioned at load.-> T1
     OVL -.unioned at load.-> R1
 
@@ -60,7 +60,7 @@ flowchart TD
 
 A two-stage router classifies the vertical: a deterministic local vocabulary match handles ~80% of documents with no network hop, and only the ambiguous remainder hits an LLM fallback (local Qwen 7B in V1, Bedrock Nova Lite in V2 — one provider swap, identical routing logic above it). The chosen Pydantic schema seeds the cascade.
 
-An in-process Python orchestrator (no state machine in V1; V2 wraps it in Step Functions) runs the tiers. PaddleOCR-VL is a layout parser whose blocks run through an alias-table-driven layout-to-fields post-processor; fields below the 0.85 threshold escalate to a prompted Qwen 2.5 VL 7B, and Qwen 2.5 VL 32B then reads those same fields a second time. Agreement sets the final confidence: matching readings get 0.95; a mismatch gets 0.5 and keeps the Tier-2 value when it passes its field validator or Tier 3 read nothing, Tier 3's otherwise. Fields Tier 1 settles never reach the GPU models, but in practice Tier 1 settles almost nothing on its own (2 of 1104 test cells), so nearly every field pays for two GPU reads. The assembled form's minimum confidence decides auto-approval versus the human review queue. A reviewer's correction writes back with full provenance, appends any missed label phrasing to a runtime alias overlay, and re-embeds the document into the ColQwen corpus — so the next similar document resolves earlier.
+An in-process Python orchestrator (no state machine in V1; V2 wraps it in Step Functions) runs the tiers. PaddleOCR-VL is a layout parser whose blocks run through an alias-table-driven layout-to-fields post-processor; fields below the 0.85 threshold escalate to a prompted Qwen 2.5 VL 7B, and Qwen 2.5 VL 32B then reads those same fields a second time. Agreement sets the final confidence: matching readings get 0.95; a mismatch gets 0.5 and keeps the Tier-2 value when it passes its field validator or Tier 3 read nothing, Tier 3's otherwise. Fields Tier 1 settles never reach the GPU models, but in practice Tier 1 settles almost nothing on its own (2 of 1104 test cells), so nearly every field pays for two GPU reads. The assembled form's minimum confidence decides auto-approval versus the human review queue. A reviewer's correction writes back with full provenance and appends any missed label phrasing to a runtime alias overlay, so the next similar document resolves earlier. It also re-embeds the document into the ColQwen corpus, which only feeds the demo's nearest-neighbor panel (and is a no-op on the cached path, where no ColQwen embeddings are committed).
 
 The whole system persists to one SQLite file (extracted fields, eval log, ColQwen multivectors), intentionally Aurora-compatible so the V2 migration is a row-copy rather than a redesign. `docs/architecture-deep-dive.md` covers the orchestrator, persistence model, and the optional enhancement's cloud edge.
 
@@ -92,7 +92,7 @@ Corrections submitted from the queue flow back through `src/rag/aliases.py`: any
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 1077 tests (1058 fast + 19 slow)
+just test           # 1105 tests (1086 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the
@@ -120,7 +120,7 @@ intake-form-ai-pipeline/
 │   ├── finetune/            # QLoRA text post-corrector (Phase 9 experiment)
 │   ├── demo/                # Streamlit: data.py (testable core) + app.py (view)
 │   ├── synthetic_data/      # synthea/, render/ (Playwright CMS-1500), docile/
-│   ├── tests/               # 1077 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+│   ├── tests/               # 1105 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 │   └── data/                # SQLite v1.db + ColQwen .npy cache (gitignored runtime)
 ├── alias_table_seed.json    # 465 aliases / 86 records, frozen v1.0.0 (canonical, repo root)
 ├── scripts/                 # dev tooling (regen fixtures, dual-quant sanity)

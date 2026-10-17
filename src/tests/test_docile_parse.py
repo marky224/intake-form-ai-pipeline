@@ -5,7 +5,7 @@ mini-dataset hand-crafted to match the upstream DocILE annotation
 schema (verified against the real
 ``rossumai/docile/tests/data/sample-dataset/`` at upstream commit
 ``12f9502d1e…``). Real upstream samples are CC BY-NC-ND-licensed and
-intentionally NOT redistributed in this MIT-licensed repo; the
+intentionally NOT redistributed in this public repo; the
 synthetic fixtures cover parser correctness, while the slow integration
 test in Task #4 will exercise the parser against the live downloaded
 corpus.

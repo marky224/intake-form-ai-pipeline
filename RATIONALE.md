@@ -415,7 +415,7 @@ The blank fields aren't lost: `blank_count` and `unattempted_count` are returned
 
 `min` is what the routing layer uses for escalation decisions: one weak field should force escalation regardless of how good the rest are.
 
-`mean` is what the eval harness uses for quality tracking: a 1% improvement in mean across batches is the F1-over-time chart's signal that the pipeline is self-improving.
+`mean` is what the eval harness uses for quality tracking: a 1% improvement in mean across batches is a signal that the pipeline is self-improving.
 
 Computing both costs nothing extra (single pass, two reductions) and lets each consumer use the right metric without writing its own aggregation.
 

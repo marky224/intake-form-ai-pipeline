@@ -350,7 +350,7 @@ def main() -> None:
         )
         st.caption(
             f"{len(docs)} Synthea-rendered CMS-1500 forms — the committed "
-            "92-doc held-out `test` split of the 584-doc corpus. DocILE is "
+            "92-doc `test` split of the 584-doc corpus. DocILE is "
             "local-only (CC-BY-NC-ND) and not shipped."
         )
 
