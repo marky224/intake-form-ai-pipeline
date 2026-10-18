@@ -1,17 +1,17 @@
 [project]
 name = "intake-form-ai-pipeline"
 version = "0.1.0"
-description = "Self-improving intake-form processing pipeline with three-tier extraction cascade, BAA-aware routing, and F1-over-time eval"
+description = "Local intake-form extraction pipeline: a three-tier vision-model cascade (PaddleOCR-VL → Qwen 2.5 VL 7B → 32B) with a deterministic eval harness, by-stage F1 ablation, and a human-in-the-loop review queue."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [
     { name = "Mark Marquez", email = "me@markandrewmarquez.com" },
 ]
 keywords = ["llm", "ocr", "extraction", "cascade", "hipaa", "pydantic", "aws"]
 classifiers = [
     "Programming Language :: Python :: 3.11",
-    "License :: OSI Approved :: MIT License",
+    "License :: Other/Proprietary License",
     "Operating System :: OS Independent",
     "Development Status :: 3 - Alpha",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",

@@ -9,7 +9,19 @@
             (``docs/assets/f1-by-stage.svg``) from a fresh cached
             by-stage measurement (F1 triple + escalation funnel). Drift-
             guarded by ``test_evals_by_stage.py``; the "make it green again"
-            command if that guard fails CI.
+            command if that guard fails CI. ``--split dev`` is the held-out
+            confirmation run: it reads the gitignored local corpus (or
+            ``--image-dir``), prints the numbers and never rewrites the
+            committed (test-split) SVG. Run it from a checkout of this code
+            on the GPU box with the models up and *without* ``EVAL_LIVE``:
+            the providers are cache-first, so each dev document is read
+            live once on its first miss and saved, and all three stages are
+            scored from that one reading. ``EVAL_LIVE=true`` would re-read
+            on every pass, and it is also the only mode in which the 240 s
+            per-call cap can fail a call (otherwise the over-cap reading is
+            already saved and the retry replays it). The saved replay files
+            land under ``tests/fixtures/eval-cache/``, which is tracked, so
+            the run leaves them untracked there; keep them out of commits.
 ``build-manifest`` — regenerate the committed ``manifest.json`` from the
             gitignored full local corpus (``CORPUS_RENDER_DIR``), patient-
             stratified train/dev/test. Local-only (the corpus is not in
@@ -24,6 +36,7 @@ import argparse
 import collections
 import logging
 import sys
+from pathlib import Path
 
 from cascade.store import DEFAULT_DB_PATH
 from evals.alias_partition import load_seed
@@ -54,22 +67,35 @@ def _build_manifest() -> int:
     return 0
 
 
-def _by_stage() -> int:
-    """Regenerate the committed by-stage SVG from a fresh cached measure."""
+def _by_stage(split: str = "test", image_dir: Path | None = None) -> int:
+    """Measure by-stage F1 + funnel on ``split`` (images from ``image_dir``
+    when given). Only the default run — ``test`` split, committed images —
+    regenerates the committed SVG; any other run just prints the numbers.
+
+    The summary is printed, not logged: a live run loads PaddleOCR-VL, which
+    can reset Python logging and swallow a logged line.
+    """
     seed_version, _ = load_manifest()
-    result = compute_by_stage()
-    write_by_stage_chart(result, seed_version=seed_version)
+    result = compute_by_stage(split=split, image_dir=image_dir)
+    if split == "test" and image_dir is None:
+        write_by_stage_chart(result, seed_version=seed_version)
     f = result.funnel
     (_, f1_t1), (_, f1_t12), (_, f1_t123) = result.stages
-    logging.info(
-        "by-stage F1: %.3f → %.3f → %.3f | funnel cells T1=%d T1+2=%d "
-        "T1+2+3=%d (of %d populated, %d blank)",
-        f1_t1,
-        f1_t12,
-        f1_t123,
-        *[c for _, c in f.cumulative],
-        f.populated,
-        f.blank,
+    prefix = "" if split == "test" else f"[{split} split] "
+    print(
+        "%sby-stage F1: %.3f → %.3f → %.3f | funnel cells T1=%d T1+2=%d "
+        "T1+2+3=%d (of %d populated; %d missed, %d true negatives)"
+        % (
+            prefix,
+            f1_t1,
+            f1_t12,
+            f1_t123,
+            *[c for _, c in f.cumulative],
+            f.populated,
+            f.missed,
+            f.true_negative,
+        ),
+        flush=True,
     )
     return 0
 
@@ -78,7 +104,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m evals")
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="sweep + persist to data/v1.db + regen artifacts")
-    sub.add_parser("by-stage", help="regen committed by-stage SVG only")
+    by_stage_cmd = sub.add_parser("by-stage", help="regen committed by-stage SVG only")
+    by_stage_cmd.add_argument(
+        "--split",
+        choices=("test", "dev"),
+        default="test",
+        help="dev = held-out confirmation (local corpus, cache-through: no EVAL_LIVE); logs only",
+    )
+    by_stage_cmd.add_argument(
+        "--image-dir",
+        type=Path,
+        default=None,
+        help="folder of <doc_id>.png/.json pairs (default: committed test images, or the "
+        "local corpus for --split dev); a run with this set never rewrites the SVG",
+    )
     sub.add_parser(
         "build-manifest",
         help="regen committed manifest.json from the local corpus (stratified)",
@@ -91,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         return _build_manifest()
 
     if args.cmd == "by-stage":
-        return _by_stage()
+        return _by_stage(args.split, args.image_dir)
 
     # args.cmd == "run"
     series = run_eval(db_path=DEFAULT_DB_PATH)

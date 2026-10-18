@@ -71,11 +71,11 @@ alias-seed:
 # Linux-only (uses $(id -u)/$(id -g) so Synthea writes output owned by the host user).
 [unix]
 synthetic-data-patients count="10" seed="42":
-    docker build -t intake-synthea ./synthetic_data/synthea
-    mkdir -p ./synthetic_data/output/synthea
+    docker build -t intake-synthea ./src/synthetic_data/synthea
+    mkdir -p ./src/synthetic_data/output/synthea
     docker run --rm \
         --user "$(id -u):$(id -g)" \
-        -v "$PWD/synthetic_data/output/synthea:/opt/synthea/output" \
+        -v "$PWD/src/synthetic_data/output/synthea:/opt/synthea/output" \
         intake-synthea \
         -p {{count}} -s {{seed}} Massachusetts
 

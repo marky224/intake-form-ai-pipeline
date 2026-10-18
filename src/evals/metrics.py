@@ -10,11 +10,15 @@ field-level counts across the batch:
   with a wrong value (a wrong populated value is therefore both FP and FN,
   exactly as the methodology defines).
 
-A *confidently-blank* field (``value is None`` with ``tier_used`` set — the
-cascade affirmatively judged the field absent) is **excluded** from
-precision/recall and tracked separately, per the locked methodology. An
-*unattempted* field (``tier_used is None``) with ground truth present is a
-plain FN (extraction returned nothing).
+A field with ground truth present and no extracted value is an **FN**
+whether it was *unattempted* (``tier_used is None``) or *confidently blank*
+(``value is None`` with ``tier_used`` set): the cascade's "absent on this
+form" judgment was wrong, and leaving it out of recall would hide the miss.
+A confidently-blank field with **no** ground truth is a true negative — out
+of precision/recall, counted in ``blank_excluded`` for diagnostics. (This
+reverses the pre-2026-10-16 rule, which excluded every confidently-blank
+field from P/R even when ground truth existed. ``compute_form_confidence``'s
+"populated = value is not None" definition is a separate, unchanged rule.)
 
 The scored field set is passed in by the caller: the CMS-1500 schema-mapped
 set for healthcare (``ground_truth.FIELD_KIND``), the full
@@ -40,8 +44,10 @@ from evals.ground_truth import GroundTruth, extracted_token
 class Counts:
     """Micro TP/FP/FN with derived precision/recall/F1.
 
-    ``blank`` and ``unattempted_no_gt`` are tracked for the reviewer UI /
-    diagnostics; they never enter precision or recall.
+    ``blank_excluded`` counts confidently-blank fields with no ground truth
+    (true negatives) for diagnostics; it never enters precision or recall.
+    The name is kept so the harness-owned ``eval_results`` column needs no
+    migration.
     """
 
     tp: int = 0
@@ -103,12 +109,6 @@ def score_form(form: Any, truth: GroundTruth, scorable_fields: list[str]) -> Cou
 
         gt = truth.get(name)
         populated = value is not None
-        confidently_blank = value is None and tier_used is not None
-
-        if confidently_blank:
-            # Affirmative "absent on this form" judgment — out of P/R.
-            blank += 1
-            continue
 
         if populated:
             got = extracted_token(name, form)
@@ -120,8 +120,12 @@ def score_form(form: Any, truth: GroundTruth, scorable_fields: list[str]) -> Cou
             else:
                 fp += 1  # ghost: populated with no ground truth
         elif gt is not None:
-            fn += 1  # ground truth present, extraction returned nothing
-        # else: no gt + unpopulated → true negative, uncounted
+            # Ground truth present, no value — unattempted or confidently
+            # blank, the cascade missed it either way.
+            fn += 1
+        elif tier_used is not None:
+            blank += 1  # confidently blank, no ground truth: true negative
+        # else: unattempted, no gt → true negative, uncounted
     return Counts(tp, fp, fn, blank)
 
 

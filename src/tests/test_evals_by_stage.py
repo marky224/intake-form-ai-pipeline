@@ -9,6 +9,8 @@ visible diff (regenerate via ``just by-stage``).
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from evals.by_stage import (
@@ -19,15 +21,26 @@ from evals.by_stage import (
     render_by_stage_svg,
 )
 
-# Measured 2026-05-18, cached, $0 (memory project_tier3_q4km_net_negative).
-# The Q4_K_M Tier-3 regression (0.768 < 0.794) is intentional and shipped.
-_EXPECTED_F1 = (0.340, 0.794, 0.768)
-_EXPECTED_FUNNEL = Funnel(tier1=2, tier2=795, tier3a=184, blank=123)
+# Re-measured 2026-10-16, cached, $0, with confidently-blank cells that
+# have ground truth scored as false negatives and Tier 3 as a second reader
+# (agreement sets confidence; a validated Tier-2 value is never overwritten).
+# Of the 115 empty cells, 92 are missed (signature) and 23 true negatives.
+_EXPECTED_F1 = (0.340, 0.791, 0.853)
+_EXPECTED_FUNNEL = Funnel(
+    tier1=2,
+    tier2=820,
+    tier3a=167,
+    missed=92,
+    true_negative=23,
+    tier3a_free_text=158,
+    tier3a_tier2_blank=8,
+    tier3a_failed_validator=1,
+)
 
 
 def _sample() -> ByStage:
     return ByStage(
-        stages=[("Tier 1", 0.340), ("Tier 1+2", 0.794), ("Tier 1+2+3", 0.768)],
+        stages=[("Tier 1", 0.340), ("Tier 1+2", 0.791), ("Tier 1+2+3", 0.853)],
         funnel=_EXPECTED_FUNNEL,
     )
 
@@ -37,13 +50,19 @@ def test_render_is_deterministic_and_has_no_timestamp():
     b = render_by_stage_svg(_sample(), seed_version="1.0.0")
     assert a == b
     assert "<svg" in a and a.endswith("</svg>\n")
-    assert "0.340" in a and "0.794" in a and "0.768" in a
+    assert "0.340" in a and "0.791" in a and "0.853" in a
     assert "alias_table_seed v1.0.0" in a
     # Both panels present.
     assert "F1 by cumulative cascade stage" in a
     assert "Escalation funnel" in a
-    # Funnel remainder shown explicitly, not hidden.
-    assert "123 genuinely-blank cells" in a
+    # Funnel remainder shown explicitly, not hidden — and split by truth.
+    assert "92 missed" in a and "23 blank on form" in a
+    assert "92 missed (value on the form, none extracted)" in a
+    assert "167 cells: 158 free text with no validator, 8 Tier-2" in a
+    # Every stage label is drawn under both panels (cap labels must not
+    # replace the last bar's axis label).
+    for stage in ("Tier 1", "Tier 1+2", "Tier 1+2+3"):
+        assert a.count(f">{stage}</text>") == 2, stage
     # No churn vectors in a committed artifact ("720"/"786" dims are fine).
     for token in ("generated_at", "git", "T00:"):
         assert token not in a
@@ -57,10 +76,12 @@ def test_empty_stage_list_rejected():
 def test_funnel_is_monotone_and_totals_consistent():
     f = _EXPECTED_FUNNEL
     assert f.total == 1104
-    assert f.populated == 981
+    assert f.populated == 989
     cum = [c for _, c in f.cumulative]
-    assert cum == [2, 797, 981]
+    assert cum == [2, 822, 989]
     assert cum == sorted(cum), "the funnel must be monotone by tier"
+    reasons = f.tier3a_free_text + f.tier3a_tier2_blank + f.tier3a_failed_validator
+    assert reasons == f.tier3a
 
 
 def test_measured_numbers_match_committed_fixtures():
@@ -83,3 +104,116 @@ def test_committed_chart_in_sync_with_by_stage():
     assert (
         BY_STAGE_CHART_PATH.read_text(encoding="utf-8") == expected
     ), "docs/assets/f1-by-stage.svg is stale — run `just by-stage`"
+
+
+# --- --split dev (the held-out confirmation run) ---------------------------
+
+
+def test_compute_by_stage_scores_only_the_requested_split(monkeypatch):
+    """``split`` picks the manifest partition and ``image_dir`` where its
+    images live. Make three cached test docs the whole ``dev`` split (the
+    real dev docs move to ``train``) and point ``image_dir`` at the
+    committed validation dir: only those three docs are scored (12 scorable
+    cells each)."""
+    import dataclasses
+
+    import evals.by_stage as by_stage
+    from evals.manifest import CMS1500_VALIDATION_DIR, load_manifest
+
+    seed_version, entries = load_manifest()
+    test_ids = {e.doc_id for e in entries if e.split == "test"}
+    chosen = sorted(test_ids)[:3]
+
+    def relabel(e):
+        if e.doc_id in chosen:
+            return dataclasses.replace(e, split="dev")
+        return dataclasses.replace(e, split="train") if e.split == "dev" else e
+
+    relabeled = [relabel(e) for e in entries]
+    monkeypatch.setattr(by_stage, "load_manifest", lambda: (seed_version, relabeled))
+    result = by_stage.compute_by_stage(split="dev", image_dir=CMS1500_VALIDATION_DIR)
+    assert result.funnel.total == 3 * 12
+
+
+def test_compute_by_stage_dev_without_local_corpus_says_where_to_look(tmp_path):
+    """The dev split's images are not committed; a missing corpus is a clear
+    error naming the directory, not a bare missing-file traceback."""
+    with pytest.raises(FileNotFoundError, match=re.escape(str(tmp_path))):
+        compute_by_stage(split="dev", image_dir=tmp_path)
+
+
+def test_cli_by_stage_dev_prints_but_never_rewrites_the_committed_chart(monkeypatch):
+    """``python -m evals by-stage --split dev`` measures and logs; the
+    committed SVG is the test-split artifact, so only the default (test)
+    run may rewrite it."""
+    import evals.__main__ as cli
+
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(
+        cli, "compute_by_stage", lambda **kw: calls.setdefault("kw", kw) and _sample()
+    )
+    monkeypatch.setattr(
+        cli, "write_by_stage_chart", lambda *a, **k: calls.setdefault("wrote", True)
+    )
+
+    assert cli.main(["by-stage", "--split", "dev"]) == 0
+    assert calls["kw"] == {"split": "dev", "image_dir": None}
+    assert "wrote" not in calls
+
+    calls.clear()
+    assert cli.main(["by-stage"]) == 0
+    assert calls["kw"] == {"split": "test", "image_dir": None}
+    assert calls.get("wrote") is True
+
+
+def test_cli_by_stage_image_dir_reads_that_folder_and_never_rewrites_the_chart(
+    monkeypatch, tmp_path
+):
+    """``--image-dir`` points the run at an existing render folder (e.g. the
+    local corpus in another checkout). A run with it set — dev or test —
+    only logs: the committed SVG comes from the committed images alone."""
+    import evals.__main__ as cli
+
+    calls: dict[str, object] = {}
+    monkeypatch.setattr(
+        cli, "compute_by_stage", lambda **kw: calls.setdefault("kw", kw) and _sample()
+    )
+    monkeypatch.setattr(
+        cli, "write_by_stage_chart", lambda *a, **k: calls.setdefault("wrote", True)
+    )
+
+    assert cli.main(["by-stage", "--split", "dev", "--image-dir", str(tmp_path)]) == 0
+    assert calls["kw"] == {"split": "dev", "image_dir": tmp_path}
+    assert "wrote" not in calls
+
+    calls.clear()
+    assert cli.main(["by-stage", "--image-dir", str(tmp_path)]) == 0
+    assert calls["kw"] == {"split": "test", "image_dir": tmp_path}
+    assert "wrote" not in calls
+
+
+def test_cli_by_stage_summary_survives_a_logging_reset(monkeypatch, capsys):
+    """A live dev run loads PaddleOCR-VL, which can reset Python logging; the
+    summary line must still reach the console, so it is printed, not logged."""
+    import logging
+
+    import evals.__main__ as cli
+
+    root = logging.getLogger()
+    saved_handlers, saved_level = root.handlers[:], root.level
+
+    def compute_and_reset_logging(**_kw):
+        root.handlers.clear()  # what a library resetting logging leaves behind
+        logging.disable(logging.CRITICAL)
+        return _sample()
+
+    monkeypatch.setattr(cli, "compute_by_stage", compute_and_reset_logging)
+    monkeypatch.setattr(cli, "write_by_stage_chart", lambda *a, **k: None)
+    try:
+        assert cli.main(["by-stage", "--split", "dev"]) == 0
+    finally:
+        logging.disable(logging.NOTSET)
+        root.handlers[:] = saved_handlers
+        root.setLevel(saved_level)
+    out = capsys.readouterr()
+    assert "[dev split] by-stage F1: 0.340 → 0.791 → 0.853" in out.out + out.err

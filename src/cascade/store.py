@@ -193,10 +193,14 @@ def record_field_attempts(
     """Bulk-upsert per-(field, tier) attempt rows.
 
     Each mapping carries ``field_name``, ``tier``, ``value``, ``confidence``,
-    ``escalation_reason`` (None for the tier that finalized the field), and
-    ``latency_ms``. ``value`` is stringified at the call site (mixed
-    ExtractedField inner types collapse to text for storage; the typed value
-    lives in the in-memory form). ``INSERT OR REPLACE`` keyed on
+    ``escalation_reason``, and ``latency_ms``. Each row is that tier's own
+    reading of the field — the ``3a`` row holds Tier 3's value even when the
+    reconciled form kept Tier 2's. ``escalation_reason`` says why the field
+    went on to the next tier (``"low_confidence"`` from Tier 1,
+    ``"second_read"`` from Tier 2) and is None on the last tier that read it.
+    ``value`` is stringified at the call site (mixed ExtractedField inner
+    types collapse to text for storage; the typed value lives in the
+    in-memory form). ``INSERT OR REPLACE`` keyed on
     ``(doc_id, field_name, tier)``.
     """
     rows = [

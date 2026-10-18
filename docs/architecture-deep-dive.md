@@ -6,15 +6,15 @@ Detailed view of the cascade orchestration, routing layer, and data model. V1 se
 
 ## V1 local orchestrator (the shipped system)
 
-The V1 cascade runs as an in-process Python orchestrator on the home GPU machine. No state machine, no managed service, no network hop between tiers — the orchestrator constructs each provider instance once, then iterates documents through Tier 1 → Tier 2 → Tier 3 with per-field confidence checks at each escalation boundary.
+The V1 cascade runs as an in-process Python orchestrator on the home GPU machine. No state machine, no managed service, no network hop between tiers — the orchestrator constructs each provider instance once, then iterates documents through Tier 1 → Tier 2 → Tier 3: Tier-1 fields under 0.85 escalate to Tier 2, Tier 3 reads every Tier-2 field a second time, and agreement between the two readings sets each field's final confidence.
 
 Trust boundary: the V1 orchestrator runs as the local user with filesystem access to `src/synthetic_data/output/`, the SQLite database at `src/data/v1.db`, the eval-cache fixtures under `src/tests/fixtures/eval-cache/`, and the Ollama daemon at `localhost:11434`. No network egress beyond Ollama's localhost. The cascade is fully reproducible on a fresh clone given the locked model weights — same fixture inputs + same model versions = same outputs.
 
 ### V1 tier wiring
 
 - **Tier 1** (`src/cascade/providers/tier1_paddleocr_local.py`): instantiates `PaddleOCRVL()` on first call, pinning `paddle.set_device("gpu:1")` so it lands on the RTX 4060 Ti. Calls `pipeline.predict(input=image_bytes)` which returns `parsing_res_list` — layout blocks with `block_bbox` + `block_label` + `block_content`. A downstream layout-to-fields post-processor inside `_invoke_pipeline` walks the blocks, matches `block_content` text against `alias_table_seed.json`, and builds per-field `ExtractedField` outputs. Confidence is the post-processor's match-score against the alias table (a weighted-substring score, not a model confidence).
-- **Tier 2** (`src/cascade/providers/tier2_qwen_7b_local.py`, shipped Phase 4-V1 PR (c) / PR #51): Ollama prompted-extraction against `qwen2.5vl:7b` — a true prompted VL model (vs Tier 1's layout parser). A schema-driven prompt is built from the form class and Ollama decodes under a JSON schema (`format=<schema>`), so the same provider serves both verticals with no per-vertical wiring. As a standalone Phase 4 provider it extracts the **full form** from the full-page PNG; Phase 5's orchestrator narrows the prompt to just the fields that escalated past Tier 1's 0.85 threshold. Confidence is a deterministic inner-type heuristic (string-like used verbatim → 1.0, format-coerced scalar → 0.5, null/unparseable → confidently-blank), not a model self-report. Tier 2 sets `bounding_box=None` — Tier 1 already attaches layout-parser bboxes to the fields it populates, and 7B bbox grounding is unreliable.
-- **Tier 3** (`src/cascade/providers/tier3_qwen_32b_local.py`, shipped Phase 4-V1 PR (d) / PR #53): Ollama prompted-extraction against the registry build `qwen2.5vl:32b` (Q4_K_M). Same prompt shape as Tier 2 (shared `_qwen_vl` core), more parameters. The architecture originally planned a higher-precision Mungert-GGUF Q8_0/Q6_K Modelfile import with a dual-quant sanity test; that proved infeasible on the 31.2 GB consumer-VRAM build box (the Mungert imports hit an open llama.cpp M-RoPE `seq_add` assert / exceeded VRAM), so V1 ships the registry Q4_K_M build — a documented consumer-hardware trade-off.
+- **Tier 2** (`src/cascade/providers/tier2_qwen_7b_local.py`, shipped Phase 4-V1 PR (c) / PR #51): Ollama prompted-extraction against `qwen2.5vl:7b` — a true prompted VL model (vs Tier 1's layout parser). A schema-driven prompt is built from the form class and Ollama decodes under a JSON schema (`format=<schema>`), so the same provider serves both verticals with no per-vertical wiring. As a standalone Phase 4 provider it extracts the **full form** from the full-page PNG; Phase 5's orchestrator narrows the prompt to just the fields that escalated past Tier 1's 0.85 threshold. The provider stamps a provisional confidence from a deterministic inner-type heuristic (string-like used verbatim → 1.0, format-coerced scalar → 0.5, null/unparseable → confidently-blank); since 2026-10-16 the orchestrator replaces it with the Tier 2 / Tier 3 agreement confidence, because the heuristic followed field type rather than evidence. Tier 2 sets `bounding_box=None` — Tier 1 already attaches layout-parser bboxes to the fields it populates, and 7B bbox grounding is unreliable.
+- **Tier 3** (`src/cascade/providers/tier3_qwen_32b_local.py`, shipped Phase 4-V1 PR (d) / PR #53): Ollama prompted-extraction against the registry build `qwen2.5vl:32b` (Q4_K_M). Same prompt shape as Tier 2 (shared `_qwen_vl` core), more parameters. The architecture originally planned a higher-precision Mungert-GGUF Q8_0/Q6_K Modelfile import with a dual-quant sanity test; that proved infeasible on the 31.2 GB consumer-VRAM build box (the Mungert imports hit an open llama.cpp M-RoPE `seq_add` assert / exceeded VRAM), so V1 ships the registry Q4_K_M build — a documented consumer-hardware trade-off. Since 2026-10-16 Tier 3 is a **second reader**: the orchestrator sends it every field Tier 2 handled; matching readings are accepted at confidence 0.95, and a mismatch gets 0.5 and parks for review, keeping the Tier-2 value when it passes its validator (`src/cascade/validators.py` — date range, ZIP, state, phone) or when Tier 3 read nothing, and taking Tier 3's otherwise. Tier 3 therefore never overwrites a validated date.
 
 ### V1 router
 
@@ -101,11 +101,11 @@ The wake-on-request UX (project pitch + F1-over-time chart during the 30-90s Aur
 
 ## V2 cascade structure (five tiers when cloud is wired)
 
-> This describes the optional enhancement's cascade, not pending work. V1's three-tier all-local cascade (PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B) would expand to five tiers by inserting Tier 2-cloud (AWS Textract Regular Queries) between V1's Tier 2-local and V1's Tier 3, and adding Tier 3b (Bedrock Claude Sonnet 4.6) after V1's Tier 3. The escalation order at the V2 boundary: Tier 1 → Tier 2-local → Tier 2-cloud → Tier 3 → Tier 3b. Per-tier escalation thresholds: 0.85 / 0.80 / 0.80 / 0.75 (V1's 0.85 / 0.80 plus two new thresholds at the V2 cloud boundaries). The Tier 2-cloud / Tier 3b distinction matters because both V1 local tiers AND Tier 3 are HIPAA-safe when the host environment meets HIPAA Security Rule controls, while the V2 cloud tiers are cloud-only managed inference (AWS BAA-eligible). This section will diagram the per-tier failure-handling tree (retry-then-escalate per tier) and the per-field provenance trail in `ExtractedField.escalation_history` once V2 lands.
+> This describes the optional enhancement's cascade, not pending work. V1's three-tier all-local cascade (PaddleOCR-VL → Qwen 2.5 VL 7B → Qwen 2.5 VL 32B) would expand to five tiers by inserting Tier 2-cloud (AWS Textract Regular Queries) between V1's Tier 2-local and V1's Tier 3, and adding Tier 3b (Bedrock Claude Sonnet 4.6) after V1's Tier 3. The escalation order at the V2 boundary: Tier 1 → Tier 2-local → Tier 2-cloud → Tier 3 → Tier 3b. Per-tier escalation thresholds in that spec: 0.85 / 0.80 / 0.80 / 0.75. V1 itself uses 0.85 only to send Tier-1 fields to Tier 2; its Tier 3 second-reads every Tier-2 field and 0.80 is the review gate after that read, not an escalation threshold, so a V2 build would decide where the cloud tiers sit relative to the second read. The Tier 2-cloud / Tier 3b distinction matters because both V1 local tiers AND Tier 3 are HIPAA-safe when the host environment meets HIPAA Security Rule controls, while the V2 cloud tiers are cloud-only managed inference (AWS BAA-eligible). This section will diagram the per-tier failure-handling tree (retry-then-escalate per tier) and the per-field provenance trail in `ExtractedField.escalation_history` once V2 lands.
 
 ## Step Functions state machine layout (optional enhancement)
 
-> Part of the optional enhancement, not pending work. V1's local Python orchestrator (`src/cascade/orchestrator.py`) is the complete, operational equivalent — same routing logic, same retry/escalate behavior, same confidence-threshold escalation. The enhancement would wrap the V1 orchestrator in a Step Functions state machine (or replace it). One state per tier plus the two-stage classifier, with Retry/Catch wired per state for the hybrid retry-then-escalate failure-handling pattern (4xx fails immediately; 5xx/timeout retries 3× with exponential backoff 1s/2s/4s with jitter then escalates; 429 respects Retry-After; schema-validation failure retries once with stricter prompt then escalates). Tier 3b exhaustion routes to a review-queue state with full error history attached.
+> Part of the optional enhancement, not pending work. V1's local Python orchestrator (`src/cascade/orchestrator.py`) is the complete, operational equivalent — same routing logic and retry/escalate behavior. (V1's Tier 3 is a second reader on every Tier-2 field rather than a confidence-threshold escalation; 0.80 is V1's review gate.) The enhancement would wrap the V1 orchestrator in a Step Functions state machine (or replace it). One state per tier plus the two-stage classifier, with Retry/Catch wired per state for the hybrid retry-then-escalate failure-handling pattern (4xx fails immediately; 5xx/timeout retries 3× with exponential backoff 1s/2s/4s with jitter then escalates; 429 respects Retry-After; schema-validation failure retries once with stricter prompt then escalates). Tier 3b exhaustion routes to a review-queue state with full error history attached.
 
 ## Sequence diagrams
 
@@ -124,7 +124,7 @@ sequenceDiagram
     O-->>O: status=extracted (auto-approve)
 ```
 
-**V1 low-confidence escalation (Tier 1 → Tier 2 → Tier 3):**
+**V1 escalation + Tier 3 second read (Tier 1 → Tier 2 → Tier 3):**
 
 ```mermaid
 sequenceDiagram
@@ -136,14 +136,15 @@ sequenceDiagram
     O->>T1: extract(image, form_cls)
     T1-->>O: some fields conf < 0.85
     O->>T2: re-extract narrowed gap fields
-    T2-->>O: coerced scalar @ conf 0.5 (< 0.80)
-    O->>T3: re-extract still-low fields
-    T3-->>O: best-effort fields
+    T2-->>O: first reading
+    O->>T3: second read of the same fields
+    T3-->>O: second reading
+    O->>O: agree = conf 0.95. differ = conf 0.5, keep Tier 2's value if it validates or Tier 3 read nothing, else take Tier 3's
     O->>O: compute_form_confidence -> min < 0.80
-    O->>Q: enqueue (full per-tier provenance)
+    O->>Q: enqueue disagreements (full per-tier provenance)
 ```
 
-The Stage 2 classifier fallback (V1 local Qwen 7B; V2 Bedrock Nova Lite) slots in front of the Tier-1 call when the Stage 1 weighted vocabulary score falls below `N`. The per-tier failure tree (retry-then-escalate: 4xx fails immediately, 5xx/timeout retries 3× with 1/2/4 s backoff + jitter then escalates, schema-validation failure retries once with a stricter prompt then escalates; Tier-3 exhaustion → review queue) is described under "Step Functions state machine layout (V2)" — the V1 Python orchestrator implements the same tree in-process. V2 inserts Tier 2-cloud (Textract) between V1 Tier 2 and Tier 3 and Tier 3b (Bedrock Sonnet) after V1 Tier 3; the escalation shape is identical, with two additional confidence boundaries.
+The Stage 2 classifier fallback (V1 local Qwen 7B; V2 Bedrock Nova Lite) slots in front of the Tier-1 call when the Stage 1 weighted vocabulary score falls below `N`. The per-tier failure tree (retry-then-escalate: 4xx fails immediately, 5xx/timeout retries 3× with 1/2/4 s backoff + jitter then escalates, schema-validation failure retries once with a stricter prompt then escalates; Tier-3 exhaustion → review queue) is described under "Step Functions state machine layout (V2)" — the V1 Python orchestrator implements the same tree in-process. V2 inserts Tier 2-cloud (Textract) between V1 Tier 2 and Tier 3 and Tier 3b (Bedrock Sonnet) after V1 Tier 3, adding confidence boundaries at the cloud tiers; V1's own Tier 2 → Tier 3 step is a second read of every Tier-2 field, not a confidence boundary (0.80 is V1's review gate).
 
 ## Schema introspection patterns
 

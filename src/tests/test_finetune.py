@@ -77,7 +77,7 @@ def test_evaluate_identity_baseline_is_zero_delta_cached() -> None:
 
 
 def test_evaluate_baseline_matches_phase6_cascade_f1() -> None:
-    """The reused harness metric must reproduce the ≈0.78 cascade-stage F1
+    """The reused harness metric must reproduce the ≈0.85 cascade-stage F1
     (memory project_phase6_two_stage_f1) — proof the metric is identical."""
     r = evaluate.evaluate()
-    assert 0.70 <= r.baseline_f1 <= 0.85
+    assert 0.80 <= r.baseline_f1 <= 0.90
