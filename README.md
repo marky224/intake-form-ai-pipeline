@@ -97,6 +97,8 @@ just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the
                     # 92-doc test split via cached replay. $0, no GPU.
+                    # Installs the optional `demo` dependency group
+                    # (Streamlit) on first run; `just install` skips it.
 ```
 
 ![V1 local demo — by-stage ablation + escalation-funnel headline over the cached 92-doc cascade](docs/assets/demo-screenshot.png)

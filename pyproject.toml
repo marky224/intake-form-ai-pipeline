@@ -76,6 +76,9 @@ dependencies = [
 # WITHOUT importing streamlit (CI never imports streamlit); `demo/app.py` is
 # the thin Streamlit view layer, run only locally on `openclaw-pc`. The demo
 # drives the cascade through the default cached-replay path ($0, no GPU).
+# streamlit sits in its own non-default `demo` group, so `uv sync` (and CI's
+# `uv sync --frozen`) skip it; `just demo` runs `uv run --group demo ...`,
+# which installs it on demand. `uv sync --group demo` installs it up front.
 [dependency-groups]
 dev = [
     "pytest>=8.0",
@@ -87,6 +90,8 @@ dev = [
     "pypdfium2>=4.30",
     "pillow>=10.0",
     "ollama>=0.4",
+]
+demo = [
     "streamlit>=1.40",
 ]
 
