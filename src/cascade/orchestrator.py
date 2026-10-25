@@ -19,10 +19,13 @@ Qwen 2.5 VL 7B → Tier 3 Qwen 2.5 VL 32B — into one in-process pipeline:
    (:func:`_route_to_tier3`, since 2026-10-24). For a field Tier 1 covers
    (``tier1_paddleocr_local.COVERED_FIELDS``): Tier 1 and Tier 2 read the
    same value → accepted at ``AGREEMENT_CONFIDENCE``, no Tier 3; they
-   differ, or Tier 1 read nothing → Tier 3. A field Tier 1 doesn't cover
-   has only Tier 2's reading and is accepted at ``SINGLE_READ_CONFIDENCE``
-   (above the review gate, below agreement). If Tier 2 fails, Tier 3 reads
-   every field Tier 2 should have.
+   differ, or Tier 1 read nothing → Tier 3. A Tier-1 reading that fails its
+   own validator counts as nothing (since 2026-10-25). A field Tier 1
+   doesn't cover has only Tier 2's reading and is accepted at
+   ``SINGLE_READ_CONFIDENCE`` (above the review gate, below agreement). A
+   form class Tier 1 covers no field of (``BusinessDocumentForm``) keeps
+   the second read of every Tier-2 field instead. If Tier 2 fails, Tier 3
+   reads every field Tier 2 should have.
 4. **Tier 3 reads only the routed fields** (one narrowed call), then
    :func:`_reconcile_second_read`: Tier 3 matching Tier 1 → Tier 3's value
    at ``AGREEMENT_CONFIDENCE`` (two independent readers). Otherwise the
@@ -30,10 +33,12 @@ Qwen 2.5 VL 7B → Tier 3 Qwen 2.5 VL 32B — into one in-process pipeline:
    gets ``DISAGREEMENT_CONFIDENCE``, below the 0.80 gate, keeping the
    Tier-2 value if it passes its field validator (``cascade.validators`` —
    so Tier 3 never overwrites a validated date) or Tier 3 read nothing, and
-   Tier 3's value otherwise. **Strict parking:** if Tier 1 read the field
-   and the kept value doesn't match it, the field gets
+   Tier 3's value otherwise. **Strict parking:** if Tier 1 has a valid
+   reading of the field and the kept value doesn't match it, the field gets
    ``DISAGREEMENT_CONFIDENCE`` even when the two Qwen readings agree. If
-   Tier 3 fails, every routed field with a value parks.
+   Tier 3 fails, every routed field with a value parks. A field whose Qwen
+   readings are both blank stays confidently blank, dropping Tier 1's
+   reading (kept by design, 2026-10-25).
    Provider confidences (the ``_qwen_vl`` type heuristic) are provisional:
    the orchestrator replaces every one of them.
 5. **Review queue.** A field still below 0.80 (a disagreement), or never
@@ -357,8 +362,9 @@ def _reconcile_second_read(
 
     Every case except "equal" and "both empty" ends at
     ``DISAGREEMENT_CONFIDENCE`` so the field parks for review. **Strict
-    parking:** when Tier 1 read the field and the kept value doesn't match
-    that reading, the field also gets ``DISAGREEMENT_CONFIDENCE`` — two Qwen
+    parking:** when Tier 1 has a valid reading (``tier1`` holds only those)
+    and the kept value doesn't match it, the field also gets
+    ``DISAGREEMENT_CONFIDENCE`` — two Qwen
     readings agreeing against the printed text go to a human. A case or
     spacing difference between Tier 2 and Tier 3 counts as a disagreement
     (conservative: it goes to a human rather than being silently accepted).
@@ -511,10 +517,14 @@ def process_document(
         covered = tier1_mod.covered_fields(form_cls)
         # Tier 1's own readings of the fields it covers, kept apart from the
         # form (Tier 2's merge overwrites them) for the Tier 3 routing.
+        # A reading that fails its own validator (a ZIP read as the state)
+        # counts as "Tier 1 read nothing" (since 2026-10-25).
         tier1_readings = {
-            name: getattr(form, name).value
+            name: value
             for name in extractable
-            if name in covered and getattr(form, name).value is not None
+            if name in covered
+            and (value := getattr(form, name).value) is not None
+            and validate(name, value) is not False
         }
 
         # --- Tier 1 → Tier 2 escalation -------------------------------------
@@ -529,7 +539,9 @@ def process_document(
                 t2_result = _run_tier_with_retry(tier2, png, sub2)
                 merge_fields(form, t2_result.form, esc1)
                 # --- Routing: which Tier-2 fields Tier 3 reads ---------------
-                routed = _route_to_tier3(form, esc1, tier1_readings, covered)
+                # A form Tier 1 covers no field of (BusinessDocumentForm)
+                # keeps the second read of every Tier-2 field.
+                routed = _route_to_tier3(form, esc1, tier1_readings, covered) if covered else esc1
                 attempt_rows += _attempt_rows(
                     form,
                     esc1,

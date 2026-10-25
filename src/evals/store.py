@@ -192,7 +192,7 @@ def f1_over_time(
     Reads the batch summaries for one ``(seed_version, git_sha, stage)``
     run. Defaults to ``stage="tier1"`` — the headline F1-over-time series
     (the layer the alias table governs); pass ``"cascade"`` for the
-    end-to-end robustness series.
+    end-to-end series.
     """
     rows = conn.execute(
         """

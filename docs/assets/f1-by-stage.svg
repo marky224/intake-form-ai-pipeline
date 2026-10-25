@@ -54,8 +54,9 @@
 <text x="70" y="674.0" font-size="11.5" fill="#555">Tier 1 finalizes a date, ZIP or state that passes its validator; the 7B</text>
 <text x="70" y="690.0" font-size="11.5" fill="#555">re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).</text>
 <text x="70" y="706.0" font-size="11.5" fill="#555">Tier 3 reads only fields where Tier 1 and Tier 2 disagree or Tier 1 read</text>
-<text x="70" y="722.0" font-size="11.5" fill="#555">nothing; a match with Tier 1 or Tier 2 settles a field, else it parks.</text>
-<text x="70" y="738.0" font-size="11.5" fill="#555">Most of Tier 3's gain is Synthea's number-suffixed names. One template;</text>
-<text x="70" y="754.0" font-size="11.5" fill="#555">rules chosen on dev with test printed beside it. Live Tier 3 not re-timed.</text>
+<text x="70" y="722.0" font-size="11.5" fill="#555">nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no</text>
+<text x="70" y="738.0" font-size="11.5" fill="#555">valid reading (else it parks, the commonest reason); anything else parks.</text>
+<text x="70" y="754.0" font-size="11.5" fill="#555">Most of Tier 3's gain is Synthea's number-suffixed names. One template;</text>
+<text x="70" y="770.0" font-size="11.5" fill="#555">rules chosen on dev with test printed beside it. Live Tier 3 not re-timed.</text>
 <text x="690" y="770" text-anchor="end" font-size="11" fill="#999">alias_table_seed v1.1.0</text>
 </svg>

@@ -21,7 +21,9 @@ replaces a correct Tier-1 reading (mostly Synthea's digit-suffixed names),
 so Tier 1+2 dips below Tier 1. Tier 3 reads only the fields Tier 1 covers
 where Tier 1 and Tier 2 disagree or Tier 1 read nothing (3.1 per document
 on this split, against every Tier-2 field before): Tier 3 matching Tier 1
-or Tier 2 settles the field, anything else parks, and a validated Tier-2
+settles the field; Tier 3 matching Tier 2 settles it only when Tier 1 has
+no valid reading (against a different valid Tier-1 reading it parks, the
+commonest parking reason); anything else parks, and a validated Tier-2
 date is never overwritten. Read the +0.098 carefully: most of it is
 Synthea's digit-suffixed names. Of the 107 first/last-name cells Tier 3
 turns from wrong to right, 74 are names Tier 2 read without their digit
@@ -302,7 +304,8 @@ _MECHANISM = (
     "Tier 1 finalizes a date, ZIP or state that passes its validator; the 7B",
     "re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).",
     "Tier 3 reads only fields where Tier 1 and Tier 2 disagree or Tier 1 read",
-    "nothing; a match with Tier 1 or Tier 2 settles a field, else it parks.",
+    "nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no",
+    "valid reading (else it parks, the commonest reason); anything else parks.",
     "Most of Tier 3's gain is Synthea's number-suffixed names. One template;",
     "rules chosen on dev with test printed beside it. Live Tier 3 not re-timed.",
 )

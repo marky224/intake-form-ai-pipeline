@@ -153,7 +153,8 @@ _NAME_PAIR = ("first_name", "last_name")
 #: and sends a disagreement, or a covered field Tier 1 found nothing for, to
 #: Tier 3. An uncovered field has only Tier 2's reading. Other on-form boxes
 #: (insured ID, insured name, relationship, account number, physician) and
-#: every ``BusinessDocumentForm`` field are uncovered.
+#: every ``BusinessDocumentForm`` field are uncovered; a form class with no
+#: covered field keeps the second read of every Tier-2 field.
 COVERED_FIELDS: dict[str, frozenset[str]] = {
     "HealthcareIntakeForm": frozenset(
         {

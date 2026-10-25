@@ -149,16 +149,23 @@ def _healthcare_route(monkeypatch):
 
 
 class _StubTier1:
-    """Tier 1 reading one CMS-1500 name box: ``Doe12, Jane34``."""
+    """Tier 1 reading one CMS-1500 name box (``Doe12, Jane34``) and, when
+    given, ``extra`` table rows (``(label_row, value_row)`` HTML)."""
 
     name = "tier1_stub"
     tier = 1
 
+    def __init__(self, extra: tuple[str, str] | None = None):
+        self.extra = extra
+
     def extract(self, png, form_cls):
         html = (
             "<table><tr><td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td></tr>"
-            "<tr><td>Doe12, Jane34</td></tr></table>"
+            "<tr><td>Doe12, Jane34</td></tr>"
         )
+        if self.extra:
+            html += f"<tr>{self.extra[0]}</tr><tr>{self.extra[1]}</tr>"
+        html += "</table>"
         raw = {"parsing_res_list": [{"block_label": "table", "block_content": html}]}
         return ProviderResult(
             form=t1._parse_response(raw, form_cls), latency_ms=1.0, cost_usd=0.0, raw_response=raw
@@ -191,12 +198,12 @@ class _StubQwen:
         return ProviderResult(form=form, latency_ms=1.0, cost_usd=0.0, raw_response={})
 
 
-def _stub_run(memconn, monkeypatch, tier2_values: dict, tier3_values: dict, tier3=None):
+def _stub_run(memconn, monkeypatch, tier2_values: dict, tier3_values: dict, tier3=None, tier1=None):
     _healthcare_route(monkeypatch)
     t2s = _StubQwen(2, tier2_values)
     t3s = tier3 if tier3 is not None else _StubQwen("3a", tier3_values)
     rec = orchestrator.process_document(
-        b"png", doc_id="stub", conn=memconn, providers=(_StubTier1(), t2s, t3s)
+        b"png", doc_id="stub", conn=memconn, providers=(tier1 or _StubTier1(), t2s, t3s)
     )
     return rec, t3s
 
@@ -230,11 +237,16 @@ def test_uncovered_field_is_a_single_read(memconn, monkeypatch):
 
 def test_covered_field_tier1_missed_goes_to_tier3(memconn, monkeypatch):
     """Tier 1 covers the city but read none here: Tier 2's city goes to
-    Tier 3, and the two readings agreeing settles it."""
+    Tier 3, and the two readings agreeing settles it. The last name, which
+    Tier 1 read the same as Tier 2, is not sent."""
     rec, t3s = _stub_run(
-        memconn, monkeypatch, {"address_city": "Wellesley"}, {"address_city": "Wellesley"}
+        memconn,
+        monkeypatch,
+        {"address_city": "Wellesley", "last_name": "Doe12"},
+        {"address_city": "Wellesley"},
     )
     assert "address_city" in t3s.asked
+    assert "last_name" not in t3s.asked
     city = rec.form.address_city
     assert city.value == "Wellesley"
     assert city.confidence == orchestrator.AGREEMENT_CONFIDENCE
@@ -286,10 +298,12 @@ def test_tier3_down_parks_every_routed_field(memconn, monkeypatch):
 
 def test_tier2_down_sends_every_escalated_field_to_tier3(memconn, monkeypatch):
     """Tier 2 fails: there is no Tier-2 reading to compare, so Tier 3 reads
-    every field Tier 2 should have."""
+    every field Tier 2 should have. Tier 3 reads the last name as "doe12"
+    where Tier 1 read "Doe12": the two match after normalization, so the
+    field is accepted instead of parking over a case difference."""
     monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
     _healthcare_route(monkeypatch)
-    t3s = _StubQwen("3a", {})
+    t3s = _StubQwen("3a", {"last_name": "doe12"})
     rec = orchestrator.process_document(
         b"png",
         doc_id="stub",
@@ -298,6 +312,72 @@ def test_tier2_down_sends_every_escalated_field_to_tier3(memconn, monkeypatch):
     )
     assert rec.escalations["3a"] == rec.escalations["2"]
     assert t3s.asked == rec.escalations["2"]
+    assert rec.form.last_name.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "last_name" not in _parked(rec)
+
+
+def test_tier1_reading_failing_its_validator_counts_as_no_reading(memconn, monkeypatch):
+    """Tier 1 reads a ZIP-shaped "02145" as the state (a column shift): it
+    fails the state validator, so it is no reading at all. Tier 3 still
+    reads the field (Tier 1 "read nothing"), and Tier 2 and Tier 3 agreeing
+    on "MA" settles it instead of strict-parking against the bad reading."""
+    tier1 = _StubTier1(("<td>5C. STATE</td>", "<td>02145</td>"))
+    rec, t3s = _stub_run(
+        memconn,
+        monkeypatch,
+        {"address_state": "MA"},
+        {"address_state": "MA"},
+        tier1=tier1,
+    )
+    assert "address_state" in t3s.asked
+    state = rec.form.address_state
+    assert state.value == "MA"
+    assert state.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "address_state" not in _parked(rec)
+
+
+def test_tier2_and_tier3_blank_drop_tier1_reading(memconn, monkeypatch):
+    """Documented limit (Mark's call, 2026-10-25): when Tier 2 and Tier 3
+    both read nothing for a field Tier 1 read, the field stays confidently
+    blank — Tier 1's reading is dropped, not parked."""
+    rec, _ = _stub_run(memconn, monkeypatch, {}, {})
+    first = rec.form.first_name
+    assert first.value is None
+    assert "first_name" not in _parked(rec)
+
+
+def test_form_without_tier1_coverage_keeps_the_second_read(memconn, monkeypatch):
+    """Tier 1 covers no ``BusinessDocumentForm`` field, so routing can't
+    compare readers: Tier 3 re-reads every Tier-2 field as before — a match
+    is accepted at the agreement confidence, a mismatch parks."""
+    from intake_schemas import BusinessDocumentForm
+
+    decision = orchestrator.RouteDecision("business", 2, 0.0, BusinessDocumentForm)
+    monkeypatch.setattr(orchestrator, "route", lambda *_a, **_k: decision)
+
+    class _EmptyTier1:
+        name = "tier1_stub"
+        tier = 1
+
+        def extract(self, png, form_cls):
+            raw = {"parsing_res_list": []}
+            return ProviderResult(
+                form=t1._parse_response(raw, form_cls),
+                latency_ms=1.0,
+                cost_usd=0.0,
+                raw_response=raw,
+            )
+
+    t2s = _StubQwen(2, {"amount_due": "100.00", "customer_billing_name": "ACME"})
+    t3s = _StubQwen("3a", {"amount_due": "100.00", "customer_billing_name": "ACME Inc"})
+    rec = orchestrator.process_document(
+        b"png", doc_id="biz", conn=memconn, providers=(_EmptyTier1(), t2s, t3s)
+    )
+    assert t3s.asked == rec.escalations["2"]
+    assert rec.form.amount_due.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    billed = rec.form.customer_billing_name
+    assert billed.confidence == orchestrator.DISAGREEMENT_CONFIDENCE
+    assert "customer_billing_name" in _parked(rec)
 
 
 class _Tier3Override:

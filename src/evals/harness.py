@@ -159,7 +159,7 @@ def run_eval(
     Persists per-doc + per-batch rows into ``db_path`` (the same SQLite
     file the orchestrator uses; eval tables are harness-owned). Returns
     ``{"tier1": [(batch_id, f1), ...], "cascade": [...]}`` — ``"tier1"`` is
-    the headline series, ``"cascade"`` the robustness series. ``EVAL_LIVE``
+    the headline series, ``"cascade"`` the end-to-end series. ``EVAL_LIVE``
     is honored transparently by the providers.
     """
     from evals.manifest import MANIFEST_PATH

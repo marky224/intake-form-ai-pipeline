@@ -21,11 +21,12 @@ from evals.by_stage import (
     render_by_stage_svg,
 )
 
-# Re-measured 2026-10-24, cached, $0. Tier 1 reads the CMS-1500 boxes and
+# Re-measured 2026-10-25, cached, $0. Tier 1 reads the CMS-1500 boxes and
 # finalizes a date, ZIP or state that passes its validator under a label
 # naming the field specifically (250 cells: not the generic "Date"); Tier
 # 3 reads only the fields Tier 1 covers where Tier 1 and Tier 2 disagree or
-# Tier 1 read nothing (agreement with Tier 1 or Tier 2 settles a field; a
+# Tier 1 has no valid reading (Tier 3 matching Tier 1 settles a field;
+# matching Tier 2 settles it only without a valid Tier-1 reading; a
 # validated Tier-2 value is never overwritten). Tier 1+2 sits below Tier 1:
 # Tier 2 replaces correct Tier-1 readings it doesn't finalize.
 # Of the 115 empty cells, 92 are missed (signature) and 23 true negatives.
