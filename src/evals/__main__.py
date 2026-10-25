@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"headline Tier-1 F1: {tier1[0][1]:.3f} (batch 1) "
         f"→ {tier1[-1][1]:.3f} (batch {tier1[-1][0]}) | "
-        f"cascade F1 (robustness, flat): {cascade[-1][1]:.3f}"
+        f"cascade F1 (end-to-end): {cascade[0][1]:.3f} → {cascade[-1][1]:.3f}"
     )
     return 0
 

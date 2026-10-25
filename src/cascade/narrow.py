@@ -2,8 +2,8 @@
 
 Phase 5's orchestrator escalates *fields*, not whole documents: when Tier 1
 populates a form but some fields land below the 0.85 confidence gate, only
-those fields go to Tier 2, and Tier 3 then re-reads the same fields (the
-second read; see ``cascade.orchestrator``). The frozen ``CascadeProvider``
+those fields go to Tier 2, and Tier 3 then re-reads the ones where Tier 1
+and Tier 2 disagree (the second read; see ``cascade.orchestrator``). The frozen ``CascadeProvider``
 Protocol is ``extract(png, form_cls)`` — there is no field-subset argument
 and the providers must not change.
 

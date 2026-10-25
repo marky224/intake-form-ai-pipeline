@@ -4,7 +4,8 @@ The orchestrator's Tier 3 second read (``orchestrator._reconcile_second_read``)
 uses these on a disagreement: a Tier-2 value that passes its field's
 validator is kept, so Tier 3 never overwrites a validated value — in
 particular a validated date. A Tier-2 value is also kept when Tier 3 read
-nothing; everywhere else the higher tier's reading wins.
+nothing; everywhere else the higher tier's reading wins. Tier 1 uses them
+too: a date, ZIP or state it read and validated is final at Tier 1.
 
 A validator says a value is well-formed and plausible, not that it is
 correct: a misread digit in a real-looking date still passes. Fields with no

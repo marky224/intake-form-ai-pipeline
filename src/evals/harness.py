@@ -13,9 +13,11 @@ For each progressive alias batch (1 … ``batch_count``):
      layer the alias table governs; its F1 genuinely climbs then asymptotes
      as alias coverage grows. **This is the headline F1-over-time series.**
    - ``cascade`` — the end-to-end ``RunRecord.form`` after escalation.
-     Strong Tier 2/3 escalation recovers whatever the alias layer missed,
-     so this F1 is ~invariant to alias coverage — persisted as the
-     "cascade robustness" stat, not the headline curve.
+     Tier 2/3 recover most of what the alias layer missed. Until
+     2026-10-24 this F1 was invariant to alias coverage (the "cascade
+     robustness" stat); since Tier 1's readings decide which fields Tier 3
+     reads, it climbs with alias coverage too (0.857 → 0.904 on the test
+     split). It is still not the headline curve.
 
    Both paths are cached-replay ($0, deterministic in CI);
    ``EVAL_LIVE=true`` drives the live models (handled inside the providers

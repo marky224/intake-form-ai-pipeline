@@ -34,14 +34,14 @@ def test_full_sweep_two_stages_persisted_and_tier1_climbs():
     assert t1[-1] - t1[0] > 0.05, "the climb must be non-trivial"
     assert max(t1) - t1[-1] < 0.005, "tail must plateau near the peak"
 
-    # Robustness: end-to-end cascade F1 barely moves with alias coverage
-    # (Tier 2/3 recover most of what the alias layer misses). Since
-    # 2026-10-24 Tier 1 finalizes validated values, so the cascade gains a
-    # little as more labels match (0.856 → 0.868 on the test split) instead
-    # of being exactly flat.
+    # End-to-end: until 2026-10-24 cascade F1 was invariant to alias
+    # coverage (Tier 2/3 recovered what the alias layer missed). Tier 1 now
+    # finalizes validated values and its readings decide which fields Tier
+    # 3 reads, so the cascade climbs with alias coverage too (0.857 → 0.904
+    # on the test split).
     casc = [f for _, f in series["cascade"]]
-    assert casc[0] <= casc[-1]
-    assert max(casc) - min(casc) < 0.02
+    assert casc[-1] - casc[0] > 0.02
+    assert casc[-1] == max(casc)
 
     # Both stages persisted for every (doc, batch).
     conn = eval_store.connect(db)

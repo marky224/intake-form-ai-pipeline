@@ -111,10 +111,11 @@ def test_second_read_disagreement_review_queue_reality() -> None:
     ), "a free-text disagreement must park, not only dates/bools"
 
 
-def test_two_stage_f1_headline_climbs_cascade_stays_flat() -> None:
-    """Phase 6 finding, asserted: Tier-1 stage F1 climbs as the alias table
-    fills (0.479 → 0.865 since 2026-10-24); end-to-end cascade F1 barely
-    moves, ≈0.86 (the robustness stat)."""
+def test_two_stage_f1_tier1_and_cascade_climb() -> None:
+    """Tier-1 stage F1 climbs as the alias table fills (0.479 → 0.865 since
+    2026-10-24). End-to-end cascade F1 climbs too (0.857 → 0.904): Tier 1's
+    readings decide which fields Tier 3 reads. (Until 2026-10-24 the
+    cascade was flat — the Phase 6 robustness stat.)"""
     ts = two_stage_f1()
     assert isinstance(ts, TwoStageF1)
     assert len(ts.tier1_series) == len(ts.cascade_series) >= 2
@@ -123,10 +124,9 @@ def test_two_stage_f1_headline_climbs_cascade_stays_flat() -> None:
     assert ts.tier1_end > ts.tier1_start
     assert ts.tier1_start < 0.50 < ts.tier1_end
 
-    # Robustness: cascade barely moves across the whole sweep.
-    cascade_vals = [f1 for _, f1 in ts.cascade_series]
-    assert max(cascade_vals) - min(cascade_vals) < 0.02
-    assert 0.80 <= ts.cascade_mean <= 0.90
+    # End-to-end: the cascade climbs with alias coverage too.
+    assert ts.cascade_end - ts.cascade_start > 0.02
+    assert 0.80 <= ts.cascade_mean <= 0.92
 
 
 def test_by_stage_chart_svg_is_the_committed_artifact() -> None:
@@ -147,11 +147,11 @@ def test_by_stage_summary_matches_measured_result_and_monotone_funnel() -> None:
     assert isinstance(bs, ByStageSummary)
 
     f1s = [round(f, 3) for _, f in bs.stages]
-    assert f1s == [0.865, 0.807, 0.868], f"by-stage F1 drifted: {f1s}"
+    assert f1s == [0.865, 0.807, 0.904], f"by-stage F1 drifted: {f1s}"
     assert not bs.regresses
 
     cum = [c for _, c in bs.funnel_cumulative]
-    assert cum == [336, 823, 989], f"funnel drifted: {cum}"
+    assert cum == [336, 862, 989], f"funnel drifted: {cum}"
     assert cum == sorted(cum), "the cells-resolved funnel must be monotone"
     assert bs.populated == 989
     assert (bs.missed, bs.true_negative) == (92, 23)

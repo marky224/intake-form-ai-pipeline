@@ -142,6 +142,38 @@ _WORD = re.compile(r"[A-Z0-9']+")
 #: Fields a "LAST, FIRST" name box packs together.
 _NAME_PAIR = ("first_name", "last_name")
 
+#: Fields Tier 1 *covers*, per form class: the CMS-1500 boxes the table
+#: parser has rules for (box 2 name, 3 date of birth + sex, 5 street, 5b to 5e
+#: city / state / ZIP / phone, 12 date signed, 21 diagnosis). The
+#: orchestrator compares Tier 1's reading of a covered field with Tier 2's
+#: and sends a disagreement, or a covered field Tier 1 found nothing for, to
+#: Tier 3. An uncovered field has only Tier 2's reading. Other on-form boxes
+#: (insured ID, insured name, relationship, account number, physician) and
+#: every ``BusinessDocumentForm`` field are uncovered.
+COVERED_FIELDS: dict[str, frozenset[str]] = {
+    "HealthcareIntakeForm": frozenset(
+        {
+            "first_name",
+            "last_name",
+            "address_street",
+            "address_city",
+            "address_state",
+            "address_zip",
+            "phone",
+            "reason_for_visit",
+            "date_of_birth",
+            "date_signed",
+            "sex",
+        }
+    ),
+}
+
+
+def covered_fields(form_cls: type) -> frozenset[str]:
+    """The fields Tier 1 covers for ``form_cls`` (see ``COVERED_FIELDS``)."""
+    return COVERED_FIELDS.get(form_cls.__name__, frozenset())
+
+
 #: ``alias_table_seed.json`` path. Lives at the **repo root** (not under
 #: ``src/``) by canonical-artifact contract — see memory project_src_layout.
 ALIAS_TABLE_PATH = repo_root() / "alias_table_seed.json"
@@ -418,8 +450,8 @@ def _iter_table_label_value_pairs(html_content: str) -> Iterator[tuple[str, str]
     Known limitation: PaddleOCR-VL's table-to-HTML conversion sometimes
     merges or drops cells (a ZIP cell that also holds the state, a missing
     label cell), so some pairs are still mis-aligned. They reach the matcher
-    and lose on score or on the field validator; Tier 2 re-reads every
-    field that doesn't validate.
+    and lose on score or on the field validator; every field Tier 1
+    doesn't finalize goes on to Tier 2.
     """
     rows = _parse_html_table_grid(html_content)
     for i in range(len(rows) - 1):

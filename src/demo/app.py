@@ -16,11 +16,11 @@ Everything renders honestly:
   measured, beside an escalation funnel whose cumulative cells-resolved
   coverage rises to 100%. Both readings, same run.
 * The two-stage F1 numbers below show the **Tier-1 stage** climbing as the
-  alias table fills, beside the near-flat end-to-end **cascade** F1 (≈0.86)
-  — labeled the *robustness* stat, never relabeled as a climb.
-* Documents land in ``review_queue`` when Tier 2 and Tier 3 read a field
-  differently (the Tier 3 second read). That panel is presented as the
-  intended human-in-the-loop surface, not an error.
+  alias table fills, beside the end-to-end **cascade** F1, which climbs too
+  since Tier 1's readings decide what Tier 3 reads.
+* Documents land in ``review_queue`` when a field has no two readers that
+  agree (Tier 1, Tier 2, Tier 3). That panel is presented as the intended
+  human-in-the-loop surface, not an error.
 """
 
 from __future__ import annotations
@@ -141,7 +141,7 @@ def _render_fields(run: DemoRun) -> None:
             "value": st.column_config.TextColumn("Extracted value", width="large"),
             "confidence": st.column_config.ProgressColumn(
                 "Confidence",
-                help=f"Review gate after the Tier 3 second read: {ESCALATION_GATE:.2f}",
+                help=f"Review gate after the Tier 3 read: {ESCALATION_GATE:.2f}",
                 format="%.3f",
                 min_value=0.0,
                 max_value=1.0,
@@ -160,9 +160,10 @@ def _render_review_queue(run: DemoRun) -> None:
         return
     st.warning(
         "This document is parked in `review_queue` — **by design, not by "
-        "failure.** Tier 3 re-reads every field Tier 2 handled; where the two "
-        "readings differ (or only one found a value) the field gets 0.5, "
-        "under the 0.80 gate, so a human decides. This is the intended "
+        "failure.** Tier 3 reads the fields where Tier 1 and Tier 2 disagree "
+        "(or Tier 1 read nothing); a field left without two readers that "
+        "agree gets 0.5, under the 0.80 gate, so a human decides. This is "
+        "the intended "
         "human-in-the-loop surface the V1 cascade is built around — Phase 8 "
         "wires reviewer corrections back into the alias table."
     )
@@ -265,12 +266,12 @@ def _render_by_stage(bs: ByStageSummary) -> None:
         f"{verdict}. Tier 1 reads the form's printed text and finalizes a "
         "date, ZIP or state that passes its validator; the Qwen 7B Tier 2 "
         "re-reads every other field, sometimes replacing a correct Tier-1 "
-        "reading. Tier 3 is a second "
-        "reader: where its reading matches Tier 2's the field is accepted, "
-        "where it differs the field goes to review, and a Tier-2 value that "
+        "reading. Tier 3 reads only the fields where Tier 1 and Tier 2 "
+        "disagree or Tier 1 read nothing: matching Tier 1 or Tier 2 settles "
+        "the field, otherwise it goes to review, and a Tier-2 value that "
         "passes its validator is never overwritten. Most of Tier 3's gain is "
-        "Synthea's digit-suffixed names, partly offset by street addresses — "
-        "see the methodology doc. The **escalation funnel** counts cells by "
+        "Synthea's digit-suffixed names — see the methodology doc for that "
+        "and the other caveats. The **escalation funnel** counts cells by "
         f"the tier whose value was kept and climbs to **100% of the "
         f"{bs.populated} populated cells**. The empty cells are an explicit "
         f"remainder, not hidden in the denominator: {bs.missed} missed (a value "
@@ -307,11 +308,11 @@ def _render_two_stage(ts: TwoStageF1) -> None:
         "**Tier-1-stage F1** climbs from "
         f"**{ts.tier1_start:.3f}** to **{ts.tier1_end:.3f}** as the "
         "progressive alias table fills in known phrasings — that is the "
-        "self-improvement signal. End-to-end **cascade F1 barely moves "
-        f"(≈{ts.cascade_mean:.2f})**: Tier 2/3 escalation recovers most of "
-        "what the alias table later learns. The near-flat number is the "
-        "**robustness** stat — the cascade is resilient regardless of "
-        "alias-table maturity — *not* a climbing curve in disguise."
+        "self-improvement signal. End-to-end **cascade F1 climbs too**, "
+        f"**{ts.cascade_start:.3f} → {ts.cascade_end:.3f}**: since 2026-10-24 "
+        "Tier 1's readings decide which fields Tier 3 reads, so every label "
+        "the alias table learns lets more fields settle by agreement. "
+        "Until then the cascade was flat across alias batches."
     )
     st.markdown("**Both series, live (this cached run)**")
     st.dataframe(
@@ -319,7 +320,7 @@ def _render_two_stage(ts: TwoStageF1) -> None:
             {
                 "batch": b,
                 "tier-1 (headline)": round(t1, 3),
-                "cascade (robustness)": round(c1, 3),
+                "cascade (end-to-end)": round(c1, 3),
             }
             for (b, t1), (_, c1) in zip(ts.tier1_series, ts.cascade_series, strict=True)
         ],
