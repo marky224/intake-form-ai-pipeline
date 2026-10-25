@@ -12,7 +12,8 @@ reserved for Tier 2 Qwen 2.5 VL 7B (V1) / Tier 3 Qwen 2.5 VL 32B so the
 cascade can hold the larger models resident across a batch without paging.
 
 **Role in the cascade:** cheap-and-fast first-pass extraction, sub-second per
-page. A value that passes its format validator (a date, ZIP or state) gets
+page. A value that passes its format validator (a date, ZIP or state) and
+was read under a label naming its field specifically gets
 ``VALIDATED_CONFIDENCE`` (0.9) and is final at Tier 1. Every other value is
 capped just under the orchestrator's 0.85 Tier 1→2 gate and escalates to
 Tier 2.
@@ -52,6 +53,7 @@ from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from functools import lru_cache
 from html.parser import HTMLParser
+from itertools import pairwise
 from typing import Any, Literal, get_args, get_origin
 
 from PIL import Image
@@ -107,9 +109,11 @@ ALIAS_MATCH_THRESHOLD = 0.3
 _LABEL_VALUE_SEPARATORS = re.compile("^[\\s:\\-\u2013\u2014\t]+")
 
 #: Confidence for a Tier-1 value that passes its format validator (a date,
-#: ZIP or state). It clears the orchestrator's 0.85 Tier 1→2 gate, so the
-#: value is final at Tier 1. On the cached replay these values are right in
-#: every case: 343/343 dev cells, 336/336 test.
+#: ZIP or state), read from an aligned label/value pair whose label names the
+#: field specifically (not the generic one-word "Date"). It clears the
+#: orchestrator's 0.85 Tier 1→2 gate, so the value is final at Tier 1. On the
+#: cached replay these values are right in every case: 256/256 dev cells,
+#: 250/250 test (dates of birth, states, ZIPs).
 VALIDATED_CONFIDENCE = 0.9
 
 #: Every other Tier-1 value keeps its alias-match score, capped just under the
@@ -322,12 +326,28 @@ def _match_label_only(text: str, alias_map: dict[str, list[str]]) -> tuple[str, 
     text the alias covers. Returns ``(canonical_name, score)`` of the best
     match or None below threshold.
     """
+    match = _best_label_match(text, alias_map)
+    return None if match is None else (match[0], match[1])
+
+
+def _best_label_match(
+    text: str,
+    alias_map: dict[str, list[str]],
+    *,
+    whole_words: bool = False,
+) -> tuple[str, float, str] | None:
+    """``(canonical_name, score, alias)`` for the best alias in ``text``.
+
+    See :func:`_match_label_only`. With ``whole_words`` the alias must
+    appear as whole words ("DATE" in "ADMIT DATE", not in "UPDATED").
+    """
     text_stripped = _strip_box_number(text[:_MAX_CELL_CHARS]).strip()
     if not text_stripped:
         return None
     text_len = len(text_stripped)
     text_upper = text_stripped.upper()
-    best: tuple[str, float] | None = None
+    text_words = _words(text_stripped) if whole_words else []
+    best: tuple[str, float, str] | None = None
     for canonical_name, aliases in alias_map.items():
         for alias in aliases:
             alias_stripped = alias.strip()
@@ -335,12 +355,36 @@ def _match_label_only(text: str, alias_map: dict[str, list[str]]) -> tuple[str, 
                 continue
             if alias_stripped.upper() not in text_upper:
                 continue
+            if whole_words and _word_index(text_words, _words(alias_stripped)) is None:
+                continue
             score = min(len(alias_stripped) / text_len, 1.0)
             if best is None or score > best[1]:
-                best = (canonical_name, score)
+                best = (canonical_name, score, alias_stripped)
     if best is not None and best[1] >= ALIAS_MATCH_THRESHOLD:
         return best
     return None
+
+
+def _generic_aliases(alias_map: dict[str, list[str]]) -> frozenset[str]:
+    """Aliases that don't name their field specifically: the alias's words
+    appear, as whole words, inside an alias of a *different* field ("Date"
+    for ``date_signed`` sits inside "Date of Birth"). A label matched only
+    by such an alias can't finalize a value at Tier 1. Upper-cased."""
+    phrases = {
+        name: [_words(a) for a in aliases if a.strip()] for name, aliases in alias_map.items()
+    }
+    generic: set[str] = set()
+    for name, aliases in alias_map.items():
+        for alias in aliases:
+            words = _words(alias)
+            if words and any(
+                _word_index(other, words) is not None
+                for other_name, others in phrases.items()
+                if other_name != name
+                for other in others
+            ):
+                generic.add(alias.strip().upper())
+    return frozenset(generic)
 
 
 class _TableHTMLParser(HTMLParser):
@@ -389,7 +433,7 @@ class _TableHTMLParser(HTMLParser):
 def _colspan(attrs: list[Any]) -> int:
     """A ``<td>``'s ``colspan``: 1 when absent or not a small positive int."""
     for name, value in attrs:
-        if name == "colspan" and isinstance(value, str) and value.strip().isdigit():
+        if name == "colspan" and isinstance(value, str) and value.strip().isdecimal():
             return max(1, min(int(value.strip()), _MAX_TABLE_COLS))
     return 1
 
@@ -414,6 +458,30 @@ def _parse_html_table(html_content: str) -> list[list[str]]:
     return parser.rows if parser is not None else []
 
 
+def _table_cells(html_content: str) -> list[list[tuple[str, int, int]]]:
+    """Return ``<table>`` HTML as rows of ``(text, first_column, end_column)``
+    cells, ``end_column`` exclusive, from each cell's ``colspan``.
+
+    Rows stop at ``_MAX_TABLE_COLS`` columns and cell text is cut to
+    ``_MAX_CELL_CHARS``. ``[]`` on parse failure.
+    """
+    parser = _feed_table(html_content)
+    if parser is None:
+        return []
+    table: list[list[tuple[str, int, int]]] = []
+    for cells, spans in zip(parser.rows, parser.spans, strict=True):
+        row: list[tuple[str, int, int]] = []
+        col = 0
+        for text, span in zip(cells, spans, strict=True):
+            if col >= _MAX_TABLE_COLS:
+                break
+            end = min(col + span, _MAX_TABLE_COLS)
+            row.append((text[:_MAX_CELL_CHARS], col, end))
+            col = end
+        table.append(row)
+    return table
+
+
 def _parse_html_table_grid(html_content: str) -> list[list[str]]:
     """Return ``<table>`` HTML as a column grid: each cell repeated ``colspan``
     times, so cells in the same visual column share an index across rows.
@@ -421,31 +489,41 @@ def _parse_html_table_grid(html_content: str) -> list[list[str]]:
     Rows are capped at ``_MAX_TABLE_COLS`` cells and cell text at
     ``_MAX_CELL_CHARS``. ``[]`` on parse failure.
     """
-    parser = _feed_table(html_content)
-    if parser is None:
-        return []
-    grid: list[list[str]] = []
-    for cells, spans in zip(parser.rows, parser.spans, strict=True):
-        row: list[str] = []
-        for text, span in zip(cells, spans, strict=True):
-            room = _MAX_TABLE_COLS - len(row)
-            if room <= 0:
-                break
-            row.extend([text[:_MAX_CELL_CHARS]] * min(span, room))
-        grid.append(row)
-    return grid
+    return [
+        [text for text, start, end in row for _ in range(end - start)]
+        for row in _table_cells(html_content)
+    ]
 
 
 def _iter_table_label_value_pairs(html_content: str) -> Iterator[tuple[str, str]]:
     """Yield (label_cell, value_cell) candidate pairs from a table HTML block.
 
-    Strategy: column-aligned pairing of consecutive rows on the colspan grid
-    (:func:`_parse_html_table_grid`). For each pair of rows
-    ``(r_i, r_{i+1})``, iterate columns ``0..min(len(r_i), len(r_{i+1}))-1``
-    and yield ``(r_i[c], r_{i+1}[c])`` when both cells are non-empty. A pair
-    repeated by a colspan is yielded once. Cells that don't alias-match a
-    known field are filtered downstream by the matcher — no need to classify
-    label-vs-value rows here.
+    See :func:`_table_pairs`, which also says whether each pair is aligned.
+    """
+    for label, value, _aligned in _table_pairs(html_content):
+        yield label, value
+
+
+def _table_pairs(html_content: str) -> Iterator[tuple[str, str, bool]]:
+    """Yield ``(label_cell, value_cell, aligned)`` pairs from a table block.
+
+    Strategy: pair each cell with every non-empty cell directly above it
+    that shares a column on the colspan grid (:func:`_table_cells`). A pair
+    is **aligned** when the label cell sits above the value cell's first
+    column. A value stretched under several labels pairs with each of them
+    but is aligned only with the first: box 14's date runs under "14. DATE
+    OF CURRENT ILLNESS" and "15. OTHER DATE", and only the box-14 pairing is
+    aligned. A label spanning several value cells ("BIRTH DATE / SEX" over a
+    date cell and a sex cell) is aligned with each of them. Pairs with an
+    empty side are skipped; each pair is yielded once (aligned if any of
+    its occurrences is). Cells that don't alias-match a known field are
+    filtered downstream by the matcher.
+
+    Unaligned pairs are kept because PaddleOCR-VL's columns drift: a street
+    value can start under the insured-name label and end under the address
+    label. They lose to an aligned reading of the same field, never
+    finalize at Tier 1, and are dropped when only a generic alias matched
+    the label (:func:`_parse_response`).
 
     Known limitation: PaddleOCR-VL's table-to-HTML conversion sometimes
     merges or drops cells (a ZIP cell that also holds the state, a missing
@@ -453,17 +531,18 @@ def _iter_table_label_value_pairs(html_content: str) -> Iterator[tuple[str, str]
     and lose on score or on the field validator; every field Tier 1
     doesn't finalize goes on to Tier 2.
     """
-    rows = _parse_html_table_grid(html_content)
-    for i in range(len(rows) - 1):
-        label_row = rows[i]
-        value_row = rows[i + 1]
-        ncols = min(len(label_row), len(value_row))
-        seen: set[tuple[str, str]] = set()
-        for c in range(ncols):
-            pair = (label_row[c], value_row[c])
-            if pair[0] and pair[1] and pair not in seen:
-                seen.add(pair)
-                yield pair
+    rows = _table_cells(html_content)
+    for upper, lower in pairwise(rows):
+        pairs: dict[tuple[str, str], bool] = {}
+        for value, first, end in lower:
+            if not value:
+                continue
+            for label, start, stop in upper:
+                if label and start < end and stop > first:
+                    aligned = start <= first < stop
+                    pairs[(label, value)] = pairs.get((label, value), False) or aligned
+        for (label, value), aligned in pairs.items():
+            yield label, value, aligned
 
 
 def _strip_box_number(label: str) -> str:
@@ -598,44 +677,55 @@ def _same_cell_readings(
     alias_map: dict[str, list[str]],
     kinds: dict[str, Any],
     alias_words: dict[str, list[list[str]]],
-) -> list[tuple[str, Any, float]]:
+) -> list[tuple[str, Any, float, str]]:
     """A label and its value in one cell. Two layouts:
 
-    - **Stacked lines** ("3. BIRTH DATE / SEX\n06/28/1942\nM"): the first
-      line is the label, the rest is the value, read by
+    - **Stacked lines** ("3. BIRTH DATE / SEX\n06/28/1942\nM",
+      "SIGNED\nDATE\n04/01/2026"): the label is the leading lines that
+      best alias-match a field — every split point is tried, the best label
+      score wins — and the remaining lines are the value, read by
       :func:`_cell_readings`.
     - **One line** ("DATE 03/01/2026"): the last whitespace-separated token
-      is the value and the rest must alias-match a field. Only a value that
-      passes that field's validator is read, so free text never splits
-      this way.
+      is the value and the rest must alias-match a field as whole words
+      ("UPDATED 01/02/2026" is not a date label). Only a value that passes
+      that field's validator is read, so free text never splits this way.
 
-    Returns ``[(field, value, score), ...]``.
+    Returns ``[(field, value, score, matched_alias), ...]``; the alias is
+    the one that matched the label (for a field the label only names, the
+    label's own best alias).
     """
     cell = cell[:_MAX_CELL_CHARS]
-    label, newline, rest = cell.strip().partition("\n")
-    if newline and rest.strip():
-        match = _match_label_only(label, alias_map)
-        if match is None:
+    lines = [line.strip() for line in cell.split("\n") if line.strip()]
+    if len(lines) > 1:
+        best: tuple[str, float, str, str, str] | None = None
+        for k in range(1, len(lines)):
+            label = " ".join(lines[:k])
+            match = _best_label_match(label, alias_map)
+            if match is not None and (best is None or match[1] > best[1]):
+                best = (match[0], match[1], match[2], label, " ".join(" ".join(lines[k:]).split()))
+        if best is None:
             return []
-        name, score = match
-        value = " ".join(rest.split())
-        return [(n, v, score) for n, v in _cell_readings(label, value, name, kinds, alias_words)]
+        name, score, alias, label, value = best
+        return [
+            (n, v, score, alias) for n, v in _cell_readings(label, value, name, kinds, alias_words)
+        ]
     parts = cell.rsplit(maxsplit=1)
     if len(parts) != 2:
         return []
-    match = _match_label_only(parts[0], alias_map)
+    match = _best_label_match(parts[0], alias_map, whole_words=True)
     if match is None:
         return []
-    name, score = match
+    name, score, alias = match
     typed = _coerce(kinds.get(name), parts[1])
     if typed is None or validate(name, typed) is not True:
         return []
-    return [(name, typed, score)]
+    return [(name, typed, score, alias)]
 
 
 def _finalizes(name: str, value: Any) -> bool:
     """True for a value Tier 1 may finalize: a date, ZIP or state that
-    passes its validator."""
+    passes its validator. The caller also requires the label to name the
+    field specifically (see :func:`_generic_aliases`)."""
     if not (isinstance(value, date) or name.endswith(("zip", "state"))):
         return False
     return validate(name, value) is True
@@ -735,7 +825,10 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
         PaddleOCR-VL's layout-parser output, so V1 Tier 1 never emits them —
         all populated fields carry a non-None value.
       - Confidence (changed 2026-10-24): a date, ZIP or state that passes its
-        validator gets ``VALIDATED_CONFIDENCE`` and is final at Tier 1.
+        validator gets ``VALIDATED_CONFIDENCE`` and is final at Tier 1, if it
+        came from an aligned pair (or a same-cell label) whose matched alias
+        names the field specifically (since 2026-10-25: not the generic
+        "Date", which also sits inside "Date of Birth").
         Anything else keeps its alias-match score capped at
         ``UNVALIDATED_CONFIDENCE_CAP``, under the 0.85 gate. The score says
         how well the label matched, not whether the value is right, and
@@ -749,17 +842,30 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
     alias_map = _alias_map_for_form(form_cls)
     alias_words = {name: [_words(a) for a in aliases] for name, aliases in alias_map.items()}
     kinds = {name: inner for name, (inner, _meta) in _extractable_fields(form_cls).items()}
+    generic = _generic_aliases(alias_map)
 
-    # canonical_name → (ExtractedField, rank). Best rank wins on collision:
-    # a reading that passes its validator, then the higher alias score.
-    best_by_field: dict[str, tuple[ExtractedField[Any], tuple[bool, float]]] = {}
+    # canonical_name → (ExtractedField, rank, final_ok). Best rank wins on
+    # collision: a reading that passes its validator, then an aligned
+    # label/value pair (see _table_pairs), then the higher alias score.
+    # ``final_ok``: an aligned reading whose matched alias names this field
+    # specifically (see _generic_aliases), the only kind that may finalize.
+    best_by_field: dict[str, tuple[ExtractedField[Any], tuple[bool, bool, float], bool]] = {}
 
-    def offer(name: str, value: Any, score: float, raw_text: str, bbox: Any) -> None:
+    def offer(
+        name: str,
+        value: Any,
+        score: float,
+        raw_text: str,
+        bbox: Any,
+        *,
+        specific: bool,
+        aligned: bool = True,
+    ) -> None:
         if isinstance(value, str):
             value = _coerce(kinds.get(name), value)
             if value is None:
                 return  # a date field whose text isn't a date
-        rank = (validate(name, value) is True, score)
+        rank = (validate(name, value) is True, aligned, score)
         existing = best_by_field.get(name)
         if existing is None or rank > existing[1]:
             field = ExtractedField(
@@ -769,7 +875,7 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
                 raw_text=raw_text,
                 bounding_box=bbox,
             )
-            best_by_field[name] = (field, rank)
+            best_by_field[name] = (field, rank, specific and aligned)
 
     for block in blocks:
         if not isinstance(block, dict):
@@ -785,22 +891,37 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
             # is an HTML <table>. Expand it into column-aligned (label, value)
             # cell pairs so the alias matcher operates on individual fields
             # rather than the whole HTML blob.
-            for label_text, value_text in _iter_table_label_value_pairs(content):
-                tmatch = _match_label_only(label_text, alias_map)
+            for label_text, value_text, aligned in _table_pairs(content):
+                tmatch = _best_label_match(label_text, alias_map)
                 if tmatch is None:
                     continue
-                canonical_name, score = tmatch
+                canonical_name, score, alias = tmatch
                 raw_text = f"{label_text} | {value_text}"
+                specific = alias.upper() not in generic
+                if not aligned and not specific:
+                    # A value stretched under a label that only a generic
+                    # alias matched ("15. OTHER DATE" over box 14's date):
+                    # too weak to count as a reading at all.
+                    continue
                 for name, value in _cell_readings(
                     label_text, value_text, canonical_name, kinds, alias_words
                 ):
-                    offer(name, value, score, raw_text, bbox)
-            for row in _parse_html_table_grid(content):
-                for cell in dict.fromkeys(row):
-                    for name, value, score in _same_cell_readings(
-                        cell, alias_map, kinds, alias_words
-                    ):
-                        offer(name, value, score, cell, bbox)
+                    offer(
+                        name,
+                        value,
+                        score,
+                        raw_text,
+                        bbox,
+                        specific=specific and name == canonical_name,
+                        aligned=aligned,
+                    )
+            for row in _table_cells(content):
+                for cell in dict.fromkeys(text for text, _start, _end in row):
+                    readings = _same_cell_readings(cell, alias_map, kinds, alias_words)
+                    primary = readings[0][0] if readings else None
+                    for name, value, score, alias in readings:
+                        specific = alias.upper() not in generic and name == primary
+                        offer(name, value, score, cell, bbox, specific=specific)
             continue
 
         match = _match_block(content, alias_map)
@@ -811,11 +932,11 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
             # Label-only block; Phase 5 orchestrator can pair labels with
             # adjacent value blocks via layout heuristics. V1 Tier 1 skips.
             continue
-        offer(canonical_name, value, score, content, bbox)
+        offer(canonical_name, value, score, content, bbox, specific=False)
 
     field_overrides = {}
-    for name, (ef, _rank) in best_by_field.items():
-        if _finalizes(name, ef.value):
+    for name, (ef, _rank, final_ok) in best_by_field.items():
+        if final_ok and _finalizes(name, ef.value):
             confidence = VALIDATED_CONFIDENCE
         else:
             confidence = min(ef.confidence, UNVALIDATED_CONFIDENCE_CAP)

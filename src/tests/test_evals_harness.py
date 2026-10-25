@@ -26,7 +26,7 @@ def test_full_sweep_two_stages_persisted_and_tier1_climbs():
     assert n_batches >= 8  # ~8-9 given the current seed
 
     # Headline: Tier-1 F1 climbs from canonical-only (batch 1) as more of
-    # the form's labels match (0.479 → 0.865 on the test split since the
+    # the form's labels match (0.480 → 0.866 on the test split since the
     # 2026-10-24 parser fixes); the seed-1.1.0 CMS-1500 box labels enter at
     # batches 6 and 9. Measured as is, not smoothed.
     t1 = [f for _, f in series["tier1"]]

@@ -488,12 +488,16 @@ def test_validated_values_finalize_and_the_rest_stay_under_the_gate():
 
 def test_value_failing_its_validator_stays_under_the_gate():
     """A column-shifted state cell ("02145") fails the state validator and
-    escalates instead of being finalized."""
+    escalates instead of being finalized, while a valid state read the same
+    way is final at Tier 1."""
     from cascade.orchestrator import GATE_TIER1_TO_TIER2
 
     form = _table_form("<td>5C. STATE</td>", "<td>02145</td>")
     assert form.address_state.value == "02145"
     assert form.address_state.confidence < GATE_TIER1_TO_TIER2
+    valid = _table_form("<td>5C. STATE</td>", "<td>MA</td>")
+    assert valid.address_state.value == "MA"
+    assert valid.address_state.confidence >= GATE_TIER1_TO_TIER2
 
 
 def test_table_parser_caps_rows_columns_and_colspan():
@@ -508,17 +512,106 @@ def test_table_parser_caps_rows_columns_and_colspan():
     assert tier1_paddleocr_local._parse_html_table_grid(bad_span) == [["x", "y"]]
 
 
+def test_colspan_that_is_a_digit_but_not_a_number_keeps_the_table():
+    """``"²".isdigit()`` is True but ``int("²")`` raises: the cell gets
+    colspan 1 instead of the whole table being dropped (for Tier 1 and for
+    the router's OCR lines)."""
+    from cascade import router
+
+    html = '<table><tr><td colspan="\u00b2">5C. STATE</td></tr><tr><td>MA</td></tr></table>'
+    assert _parse_html_table(html) == [["5C. STATE"], ["MA"]]
+    raw = {"parsing_res_list": [{"block_label": "table", "block_content": html}]}
+    assert router.ocr_lines_from_tier1_raw(raw) == ["5C. STATE", "MA"]
+    assert (
+        _table_form('<td colspan="\u00b2">5C. STATE</td>', "<td>MA</td>").address_state.value
+        == "MA"
+    )
+
+
 def test_label_regexes_stay_fast_on_malformed_text():
-    """Long runs of digits, spaces or slashes (malformed OCR) parse quickly:
-    the label and date patterns have no nested quantifiers."""
+    """Long runs of digits, spaces, slashes or letters (malformed OCR) stay
+    fast: the label, date and word patterns have no nested quantifiers. The
+    compiled patterns are timed directly on the full 100,000-character text
+    (the parser itself cuts a cell to 512 characters first)."""
     import time
 
-    junk = ["1" * 100_000, " " * 100_000 + "x", "/" * 100_000, "1/" * 50_000]
+    junk = ["1" * 100_000, " " * 100_000 + "x", "/" * 100_000, "1/" * 50_000, "5C" * 50_000]
     t0 = time.perf_counter()
     for text in junk:
+        tier1_paddleocr_local._BOX_NUMBER.sub("", text, count=1)
+        tier1_paddleocr_local._US_DATE.fullmatch(text)
+        tier1_paddleocr_local._WORD.findall(text)
         _match_label_only(text, _alias_map_for_form(HealthcareIntakeForm))
-        _table_form(f"<td>{text[:600]}</td>", f"<td>{text[:600]}</td>")
+        _table_form(f"<td>{text}</td>", f"<td>{text}</td>")
     assert time.perf_counter() - t0 < 5.0
+
+
+def test_box_14_date_under_box_15_never_becomes_date_signed():
+    """Box 14's date ("date of current illness") is one cell stretched under
+    both "14. DATE OF CURRENT ILLNESS" and "15. OTHER DATE". It is box 14's
+    value, so the generic alias "Date" on box 15's label must not read it
+    as the date signed — let alone finalize it."""
+    box_14_15 = (
+        '<td colspan="3">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td>'
+        "<td>15. OTHER DATE</td>",
+        '<td colspan="4">02/01/2026</td>',
+    )
+    assert _table_form(*box_14_15).date_signed.value is None
+
+
+def test_box_12_date_differing_from_box_14_is_read_and_left_for_tier_2():
+    """With box 12 signed on 03/01 and box 14 dated 02/01, Tier 1 reads the
+    signed date from box 12. "DATE" alone is a generic label, so the value
+    stays under the gate for Tier 2 to read too."""
+    from datetime import date
+
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form(
+        '<td colspan="3">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td>'
+        "<td>15. OTHER DATE</td>",
+        '<td colspan="4">02/01/2026</td>',
+        "<td>SIGNED</td><td>DATE 03/01/2026</td>",
+        "<td>31. Physician</td>",
+    )
+    assert form.date_signed.value == date(2026, 3, 1)
+    assert form.date_signed.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_stacked_signed_date_cell_is_read():
+    """ "SIGNED\nDATE\n04/01/2026": the label is the first two lines, not
+    the first one alone."""
+    from datetime import date
+
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form("<td>SIGNED\nDATE\n04/01/2026</td>", "<td>31. Physician</td>")
+    assert form.date_signed.value == date(2026, 4, 1)
+    assert form.date_signed.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_generic_date_labels_never_finalize():
+    """A label matched only by the generic alias "Date" may give Tier 1 a
+    reading but never a final value; and "UPDATED" is not a date label."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    assert _table_form("<td>UPDATED 01/02/2026</td>", "<td>x</td>").date_signed.value is None
+    for cell in ("ADMIT DATE 01/02/2026", "24A. DATE(S) 01/02/2026"):
+        signed = _table_form(f"<td>{cell}</td>", "<td>x</td>").date_signed
+        assert signed.confidence < GATE_TIER1_TO_TIER2, cell
+
+
+def test_value_stretched_under_two_labels_still_reads_the_specific_one():
+    """OCR column drift: the street value starts under the insured-name
+    label and ends under the address label. The address label names the
+    field specifically, so the street is still read (but not aligned, so it
+    could never finalize)."""
+    form = _table_form(
+        "<td>4.INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td>"
+        "<td>5.PATIENT&#x27;S ADDRESS (STREET)</td><td>6.RELATIONSHIP TO INSURED</td>",
+        '<td>SAME</td><td colspan="2">1065 Hamill Center Suite 34</td><td>Self</td>',
+    )
+    assert form.address_street.value == "1065 Hamill Center Suite 34"
 
 
 # ---------------------------------------------------------------------------

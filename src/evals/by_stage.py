@@ -12,16 +12,17 @@ the committed replay cache ($0, deterministic — CI reproduces it):
   faithful "Tier 3 disabled" ceiling without touching the orchestrator.
 - **Tier 1+2+3** — the real cascade.
 
-Result since 2026-10-24: ``0.865 → 0.807 → 0.904`` — not monotone. Tier 1
+Result since 2026-10-25: ``0.866 → 0.806 → 0.904`` — not monotone. Tier 1
 reads the CMS-1500 table (colspan grid, box numbers stripped, packed boxes
 split, MM/DD/YYYY dates) and finalizes a date, ZIP or state that passes its
-validator; every other Tier-1 value goes to the 7B Tier 2, which often
+validator under a label naming the field specifically; every other
+Tier-1 value goes to the 7B Tier 2, which often
 replaces a correct Tier-1 reading (mostly Synthea's digit-suffixed names),
 so Tier 1+2 dips below Tier 1. Tier 3 reads only the fields Tier 1 covers
 where Tier 1 and Tier 2 disagree or Tier 1 read nothing (3.1 per document
 on this split, against every Tier-2 field before): Tier 3 matching Tier 1
 or Tier 2 settles the field, anything else parks, and a validated Tier-2
-date is never overwritten. Read the +0.097 carefully: most of it is
+date is never overwritten. Read the +0.098 carefully: most of it is
 Synthea's digit-suffixed names. Of the 107 first/last-name cells Tier 3
 turns from wrong to right, 74 are names Tier 2 read without their digit
 suffix, 6 are Tier-2 blanks and 27 are swaps and other misreads; it turns
@@ -38,8 +39,8 @@ dates.
 **Panel 2 — escalation funnel.** The same full ``(t1,t2,t3)`` cascade
 run, counting each scorable cell by the tier whose value the cascade
 kept. Cumulative cells resolved by tier ≤ N rises to 100% of the
-populated cells (336 → 862 → 989 of 989). Tier 1's 336 cells are the
-validated dates, ZIPs and states. Tier 3's value is kept in 127 cells: 99
+populated cells (250 → 861 → 989 of 989). Tier 1's 250 cells are the
+validated dates of birth, ZIPs and states. Tier 3's value is kept in 128 cells: 100
 where it matched Tier 1, 26 free-text cells where Tier 2's value had no
 validator to keep it, and 2 cells Tier 2 left blank. The 115 empty cells
 are shown as an explicit remainder, split by ground truth: 92 **missed**
