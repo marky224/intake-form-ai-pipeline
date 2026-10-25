@@ -176,7 +176,7 @@ ALIASES: dict[tuple[str, str], list[str]] = {
         "E-Mail",
         "Email Address (optional)",
     ],
-    ("signature_present", "base"): [
+    ("signature", "base"): [
         "Signature",
         "Sign Here",
         "Signature of Employee",
