@@ -150,10 +150,15 @@ class _Tier3Override:
         return ProviderResult(form=form, latency_ms=1.0, cost_usd=0.0, raw_response={})
 
 
+#: A test doc whose Tier 1 reads no date of birth, so the DOB reaches Tier 2
+#: and Tier 3 (since 2026-10-24 a validated Tier-1 date is final at Tier 1).
+_NO_T1_DOB_DOC = 15
+
+
 def _second_read(memconn, overrides: dict):
     """Run one cached doc with (Tier 1, Tier 2, stub Tier 3) and also return
     the Tier-1+2 baseline form (Tier 3 slot = Tier 2) for comparison."""
-    png = _validation_pngs()[0]
+    png = _validation_pngs()[_NO_T1_DOB_DOC]
     t1p, t2p, _ = orchestrator.build_cascade()
     base = orchestrator.process_document(
         png.read_bytes(), doc_id="base", conn=memconn, providers=(t1p, t2p, t2p)
@@ -283,7 +288,7 @@ def test_tier3_down_keeps_tier2_provisional_confidences(memconn, monkeypatch):
     confidences survive — the date parks, the string passes — and the error
     history names every field Tier 3 was asked to re-read."""
     monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
-    png = _validation_pngs()[0]
+    png = _validation_pngs()[_NO_T1_DOB_DOC]
     t1p, t2p, _ = orchestrator.build_cascade()
     rec = orchestrator.process_document(
         png.read_bytes(),
@@ -305,13 +310,15 @@ def test_tier3_down_keeps_tier2_provisional_confidences(memconn, monkeypatch):
 
 def test_tier2_down_reconciles_tier1_against_tier3(memconn, monkeypatch):
     """Tier 2 fails: Tier 3's second read is reconciled against Tier 1's
-    values. A Tier-1 value that passes its validator is kept on a mismatch;
-    one that fails it (a column-shifted ZIP) is replaced by Tier 3's."""
+    values. A Tier-1 ZIP that passes its validator is final at Tier 1, so
+    Tier 3 never reads it; one that fails it (a column-shifted ZIP) is
+    replaced by Tier 3's."""
     monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
     t1p, _, _ = orchestrator.build_cascade()
     dead2 = _DeadTier("tier2_qwen_7b_local", 2)
 
-    # Doc 1: Tier 1 reads a valid ZIP (01749); Tier 3 reads another one.
+    # Doc 1: Tier 1 reads a valid ZIP (01749); the stub Tier 3 would read
+    # another one, but never gets the field.
     png = _validation_pngs()[1]
     rec = orchestrator.process_document(
         png.read_bytes(),
@@ -321,7 +328,8 @@ def test_tier2_down_reconciles_tier1_against_tier3(memconn, monkeypatch):
     )
     assert any(e.get("tier") == "2" for e in rec.error_history)
     assert (rec.form.address_zip.value, rec.form.address_zip.tier_used) == ("01749", 1)
-    assert "address_zip" in _parked(rec)
+    assert "address_zip" not in rec.escalations["3a"]
+    assert "address_zip" not in _parked(rec)
 
     # Doc 0: Tier 1's ZIP is column-shifted ("555-451-8687") and fails the
     # validator, so Tier 3's reading is taken.

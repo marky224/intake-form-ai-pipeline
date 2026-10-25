@@ -12,12 +12,12 @@ phases and surfaced honestly by the demo rather than hidden:
 
 1. **The F1-over-time story is two-stage** (Phase 6, memory
    ``project_phase6_two_stage_f1``). The *headline* curve is **Tier-1-stage**
-   F1 — it climbs as the progressive alias table fills (0.242 → 0.340 then
-   asymptotes on the 92-doc test split). End-to-end **cascade** F1 is **flat
-   ≈0.85**: Tier 2 and the Tier 3 second read compensate, so the alias table
-   barely moves the merged result. The flat number is the *robustness* stat, not a
-   failed climb — :func:`two_stage_f1` returns both series and the demo
-   presents both.
+   F1 — it climbs as the progressive alias table fills (0.479 → 0.865 on the
+   92-doc test split since the 2026-10-24 Tier 1 parser fixes). End-to-end
+   **cascade** F1 barely moves (≈0.86): Tier 2 and Tier 3 recover most of
+   what the alias table misses. That near-flat number is the *robustness*
+   stat, not a failed climb — :func:`two_stage_f1` returns both series and
+   the demo presents both.
 
 2. **Second-read disagreements route to human review.** Tier 3 re-reads
    every field Tier 2 handled; a field the two read differently gets 0.5,
@@ -123,7 +123,7 @@ class TwoStageF1:
 
     #: Headline: Tier-1-stage F1 per progressive alias batch — it climbs.
     tier1_series: list[tuple[int, float]]
-    #: Robustness: end-to-end cascade F1 per batch — it stays flat.
+    #: Robustness: end-to-end cascade F1 per batch — it barely moves.
     cascade_series: list[tuple[int, float]]
 
     @property
@@ -136,7 +136,7 @@ class TwoStageF1:
 
     @property
     def cascade_mean(self) -> float:
-        """The flat ≈0.85 robustness number (mean across batches)."""
+        """The ≈0.86 robustness number (mean across batches)."""
         vals = [f1 for _, f1 in self.cascade_series]
         return sum(vals) / len(vals)
 
@@ -146,8 +146,8 @@ class ByStageSummary:
     """The headline by-stage ablation + escalation funnel (Phase 6 / the
     by-stage artifact). Measured cached/$0 on the 92-doc ``test`` split.
 
-    ``stages`` is the cumulative-tier F1 triple, exactly as measured (Tier 3
-    regressed until the 2026-10-16 second read; it no longer does).
+    ``stages`` is the cumulative-tier F1 triple, exactly as measured; it
+    need not be monotone (see :attr:`dips`).
     ``funnel_cumulative`` is cells resolved by tier ≤ N, which rises
     monotonically to 100% of ``populated``.
     The empty remainder is surfaced explicitly rather than hidden, split by
@@ -172,6 +172,18 @@ class ByStageSummary:
         the shape either way rather than smoothing it)."""
         f1s = [f for _, f in self.stages]
         return len(f1s) >= 2 and f1s[-1] < max(f1s[:-1])
+
+    @property
+    def dips(self) -> list[tuple[str, float, str, float]]:
+        """Every stage below the one before it, as
+        ``(previous_label, previous_f1, label, f1)``. Since 2026-10-24
+        Tier 1+2 dips below Tier 1: Tier 2 replaces correct Tier-1 readings
+        it doesn't finalize."""
+        return [
+            (prev_label, prev, label, f1)
+            for (prev_label, prev), (label, f1) in zip(self.stages, self.stages[1:], strict=False)
+            if f1 < prev
+        ]
 
 
 def _sidecar_label(sidecar_path: Path) -> str:
@@ -268,8 +280,9 @@ def two_stage_f1() -> TwoStageF1:
     runs, cached, into a throwaway DB.
 
     Returns the Tier-1-stage headline series (climbs) and the end-to-end
-    cascade robustness series (flat ≈0.85). The demo shows both side by
-    side so the flat number is never relabeled as a climbing curve.
+    cascade robustness series (≈0.86, barely moves). The demo shows both
+    side by side so the near-flat number is never relabeled as a climbing
+    curve.
     """
     with tempfile.NamedTemporaryFile(suffix=".db", delete=True) as tmp:
         series = run_eval(db_path=tmp.name)

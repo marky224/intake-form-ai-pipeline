@@ -370,6 +370,158 @@ def test_parse_response_drops_table_pairs_that_fail_pydantic_validation():
 
 
 # ---------------------------------------------------------------------------
+# CMS-1500 table reading (2026-10-24): colspan grid, box numbers, packed
+# boxes, same-cell values, MM/DD/YYYY dates, and the validator gate
+# ---------------------------------------------------------------------------
+
+
+def _table_form(*rows: str) -> HealthcareIntakeForm:
+    """Parse one ``table`` block built from ``<tr>`` HTML strings."""
+    html = "<table>" + "".join(f"<tr>{r}</tr>" for r in rows) + "</table>"
+    raw = _hc_raw(
+        [{"block_bbox": [0.0, 0.0, 1.0, 1.0], "block_label": "table", "block_content": html}]
+    )
+    return _parse_response(raw, HealthcareIntakeForm)
+
+
+def test_iter_table_pairs_aligns_columns_through_colspan():
+    """A cell with ``colspan="2"`` covers two columns, so the label after it
+    pairs with the third value cell, not the second."""
+    html = (
+        "<table>"
+        '<tr><td colspan="2">14. OTHER DATE</td><td>5D. ZIP CODE</td></tr>'
+        "<tr><td>x</td><td>y</td><td>02481</td></tr>"
+        "</table>"
+    )
+    pairs = list(_iter_table_label_value_pairs(html))
+    assert ("5D. ZIP CODE", "02481") in pairs
+    assert ("5D. ZIP CODE", "y") not in pairs
+
+
+def test_match_label_only_scores_the_label_without_its_box_number():
+    """ "5C. STATE" is the alias "State" plus a box number (and "SC." an OCR
+    misread of "5C."): the score is the share of the label text, 1.0."""
+    alias_map = _alias_map_for_form(HealthcareIntakeForm)
+    assert _match_label_only("5C. STATE", alias_map) == ("address_state", 1.0)
+    assert _match_label_only("SC. STATE", alias_map) == ("address_state", 1.0)
+
+
+def test_name_box_splits_last_first():
+    form = _table_form(
+        "<td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td>",
+        "<td>Doe12, Jane34</td>",
+    )
+    assert (form.last_name.value, form.first_name.value) == ("Doe12", "Jane34")
+
+
+def test_birth_date_box_reads_the_date_and_the_sex():
+    """Box 3 packs MM/DD/YYYY and the sex letter (NBSP-padded)."""
+    from datetime import date
+
+    form = _table_form(
+        "<td>3.PATIENT&#x27;S BIRTH DATE / SEX</td>",
+        "<td>06/13/1955 \u00a0 F</td>",
+    )
+    assert form.date_of_birth.value == date(1955, 6, 13)
+    assert form.sex.value == "F"
+
+
+def test_birth_date_box_split_over_two_cells_still_reads_the_sex():
+    from datetime import date
+
+    form = _table_form(
+        '<td colspan="2">3.PATIENT&#x27;S BIRTH DATE / SEX</td>',
+        "<td>06/13/1955</td><td>M</td>",
+    )
+    assert form.date_of_birth.value == date(1955, 6, 13)
+    assert form.sex.value == "M"
+
+
+def test_label_and_values_stacked_in_one_cell():
+    from datetime import date
+
+    form = _table_form(
+        "<td>3. PATIENT&#x27;S BIRTH DATE / SEX\n06/28/1942\nM</td>",
+        "<td>6. RELATIONSHIP TO INSURED\nSelf</td>",
+    )
+    assert form.date_of_birth.value == date(1942, 6, 28)
+    assert form.sex.value == "M"
+
+
+def test_same_cell_date_label_and_value():
+    from datetime import date
+
+    form = _table_form("<td>SIGNED</td><td>DATE 03/01/2026</td>", "<td>31. Physician</td>")
+    assert form.date_signed.value == date(2026, 3, 1)
+
+
+def test_zip_cell_that_also_holds_the_state_reads_the_zip():
+    form = _table_form("<td>5D.ZIP CODE</td>", "<td>MA 02481</td>")
+    assert form.address_zip.value == "02481"
+
+
+def test_diagnosis_box_reads_reason_for_visit():
+    """CMS-1500 box 21's label is in the seed since 1.1.0."""
+    form = _table_form(
+        "<td>21.DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td>",
+        "<td>Sprain (morphologic abnormality)</td>",
+    )
+    assert form.reason_for_visit.value == "Sprain (morphologic abnormality)"
+
+
+def test_validated_values_finalize_and_the_rest_stay_under_the_gate():
+    """A date, ZIP or state that passes its validator clears the 0.85 Tier 1→2
+    gate; a value with no validator (city) never does, even at alias score 1.0."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form(
+        "<td>5B. CITY</td><td>5C. STATE</td><td>5D. ZIP CODE</td><td>3. BIRTH DATE</td>",
+        "<td>Wellesley</td><td>MA</td><td>02481</td><td>01/16/2020</td>",
+    )
+    validated = tier1_paddleocr_local.VALIDATED_CONFIDENCE
+    assert validated >= GATE_TIER1_TO_TIER2
+    for name in ("address_state", "address_zip", "date_of_birth"):
+        assert getattr(form, name).confidence == validated, name
+    assert form.address_city.value == "Wellesley"
+    assert form.address_city.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_value_failing_its_validator_stays_under_the_gate():
+    """A column-shifted state cell ("02145") fails the state validator and
+    escalates instead of being finalized."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form("<td>5C. STATE</td>", "<td>02145</td>")
+    assert form.address_state.value == "02145"
+    assert form.address_state.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_table_parser_caps_rows_columns_and_colspan():
+    """The OCR text comes from uploaded forms: a huge or hostile table is
+    capped rather than parsed in full."""
+    many_rows = "<table>" + "<tr><td>a</td></tr>" * 5000 + "</table>"
+    assert len(_parse_html_table(many_rows)) <= 200
+    wide = '<table><tr><td colspan="999999">x</td></tr></table>'
+    grid = tier1_paddleocr_local._parse_html_table_grid(wide)
+    assert len(grid) == 1 and len(grid[0]) <= 32
+    bad_span = '<table><tr><td colspan="-3">x</td><td colspan="2a">y</td></tr></table>'
+    assert tier1_paddleocr_local._parse_html_table_grid(bad_span) == [["x", "y"]]
+
+
+def test_label_regexes_stay_fast_on_malformed_text():
+    """Long runs of digits, spaces or slashes (malformed OCR) parse quickly:
+    the label and date patterns have no nested quantifiers."""
+    import time
+
+    junk = ["1" * 100_000, " " * 100_000 + "x", "/" * 100_000, "1/" * 50_000]
+    t0 = time.perf_counter()
+    for text in junk:
+        _match_label_only(text, _alias_map_for_form(HealthcareIntakeForm))
+        _table_form(f"<td>{text[:600]}</td>", f"<td>{text[:600]}</td>")
+    assert time.perf_counter() - t0 < 5.0
+
+
+# ---------------------------------------------------------------------------
 # _parse_bbox + _parse_page_size
 # ---------------------------------------------------------------------------
 

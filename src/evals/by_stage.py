@@ -13,39 +13,41 @@ the committed replay cache ($0, deterministic — CI reproduces it):
   orchestrator.
 - **Tier 1+2+3** — the real cascade.
 
-Result since 2026-10-16: ``0.340 → 0.791 → 0.853``. The 7B Tier 2 does
-the big lift; Tier 3 is a second reader whose agreement with Tier 2 sets
-the final confidence. On a disagreement Tier 2's value is kept if it
-passes its validator or Tier 3 read nothing; otherwise Tier 3's value is
-taken, so a validated Tier-2 date is never overwritten. Read the +0.062
-carefully: most of it is Synthea's
-digit-suffixed names. Of the 107 first/last-name cells Tier 3 turns from
-wrong to right, 74 are names Tier 2 read without their digit suffix (for
-38 first names the digits went into ``middle_name``), 23 are first/last
-swaps by Tier 2, 6 are Tier-2 blanks
+Result since 2026-10-24: ``0.865 → 0.807 → 0.868`` — not monotone. Tier 1
+reads the CMS-1500 table (colspan grid, box numbers stripped, packed boxes
+split, MM/DD/YYYY dates) and finalizes a date, ZIP or state that passes its
+validator; every other Tier-1 value goes to the 7B Tier 2, which often
+replaces a correct Tier-1 reading (mostly Synthea's digit-suffixed names),
+so Tier 1+2 dips below Tier 1. Tier 3 is a second reader whose agreement
+with Tier 2 sets the final confidence. On a disagreement Tier 2's value is
+kept if it passes its validator or Tier 3 read nothing; otherwise Tier 3's
+value is taken, so a validated Tier-2 date is never overwritten. Read the
++0.061 carefully: most of it is Synthea's digit-suffixed names. Of the 107
+first/last-name cells Tier 3 turns from wrong to right, 74 are names Tier 2
+read without their digit suffix (for 38 first names the digits went into
+``middle_name``), 23 are first/last swaps by Tier 2, 6 are Tier-2 blanks
 and 4 are other misreads; Tier 3 turns 4 right names wrong, for +56 net
 ``first_name`` and +47 net ``last_name`` cells. It is offset by
 ``address_street`` (-37: Tier 3 drops the apartment suffix), which is kept
-as measured. The rule was chosen after
-test-split per-field outcomes had been inspected — see
-``docs/eval-methodology.md``. Until 2026-10-16 the curve was **not**
-monotone (``0.791 → 0.765``): a type heuristic (strings 1.0, dates 0.5)
-sent every date to Tier 3, and the quantized 32B overwrote 29 correct
-dates.
+as measured. The rules were chosen after test-split per-field outcomes had
+been inspected — see ``docs/eval-methodology.md``. Until 2026-10-24 Tier 1
+settled 2 cells and scored 0.340 (``0.340 → 0.791 → 0.853``); until
+2026-10-16 Tier 3 regressed (``0.791 → 0.765``): a type heuristic
+(strings 1.0, dates 0.5) sent every date to Tier 3, and the quantized 32B
+overwrote 29 correct dates.
 
 **Panel 2 — escalation funnel.** The same full ``(t1,t2,t3)`` cascade
 run, counting each scorable cell by the tier whose value the cascade
 kept. Cumulative cells resolved by tier ≤ N rises to 100% of the
-populated cells (2 → 822 → 989 of 989). Tier 3 reads every Tier-2 field,
-but its value is kept only where the readings differ, Tier 3 read
-something, and Tier 2's value doesn't pass a validator — 167 cells: 158
-free-text cells (no validator exists for them), 8 cells Tier 2 left blank,
-1 cell whose Tier-2 value failed its validator. The 115 empty
-cells are shown as an explicit remainder, split by ground truth: 92
-**missed** (the form has a value, the cascade produced none — the
-``signature`` field, which no tier attempts) and 23 **true negatives**
-(absent on the source form). Tier 1's funnel share is a tiny 2 cells,
-consistent with its 0.34 F1; it is not dressed up.
+populated cells (336 → 823 → 989 of 989). Tier 1's 336 cells are the
+validated dates, ZIPs and states. Tier 3 reads every Tier-2 field, but
+its value is kept only where the readings differ, Tier 3 read something,
+and Tier 2's value doesn't pass a validator — 166 cells: 158 free-text
+cells (no validator exists for them) and 8 cells Tier 2 left blank. The
+115 empty cells are shown as an explicit remainder, split by ground
+truth: 92 **missed** (the form has a value, the cascade produced none —
+the ``signature`` field, which no tier attempts) and 23 **true
+negatives** (absent on the source form).
 """
 
 from __future__ import annotations
@@ -291,12 +293,12 @@ _H = 778
 
 #: The mechanism, wrapped to fit — Mark's ask: the logic lives in the graph.
 _MECHANISM = (
-    "Tier 3 re-reads every field Tier 2 handled; agreement sets confidence.",
-    "A mismatch parks for review and keeps Tier 2's value if it validates",
-    "(date, ZIP, state, phone) or Tier 3 read nothing, else Tier 3's. Most of",
-    'the gain is Synthea\'s number-suffixed names (Tier 3 copies "Ramona980"',
-    "literally), offset by street addresses (-37 cells, kept). The rule was",
-    "chosen after test-split results were seen. Before 2026-10-16: 0.765.",
+    "Tier 1 finalizes a date, ZIP or state that passes its validator; the 7B",
+    "re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).",
+    "Tier 3 re-reads every Tier-2 field; agreement sets confidence, a mismatch",
+    "parks and keeps Tier 2's value if it validates, else Tier 3's. Most of",
+    "Tier 3's gain is Synthea's number-suffixed names, offset by street",
+    "addresses (-37). One template; rules chosen after test results were seen.",
 )
 
 #: "Missed" cap color — validated against the green bar and the gray cap
@@ -309,8 +311,8 @@ def _funnel_caption(funnel: Funnel) -> tuple[str, ...]:
     share and about the empty cells (counts formatted from ``funnel``)."""
     return (
         "Cells resolved by tier ≤ N (cumulative), by the tier whose value was kept. Tier 1's",
-        f"share is a tiny {funnel.tier1} cells — consistent with its 0.34 F1. Tier 3 re-reads "
-        "every Tier-2",
+        f"{funnel.tier1} cells are the dates, ZIPs and states that passed validation. Tier 3 "
+        "re-reads every Tier-2",
         "field; its value is kept where the readings differ, it read something, and Tier 2's",
         f"value doesn't validate ({funnel.tier3a} cells: {funnel.tier3a_free_text} free text "
         f"with no validator, {funnel.tier3a_tier2_blank} Tier-2",

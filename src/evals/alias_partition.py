@@ -116,7 +116,7 @@ def active_alias_batch(
         tier1_mod.ALIAS_TABLE_PATH = tmp_path
         # Suppress the live correction overlay for the whole block: the
         # frozen F1 chart is the offline analogue of the loop and must
-        # reflect the v1.0.0 seed alone. Suppression lifts before the
+        # reflect the v1.1.0 seed alone. Suppression lifts before the
         # finally's cache clear so post-sweep extraction sees the overlay
         # again.
         with suppress_overlay():

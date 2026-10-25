@@ -12,9 +12,10 @@ reserved for Tier 2 Qwen 2.5 VL 7B (V1) / Tier 3 Qwen 2.5 VL 32B so the
 cascade can hold the larger models resident across a batch without paging.
 
 **Role in the cascade:** cheap-and-fast first-pass extraction, sub-second per
-page. High precision on the easy 60-70% of fields. Lower-confidence fields
-escalate to Tier 2 per the Phase 5 orchestrator's confidence threshold
-(0.85 — locked, tuned in Phase 6).
+page. A value that passes its format validator (a date, ZIP or state) gets
+``VALIDATED_CONFIDENCE`` (0.9) and is final at Tier 1. Every other value is
+capped just under the orchestrator's 0.85 Tier 1→2 gate and escalates to
+Tier 2.
 
 **Cost:** $0.00/call (local inference).
 
@@ -25,8 +26,8 @@ layout blocks ``{block_bbox, block_label, block_content}`` — and ignores any
 as PP-Structure-V3's VL-trained successor (more robust OCR), not a Qwen-VL-
 style prompt-and-extract model. Field-name extraction is therefore a downstream
 step inside this provider: each ``block_content`` is matched against the
-project's ``alias_table_seed.json`` (~465 aliases across 86 records) to map
-recognized labels to canonical field names. The locked ``extract(png,
+project's ``alias_table_seed.json`` to map recognized labels to canonical
+field names. The locked ``extract(png,
 form_cls) → ProviderResult[T]`` Protocol shape stays intact — Phase 5's
 orchestrator and the downstream Tier 2 / Tier 3 providers don't need to know
 that Tier 1's "field-by-field JSON" is synthesized post-OCR rather than
@@ -48,10 +49,10 @@ import json
 import re
 import time
 from collections.abc import Iterator
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from functools import lru_cache
 from html.parser import HTMLParser
-from typing import Any
+from typing import Any, Literal, get_args, get_origin
 
 from PIL import Image
 from pydantic import ValidationError
@@ -59,6 +60,8 @@ from pydantic import ValidationError
 from _paths import repo_root
 from cascade import eval_cache
 from cascade.providers._base import ProviderResult, T
+from cascade.providers._qwen_vl import _extractable_fields
+from cascade.validators import validate
 from intake_schemas import (
     BoundingBox,
     ExtractedField,
@@ -102,6 +105,42 @@ ALIAS_MATCH_THRESHOLD = 0.3
 #: applied to the remainder slice so a value like "2024-01-15" doesn't get its
 #: internal dashes mangled.
 _LABEL_VALUE_SEPARATORS = re.compile("^[\\s:\\-\u2013\u2014\t]+")
+
+#: Confidence for a Tier-1 value that passes its format validator (a date,
+#: ZIP or state). It clears the orchestrator's 0.85 Tier 1→2 gate, so the
+#: value is final at Tier 1. On the cached replay these values are right in
+#: every case: 343/343 dev cells, 336/336 test.
+VALIDATED_CONFIDENCE = 0.9
+
+#: Every other Tier-1 value keeps its alias-match score, capped just under the
+#: 0.85 gate so it always escalates to Tier 2. The score measures how well
+#: the *label* matched an alias, not whether the value is right, so it never
+#: finalizes a value on its own.
+UNVALIDATED_CONFIDENCE_CAP = 0.84
+
+#: Caps on what the table parser reads from one ``<table>`` block. The OCR
+#: text comes from uploaded forms, so a malformed or hostile block must not
+#: blow up time or memory. The cached corpus peaks at 24 rows, 7 cells per
+#: row and colspan 10.
+_MAX_TABLE_ROWS = 200
+_MAX_TABLE_COLS = 32
+_MAX_CELL_CHARS = 512
+
+#: A box number in front of a form label ("5C. STATE", "1A.INSURED'S",
+#: "21.DIAGNOSIS") including OCR misreads seen in the corpus ("58.", "SC.",
+#: "XC.", "50,"). Stripped before the alias score so the score measures the
+#: label text, not the box number. Bounded quantifiers only: linear time.
+_BOX_NUMBER = re.compile(r"^\s*(?:[0-9][0-9A-Z]{0,2}|[A-Z][A-E])\s*[.,]\s*")
+
+#: US-style date as printed on the form (MM/DD/YYYY). Matched with
+#: ``fullmatch`` on one whitespace-free token, so it is linear time.
+_US_DATE = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
+
+#: Words for label-mention checks ("LAST, FIRST" → ``LAST``, ``FIRST``).
+_WORD = re.compile(r"[A-Z0-9']+")
+
+#: Fields a "LAST, FIRST" name box packs together.
+_NAME_PAIR = ("first_name", "last_name")
 
 #: ``alias_table_seed.json`` path. Lives at the **repo root** (not under
 #: ``src/``) by canonical-artifact contract — see memory project_src_layout.
@@ -246,10 +285,12 @@ def _match_label_only(text: str, alias_map: dict[str, list[str]]) -> tuple[str, 
 
     Like ``_match_block`` but skips the value-strip step — when the caller
     has already separated label and value into different table cells, the
-    label cell has no trailing value to extract. Returns
-    ``(canonical_name, score)`` of the best match or None below threshold.
+    label cell has no trailing value to extract. A leading box number
+    ("5C. STATE") is stripped first, so the score is the share of the label
+    text the alias covers. Returns ``(canonical_name, score)`` of the best
+    match or None below threshold.
     """
-    text_stripped = text.strip()
+    text_stripped = _strip_box_number(text[:_MAX_CELL_CHARS]).strip()
     if not text_stripped:
         return None
     text_len = len(text_stripped)
@@ -275,28 +316,37 @@ class _TableHTMLParser(HTMLParser):
 
     Stdlib-only. HTML entities (``&#x27;``, ``&amp;``, ``&lt;``) get unescaped
     via ``html.unescape``. Nested tags inside cells are ignored — only the
-    raw text content of each ``<td>`` is captured.
+    raw text content of each ``<td>`` is captured. ``spans`` holds each
+    cell's ``colspan`` (1 when absent or malformed, at most
+    ``_MAX_TABLE_COLS``). Rows past ``_MAX_TABLE_ROWS`` are ignored.
     """
 
     def __init__(self) -> None:
         super().__init__()
         self.rows: list[list[str]] = []
+        self.spans: list[list[int]] = []
         self._row: list[str] | None = None
+        self._row_spans: list[int] = []
         self._cell: list[str] | None = None
+        self._span = 1
 
-    def handle_starttag(self, tag: str, _attrs: list[Any]) -> None:
-        if tag == "tr":
+    def handle_starttag(self, tag: str, attrs: list[Any]) -> None:
+        if tag == "tr" and len(self.rows) < _MAX_TABLE_ROWS:
             self._row = []
+            self._row_spans = []
         elif tag == "td" and self._row is not None:
             self._cell = []
+            self._span = _colspan(attrs)
 
     def handle_endtag(self, tag: str) -> None:
         if tag == "td" and self._row is not None and self._cell is not None:
             text = html_lib.unescape("".join(self._cell)).strip()
             self._row.append(text)
+            self._row_spans.append(self._span)
             self._cell = None
         elif tag == "tr" and self._row is not None:
             self.rows.append(self._row)
+            self.spans.append(self._row_spans)
             self._row = None
 
     def handle_data(self, data: str) -> None:
@@ -304,42 +354,259 @@ class _TableHTMLParser(HTMLParser):
             self._cell.append(data)
 
 
-def _parse_html_table(html_content: str) -> list[list[str]]:
-    """Return ``<table>`` HTML as ``[[cell_text, ...], ...]``. ``[]`` on parse failure."""
+def _colspan(attrs: list[Any]) -> int:
+    """A ``<td>``'s ``colspan``: 1 when absent or not a small positive int."""
+    for name, value in attrs:
+        if name == "colspan" and isinstance(value, str) and value.strip().isdigit():
+            return max(1, min(int(value.strip()), _MAX_TABLE_COLS))
+    return 1
+
+
+def _feed_table(html_content: str) -> _TableHTMLParser | None:
     parser = _TableHTMLParser()
     try:
         parser.feed(html_content)
     except Exception:
+        return None
+    return parser
+
+
+def _parse_html_table(html_content: str) -> list[list[str]]:
+    """Return ``<table>`` HTML as ``[[cell_text, ...], ...]``. ``[]`` on parse failure.
+
+    One entry per ``<td>`` as written (``colspan`` is not expanded), which is
+    what the router's OCR-line view wants. Field pairing uses
+    :func:`_parse_html_table_grid`.
+    """
+    parser = _feed_table(html_content)
+    return parser.rows if parser is not None else []
+
+
+def _parse_html_table_grid(html_content: str) -> list[list[str]]:
+    """Return ``<table>`` HTML as a column grid: each cell repeated ``colspan``
+    times, so cells in the same visual column share an index across rows.
+
+    Rows are capped at ``_MAX_TABLE_COLS`` cells and cell text at
+    ``_MAX_CELL_CHARS``. ``[]`` on parse failure.
+    """
+    parser = _feed_table(html_content)
+    if parser is None:
         return []
-    return parser.rows
+    grid: list[list[str]] = []
+    for cells, spans in zip(parser.rows, parser.spans, strict=True):
+        row: list[str] = []
+        for text, span in zip(cells, spans, strict=True):
+            room = _MAX_TABLE_COLS - len(row)
+            if room <= 0:
+                break
+            row.extend([text[:_MAX_CELL_CHARS]] * min(span, room))
+        grid.append(row)
+    return grid
 
 
 def _iter_table_label_value_pairs(html_content: str) -> Iterator[tuple[str, str]]:
     """Yield (label_cell, value_cell) candidate pairs from a table HTML block.
 
-    Strategy: column-aligned pairing of consecutive rows. For each pair of
-    rows ``(r_i, r_{i+1})``, iterate columns ``0..min(len(r_i), len(r_{i+1}))-1``
-    and yield ``(r_i[c], r_{i+1}[c])`` when both cells are non-empty. Cells
-    that don't alias-match a known field are filtered downstream by the
-    matcher — no need to classify label-vs-value rows here.
+    Strategy: column-aligned pairing of consecutive rows on the colspan grid
+    (:func:`_parse_html_table_grid`). For each pair of rows
+    ``(r_i, r_{i+1})``, iterate columns ``0..min(len(r_i), len(r_{i+1}))-1``
+    and yield ``(r_i[c], r_{i+1}[c])`` when both cells are non-empty. A pair
+    repeated by a colspan is yielded once. Cells that don't alias-match a
+    known field are filtered downstream by the matcher — no need to classify
+    label-vs-value rows here.
 
-    Known limitation: PaddleOCR-VL's table-to-HTML conversion can produce
-    column-shifted output when value cells span what would be multiple
-    label columns (e.g. a single checkbox-value cell paired with a 2-cell
-    label header). Off-by-one mis-pairs reach the matcher and are filtered
-    on score; Phase 4 PR (c)'s Tier 2 Qwen will refine table parsing
-    natively via prompted extraction.
+    Known limitation: PaddleOCR-VL's table-to-HTML conversion sometimes
+    merges or drops cells (a ZIP cell that also holds the state, a missing
+    label cell), so some pairs are still mis-aligned. They reach the matcher
+    and lose on score or on the field validator; Tier 2 re-reads every
+    field that doesn't validate.
     """
-    rows = _parse_html_table(html_content)
+    rows = _parse_html_table_grid(html_content)
     for i in range(len(rows) - 1):
         label_row = rows[i]
         value_row = rows[i + 1]
         ncols = min(len(label_row), len(value_row))
+        seen: set[tuple[str, str]] = set()
         for c in range(ncols):
-            label = label_row[c]
-            value = value_row[c]
-            if label and value:
-                yield (label, value)
+            pair = (label_row[c], value_row[c])
+            if pair[0] and pair[1] and pair not in seen:
+                seen.add(pair)
+                yield pair
+
+
+def _strip_box_number(label: str) -> str:
+    """Drop a leading form box number ("5C. STATE" → "STATE")."""
+    return _BOX_NUMBER.sub("", label, count=1)
+
+
+def _words(text: str) -> list[str]:
+    """Upper-cased words of ``text`` (letters, digits, apostrophes)."""
+    return _WORD.findall(text.upper())
+
+
+def _word_index(words: list[str], phrase: list[str]) -> int | None:
+    """Index where ``phrase`` starts as a whole-word run in ``words``, or None."""
+    n = len(phrase)
+    if not n:
+        return None
+    for i in range(len(words) - n + 1):
+        if words[i : i + n] == phrase:
+            return i
+    return None
+
+
+def _mentions(words: list[str], alias_words: dict[str, list[list[str]]]) -> dict[str, int]:
+    """``{field: word index}`` for every field an alias of which appears in
+    ``words`` as whole words ("LAST" in "NAME (LAST, FIRST)", but not "ST"
+    inside "STREET"). The index is that of the field's *last* mention, so a
+    shared lead-in ("PATIENT'S NAME") doesn't hide where "LAST" and "FIRST"
+    sit."""
+    found: dict[str, int] = {}
+    for name, phrases in alias_words.items():
+        hits = [i for p in phrases if (i := _word_index(words, p)) is not None]
+        if hits:
+            found[name] = max(hits)
+    return found
+
+
+def _coerce(inner: Any, text: str) -> Any:
+    """Type a Tier-1 string for its field. A date field takes MM/DD/YYYY (as
+    printed on US forms) or ISO and returns a ``date``, or None if it is
+    neither. Every other type returns the text unchanged; Pydantic validates
+    it when the form is built."""
+    if inner is not date:
+        return text
+    token = text.strip()
+    m = _US_DATE.fullmatch(token)
+    try:
+        if m:
+            return date(int(m.group(3)), int(m.group(1)), int(m.group(2)))
+        return date.fromisoformat(token)
+    except ValueError:
+        return None
+
+
+def _literal_value(inner: Any, token: str) -> str | None:
+    """``token`` as one of a string ``Literal``'s values (case-insensitive)."""
+    if get_origin(inner) is not Literal:
+        return None
+    for arg in get_args(inner):
+        if isinstance(arg, str) and arg.casefold() == token.casefold():
+            return arg
+    return None
+
+
+def _cell_readings(
+    label: str,
+    value: str,
+    field: str,
+    kinds: dict[str, Any],
+    alias_words: dict[str, list[list[str]]],
+) -> list[tuple[str, Any]]:
+    """``(field, value)`` readings from one label/value cell pair.
+
+    ``field`` is the label's best alias match. A form often packs several
+    fields into one box, and the label names them, so other fields whose
+    aliases appear in the label as whole words are read from the same value:
+
+    - **Name**: the label names both last and first name and the value has
+      one comma ("LAST, FIRST" → ``Doe, Jane``): split in the label's order.
+    - **Date + more**: under a date field's label, a leading date token
+      goes to the date field and any token that is one of a named
+      ``Literal`` field's values goes to that field ("06/13/1955 F" under
+      "BIRTH DATE / SEX"; also a lone "F" when the box splits into two
+      cells).
+    - **Validator rescue**: a value that fails the field's validator but has
+      exactly one token that passes it ("MA 02481" under "ZIP CODE"): that
+      token is the reading. Fields the label also names get their own
+      passing token.
+
+    Anything else is the whole value for ``field``.
+    """
+    mentioned = _mentions(_words(label), alias_words)
+    here = mentioned.pop(field, None)
+
+    if field in _NAME_PAIR and here is not None and value.count(",") == 1:
+        other = next(n for n in _NAME_PAIR if n != field)
+        before, _, after = value.partition(",")
+        first_part, second_part = before.strip(), after.strip()
+        if other in mentioned and first_part and second_part:
+            order = (field, other) if here < mentioned[other] else (other, field)
+            return [(order[0], first_part), (order[1], second_part)]
+
+    tokens = value.split()
+    if kinds.get(field) is date and tokens:
+        readings: list[tuple[str, Any]] = []
+        rest = tokens
+        if _coerce(date, tokens[0]) is not None:
+            readings.append((field, tokens[0]))
+            rest = tokens[1:]
+        for token in rest:
+            for name in mentioned:
+                literal = _literal_value(kinds.get(name), token)
+                if literal is not None:
+                    readings.append((name, literal))
+        if readings:
+            return readings
+
+    if validate(field, value) is False and len(tokens) > 1:
+        readings = []
+        for name in (field, *mentioned):
+            passing = [t for t in tokens if validate(name, t) is True]
+            if len(passing) == 1:
+                readings.append((name, passing[0]))
+        if readings:
+            return readings
+
+    return [(field, value)]
+
+
+def _same_cell_readings(
+    cell: str,
+    alias_map: dict[str, list[str]],
+    kinds: dict[str, Any],
+    alias_words: dict[str, list[list[str]]],
+) -> list[tuple[str, Any, float]]:
+    """A label and its value in one cell. Two layouts:
+
+    - **Stacked lines** ("3. BIRTH DATE / SEX\n06/28/1942\nM"): the first
+      line is the label, the rest is the value, read by
+      :func:`_cell_readings`.
+    - **One line** ("DATE 03/01/2026"): the last whitespace-separated token
+      is the value and the rest must alias-match a field. Only a value that
+      passes that field's validator is read, so free text never splits
+      this way.
+
+    Returns ``[(field, value, score), ...]``.
+    """
+    cell = cell[:_MAX_CELL_CHARS]
+    label, newline, rest = cell.strip().partition("\n")
+    if newline and rest.strip():
+        match = _match_label_only(label, alias_map)
+        if match is None:
+            return []
+        name, score = match
+        value = " ".join(rest.split())
+        return [(n, v, score) for n, v in _cell_readings(label, value, name, kinds, alias_words)]
+    parts = cell.rsplit(maxsplit=1)
+    if len(parts) != 2:
+        return []
+    match = _match_label_only(parts[0], alias_map)
+    if match is None:
+        return []
+    name, score = match
+    typed = _coerce(kinds.get(name), parts[1])
+    if typed is None or validate(name, typed) is not True:
+        return []
+    return [(name, typed, score)]
+
+
+def _finalizes(name: str, value: Any) -> bool:
+    """True for a value Tier 1 may finalize: a date, ZIP or state that
+    passes its validator."""
+    if not (isinstance(value, date) or name.endswith(("zip", "state"))):
+        return False
+    return validate(name, value) is True
 
 
 def _parse_bbox(bbox: Any, page_size_px: tuple[int, int] | None = None) -> BoundingBox | None:
@@ -415,22 +682,32 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
       1. Builds the alias map for ``form_cls``'s vertical.
       2. Walks ``parsing_res_list``.
       3. For ``block_label == "table"`` blocks (dense forms like CMS-1500
-         that PaddleOCR-VL serializes as ``<table>`` HTML), expands the
-         block into column-aligned (label, value) cell pairs and
-         alias-matches each label cell. The paired cell text is the value.
+         that PaddleOCR-VL serializes as ``<table>`` HTML), lays the cells
+         out on a colspan grid, pairs each cell with the one below it, and
+         alias-matches the label cell (box number stripped). The value cell
+         is read by :func:`_cell_readings`, which also splits packed boxes
+         (``LAST, FIRST``; ``DOB SEX``; a ZIP cell that also holds the
+         state). A cell holding both a label and its value
+         ("DATE 03/01/2026", or label and value on stacked lines) is read by
+         :func:`_same_cell_readings`.
       4. For all other block labels, matches the whole ``block_content``
          against the alias table and strips the recognized label prefix
          to get the value.
-      5. Populates the form, taking the highest-scoring match per field.
+      5. Types each reading for its field (MM/DD/YYYY → ``date``) and keeps,
+         per field, a reading that passes the field's validator over one
+         that doesn't, then the higher alias score.
 
-    Locked rules:
+    Rules:
       - ``tier_used=1`` stamped on every populated field. Confidently-blank
         fields (model attempted, value=None) aren't producible from
         PaddleOCR-VL's layout-parser output, so V1 Tier 1 never emits them —
         all populated fields carry a non-None value.
-      - Confidence is the alias-match score from ``_match_block``, clamped
-        to [0, 1]. NOT a model-reported confidence (PaddleOCR-VL doesn't
-        emit per-field confidences).
+      - Confidence (changed 2026-10-24): a date, ZIP or state that passes its
+        validator gets ``VALIDATED_CONFIDENCE`` and is final at Tier 1.
+        Anything else keeps its alias-match score capped at
+        ``UNVALIDATED_CONFIDENCE_CAP``, under the 0.85 gate. The score says
+        how well the label matched, not whether the value is right, and
+        PaddleOCR-VL emits no per-field confidence of its own.
     """
     blocks = raw.get("parsing_res_list", [])
     if not isinstance(blocks, list):
@@ -438,9 +715,29 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
 
     page_size = _parse_page_size(raw.get("page_size_px"))
     alias_map = _alias_map_for_form(form_cls)
+    alias_words = {name: [_words(a) for a in aliases] for name, aliases in alias_map.items()}
+    kinds = {name: inner for name, (inner, _meta) in _extractable_fields(form_cls).items()}
 
-    # canonical_name → (ExtractedField, score). Highest score wins on collision.
-    best_by_field: dict[str, tuple[ExtractedField[Any], float]] = {}
+    # canonical_name → (ExtractedField, rank). Best rank wins on collision:
+    # a reading that passes its validator, then the higher alias score.
+    best_by_field: dict[str, tuple[ExtractedField[Any], tuple[bool, float]]] = {}
+
+    def offer(name: str, value: Any, score: float, raw_text: str, bbox: Any) -> None:
+        if isinstance(value, str):
+            value = _coerce(kinds.get(name), value)
+            if value is None:
+                return  # a date field whose text isn't a date
+        rank = (validate(name, value) is True, score)
+        existing = best_by_field.get(name)
+        if existing is None or rank > existing[1]:
+            field = ExtractedField(
+                value=value,
+                confidence=score,
+                tier_used=TIER,
+                raw_text=raw_text,
+                bounding_box=bbox,
+            )
+            best_by_field[name] = (field, rank)
 
     for block in blocks:
         if not isinstance(block, dict):
@@ -461,16 +758,17 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
                 if tmatch is None:
                     continue
                 canonical_name, score = tmatch
-                field = ExtractedField(
-                    value=value_text,
-                    confidence=score,
-                    tier_used=TIER,
-                    raw_text=f"{label_text} | {value_text}",
-                    bounding_box=bbox,
-                )
-                existing = best_by_field.get(canonical_name)
-                if existing is None or score > existing[1]:
-                    best_by_field[canonical_name] = (field, score)
+                raw_text = f"{label_text} | {value_text}"
+                for name, value in _cell_readings(
+                    label_text, value_text, canonical_name, kinds, alias_words
+                ):
+                    offer(name, value, score, raw_text, bbox)
+            for row in _parse_html_table_grid(content):
+                for cell in dict.fromkeys(row):
+                    for name, value, score in _same_cell_readings(
+                        cell, alias_map, kinds, alias_words
+                    ):
+                        offer(name, value, score, cell, bbox)
             continue
 
         match = _match_block(content, alias_map)
@@ -481,26 +779,19 @@ def _parse_response(raw: dict[str, Any], form_cls: type[T]) -> T:
             # Label-only block; Phase 5 orchestrator can pair labels with
             # adjacent value blocks via layout heuristics. V1 Tier 1 skips.
             continue
+        offer(canonical_name, value, score, content, bbox)
 
-        field = ExtractedField(
-            value=value,
-            confidence=score,
-            tier_used=TIER,
-            raw_text=content,
-            bounding_box=bbox,
-        )
-        existing = best_by_field.get(canonical_name)
-        if existing is None or score > existing[1]:
-            best_by_field[canonical_name] = (field, score)
-
-    field_overrides = {name: ef for name, (ef, _score) in best_by_field.items()}
-    # Drop fields whose value doesn't fit the schema. Two common causes:
-    #   - column-shifted table cells (e.g. ``date_of_birth=ExtractedField(value='F')``
-    #     because PaddleOCR-VL's HTML put SEX in the column where DOB should be).
-    #   - format mismatches (CMS-1500 uses MM/DD/YYYY; Pydantic ``date`` wants
-    #     ISO YYYY-MM-DD). Per-field date coercion is Phase 5 orchestrator work.
-    # Either way, dropping is better than crashing the form — Tier 2 reruns
-    # against the same PNG and is more permissive on text/format.
+    field_overrides = {}
+    for name, (ef, _rank) in best_by_field.items():
+        if _finalizes(name, ef.value):
+            confidence = VALIDATED_CONFIDENCE
+        else:
+            confidence = min(ef.confidence, UNVALIDATED_CONFIDENCE_CAP)
+        field_overrides[name] = ef.model_copy(update={"confidence": confidence})
+    # Drop fields whose value doesn't fit the schema — typically a
+    # column-shifted table cell (a ``Literal`` field reading a value from the
+    # wrong box). Dropping is better than crashing the form: Tier 2 reruns
+    # against the same PNG and reads every field Tier 1 didn't finalize.
     try:
         return form_cls(metadata=_stub_metadata(form_cls), **field_overrides)
     except ValidationError as e:

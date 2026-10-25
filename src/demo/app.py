@@ -16,8 +16,8 @@ Everything renders honestly:
   measured, beside an escalation funnel whose cumulative cells-resolved
   coverage rises to 100%. Both readings, same run.
 * The two-stage F1 numbers below show the **Tier-1 stage** climbing as the
-  alias table fills, beside the flat end-to-end **cascade** F1 (≈0.85) —
-  labeled the *robustness* stat, never relabeled as a climb.
+  alias table fills, beside the near-flat end-to-end **cascade** F1 (≈0.86)
+  — labeled the *robustness* stat, never relabeled as a climb.
 * Documents land in ``review_queue`` when Tier 2 and Tier 3 read a field
   differently (the Tier 3 second read). That panel is presented as the
   intended human-in-the-loop surface, not an error.
@@ -181,7 +181,7 @@ def _render_correction_loop(run: DemoRun) -> None:
     st.markdown(
         "A correction on a parked field does three things: it is logged to "
         "the `corrections` table, the on-form label the cascade missed is "
-        "appended to a **live alias overlay** (the seed v1.0.0 + F1 chart "
+        "appended to a **live alias overlay** (the seed v1.1.0 + F1 chart "
         "stay frozen — this is the runtime extension, the *same* alias path "
         "the progressive-partition sweep simulates offline), and the "
         "document is re-embedded into the ColQwen retrieval corpus. "
@@ -254,14 +254,18 @@ def _render_by_stage(bs: ByStageSummary) -> None:
     st.subheader("By-stage ablation + escalation funnel — the headline result")
     (_, f1_t1), (_, f1_t12), (_, f1_t123) = bs.stages
     verdict = (
-        f"**not monotone**: the Q4_K_M Tier 3 *regresses* " f"({f1_t12:.3f} → {f1_t123:.3f})"
-        if bs.regresses
+        "**not monotone**: "
+        + "; ".join(f"{b} *dips below* {a} ({fa:.3f} → {fb:.3f})" for a, fa, b, fb in bs.dips)
+        if bs.dips
         else "monotone"
     )
     st.markdown(
         f"Ablating the cascade tier-by-tier on the 92-doc test split: "
-        f"**{f1_t1:.3f} → {f1_t12:.3f} → {f1_t123:.3f}**. The Qwen 7B Tier 2 "
-        f"does the big lift; the result is {verdict}. Tier 3 is a second "
+        f"**{f1_t1:.3f} → {f1_t12:.3f} → {f1_t123:.3f}**; the result is "
+        f"{verdict}. Tier 1 reads the form's printed text and finalizes a "
+        "date, ZIP or state that passes its validator; the Qwen 7B Tier 2 "
+        "re-reads every other field, sometimes replacing a correct Tier-1 "
+        "reading. Tier 3 is a second "
         "reader: where its reading matches Tier 2's the field is accepted, "
         "where it differs the field goes to review, and a Tier-2 value that "
         "passes its validator is never overwritten. Most of Tier 3's gain is "
@@ -303,12 +307,11 @@ def _render_two_stage(ts: TwoStageF1) -> None:
         "**Tier-1-stage F1** climbs from "
         f"**{ts.tier1_start:.3f}** to **{ts.tier1_end:.3f}** as the "
         "progressive alias table fills in known phrasings — that is the "
-        "self-improvement signal. End-to-end **cascade F1 stays flat at "
-        f"≈{ts.cascade_mean:.2f}**: strong Tier 2/3 escalation already "
-        "compensates for what the alias table later learns, so the merged "
-        "result barely moves. The flat number is the **robustness** stat — "
-        "the cascade is resilient regardless of alias-table maturity — *not* "
-        "a climbing curve in disguise."
+        "self-improvement signal. End-to-end **cascade F1 barely moves "
+        f"(≈{ts.cascade_mean:.2f})**: Tier 2/3 escalation recovers most of "
+        "what the alias table later learns. The near-flat number is the "
+        "**robustness** stat — the cascade is resilient regardless of "
+        "alias-table maturity — *not* a climbing curve in disguise."
     )
     st.markdown("**Both series, live (this cached run)**")
     st.dataframe(
