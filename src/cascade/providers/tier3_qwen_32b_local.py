@@ -129,7 +129,8 @@ QWEN_MODEL_TAG = "qwen2.5vl:32b"
 #: prompt incl. the image, ~310 output); 8192 leaves 3.5x headroom at ~2 GiB
 #: of KV. Set per request, not in a Modelfile or a server env var, so the
 #: shared Ollama server's other users are untouched. Whether the model then
-#: fits fully on the GPUs, and its speed, is unmeasured until the M0 run.
+#: fits fully on the GPUs, and its speed, is unmeasured until the M0 run
+#: (``scripts/m0_tier3.py``).
 NUM_CTX = 8192
 
 #: Pipeline version stamped onto stub ``FormMetadata``. Phase 5's orchestrator
