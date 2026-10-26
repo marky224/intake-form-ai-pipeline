@@ -34,8 +34,11 @@ Qwen 2.5 VL 7B → Tier 3 Qwen 2.5 VL 32B — into one in-process pipeline:
    Tier-2 value if it passes its field validator (``cascade.validators`` —
    so Tier 3 never overwrites a validated date) or Tier 3 read nothing, and
    Tier 3's value otherwise. **Strict parking:** if Tier 1 has a valid
-   reading of the field and the kept value doesn't match it, the field gets
-   ``DISAGREEMENT_CONFIDENCE`` even when the two Qwen readings agree. If
+   reading of the field from a specific label and the kept value doesn't
+   match it, the field gets ``DISAGREEMENT_CONFIDENCE`` even when the two
+   Qwen readings agree. A reading from a generic label ("15. OTHER DATE",
+   since 2026-10-26) still routes but never strict-parks: Tier 3 matching
+   Tier 2 settles it. If
    Tier 3 fails, every routed field with a value parks. A field whose Qwen
    readings are both blank stays confidently blank, dropping Tier 1's
    reading (kept by design, 2026-10-25).
@@ -339,11 +342,14 @@ def _reconcile_second_read(
     second: BaseModel,
     names: list[str],
     tier1: dict[str, Any] | None = None,
+    no_strict: frozenset[str] = frozenset(),
 ) -> None:
     """Merge Tier 3's second read of ``names`` onto ``form`` (in place).
 
     ``tier1`` holds Tier 1's readings (field → value; empty when not given).
-    Per field:
+    ``no_strict`` names fields whose Tier-1 reading came from a generic
+    label (``tier1_paddleocr_local.parse_with_generic_labels``): it still
+    counts for the Tier-3 match below, but never strict-parks. Per field:
 
     - Tier 3's value matches Tier 1's (``same_reading``) → take Tier 3's
       field at ``AGREEMENT_CONFIDENCE``: two independent readers agree.
@@ -363,9 +369,11 @@ def _reconcile_second_read(
     Every case except "equal" and "both empty" ends at
     ``DISAGREEMENT_CONFIDENCE`` so the field parks for review. **Strict
     parking:** when Tier 1 has a valid reading (``tier1`` holds only those)
-    and the kept value doesn't match it, the field also gets
-    ``DISAGREEMENT_CONFIDENCE`` — two Qwen
-    readings agreeing against the printed text go to a human. A case or
+    from a specific label (not in ``no_strict``) and the kept value doesn't
+    match it, the field also gets ``DISAGREEMENT_CONFIDENCE`` — two Qwen
+    readings agreeing against the printed text go to a human. Under a
+    generic label ("15. OTHER DATE"), Tier 3 matching Tier 2 settles the
+    field at ``AGREEMENT_CONFIDENCE`` instead. A case or
     spacing difference between Tier 2 and Tier 3 counts as a disagreement
     (conservative: it goes to a human rather than being silently accepted).
     """
@@ -387,7 +395,11 @@ def _reconcile_second_read(
                 first.value is not None and validate(name, first.value) is True
             )
             chosen, confidence = (first if keep_first else other), DISAGREEMENT_CONFIDENCE
-        if t1_value is not None and not same_reading(chosen.value, t1_value):
+        if (
+            t1_value is not None
+            and name not in no_strict
+            and not same_reading(chosen.value, t1_value)
+        ):
             confidence = DISAGREEMENT_CONFIDENCE
         setattr(form, name, chosen.model_copy(update={"confidence": confidence}))
 
@@ -510,7 +522,7 @@ def process_document(
 
         decision = route(ocr_lines, png)
         form_cls = decision.form_cls
-        form = tier1_mod._parse_response(t1_result.raw_response, form_cls)
+        form, tier1_generic = tier1_mod.parse_with_generic_labels(t1_result.raw_response, form_cls)
         _stamp_metadata(form, doc_id, decision)
 
         extractable = list(_qwen_vl._extractable_fields(form_cls).keys())
@@ -566,7 +578,9 @@ def process_document(
                     attempt_rows += _attempt_rows(
                         t3_result.form, routed, "3a", t3_result.latency_ms, escalated=set()
                     )
-                    _reconcile_second_read(form, t3_result.form, routed, tier1_readings)
+                    _reconcile_second_read(
+                        form, t3_result.form, routed, tier1_readings, tier1_generic
+                    )
                     final_tier = "3a"
                 except TierExhausted as exc:
                     error_history.append({"tier": "3a", "error": str(exc), "fields": routed})

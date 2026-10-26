@@ -336,6 +336,40 @@ def test_tier1_reading_failing_its_validator_counts_as_no_reading(memconn, monke
     assert "address_state" not in _parked(rec)
 
 
+def test_generic_label_reading_routes_but_never_strict_parks(memconn, monkeypatch):
+    """Tier 1 reads box 15's own date under "15. OTHER DATE" — a label only
+    the generic alias "Date" matches — as the date signed. It differs from
+    Tier 2, so the field goes to Tier 3; Tier 2 and Tier 3 agreeing on the
+    real date settles it at the agreement confidence instead of
+    strict-parking against the generic reading."""
+    from datetime import date
+
+    tier1 = _StubTier1(("<td>15. OTHER DATE</td>", "<td>02/01/2026</td>"))
+    rec, t3s = _stub_run(
+        memconn,
+        monkeypatch,
+        {"date_signed": date(2026, 3, 1)},
+        {"date_signed": date(2026, 3, 1)},
+        tier1=tier1,
+    )
+    assert "date_signed" in t3s.asked
+    signed = rec.form.date_signed
+    assert signed.value == date(2026, 3, 1)
+    assert signed.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "date_signed" not in _parked(rec)
+
+
+def test_generic_label_reading_that_agrees_still_skips_tier3(memconn, monkeypatch):
+    """The same generic-label reading agreeing with Tier 2 is accepted
+    without Tier 3 (it still counts for routing)."""
+    from datetime import date
+
+    tier1 = _StubTier1(("<td>15. OTHER DATE</td>", "<td>02/01/2026</td>"))
+    rec, t3s = _stub_run(memconn, monkeypatch, {"date_signed": date(2026, 2, 1)}, {}, tier1=tier1)
+    assert "date_signed" not in t3s.asked
+    assert rec.form.date_signed.confidence == orchestrator.AGREEMENT_CONFIDENCE
+
+
 def test_tier2_and_tier3_blank_drop_tier1_reading(memconn, monkeypatch):
     """Documented limit (Mark's call, 2026-10-25): when Tier 2 and Tier 3
     both read nothing for a field Tier 1 read, the field stays confidently

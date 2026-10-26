@@ -19,11 +19,11 @@ validator under a label naming the field specifically; every other
 Tier-1 value goes to the 7B Tier 2, which often
 replaces a correct Tier-1 reading (mostly Synthea's digit-suffixed names),
 so Tier 1+2 dips below Tier 1. Tier 3 reads only the fields Tier 1 covers
-where Tier 1 and Tier 2 disagree or Tier 1 read nothing (3.1 per document
+where Tier 1 and Tier 2 disagree or Tier 1 read nothing (3.0 per document
 on this split, against every Tier-2 field before): Tier 3 matching Tier 1
 settles the field; Tier 3 matching Tier 2 settles it only when Tier 1 has
-no valid reading (against a different valid Tier-1 reading it parks, the
-commonest parking reason); anything else parks, and a validated Tier-2
+no valid reading from a specific label (against a different such Tier-1
+reading it parks, the commonest parking reason); anything else parks, and a validated Tier-2
 date is never overwritten. Read the +0.098 carefully: most of it is
 Synthea's digit-suffixed names. Of the 107 first/last-name cells Tier 3
 turns from wrong to right, 74 are names Tier 2 read without their digit
@@ -31,7 +31,9 @@ suffix, 6 are Tier-2 blanks and 27 are swaps and other misreads; it turns
 no right name wrong. Street addresses, where Tier 3 drops the apartment
 suffix, now lose 5 cells (37 when Tier 3 read every field), kept as
 measured. The rules were chosen on dev with test results printed beside
-it, after earlier test-split inspection — see ``docs/eval-methodology.md``.
+it, after earlier test-split inspection, and the 2026-10-25/26 refinements
+answered a review that named test documents — see
+``docs/eval-methodology.md``.
 Until 2026-10-24 Tier 1 settled 2 cells and scored 0.340 and Tier 3 read
 every Tier-2 field (``0.340 → 0.791 → 0.853``); until 2026-10-16 Tier 3
 regressed (``0.791 → 0.765``): a type heuristic (strings 1.0, dates 0.5)
@@ -305,7 +307,7 @@ _MECHANISM = (
     "re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).",
     "Tier 3 reads only fields where Tier 1 and Tier 2 disagree or Tier 1 read",
     "nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no",
-    "valid reading (else it parks, the commonest reason); anything else parks.",
+    "specific valid reading (else it parks, commonest); anything else parks.",
     "Most of Tier 3's gain is Synthea's number-suffixed names. One template;",
     "rules chosen on dev with test printed beside it. Live Tier 3 not re-timed.",
 )
