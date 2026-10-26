@@ -32,7 +32,7 @@ ollama pull qwen2.5vl:32b
 ollama list | grep qwen2.5vl   # qwen2.5vl:32b (~21 GB) + qwen2.5vl:7b (~6 GB)
 ```
 
-That is the entire setup. On the build box (RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averages ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-splits the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500.
+That is the entire setup. On the build box (RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averaged ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-split the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500. Since 2026-10-26 the provider sends `num_ctx` 8192 with every Tier-3 request (`options={"num_ctx": 8192}`, per request — no Modelfile, no server env var); its effect on VRAM split and speed is unmeasured until the M0 run.
 
 ### Why registry Q4_K_M, not a higher-precision Mungert import?
 
@@ -69,7 +69,7 @@ Tier 3's registry `qwen2.5vl:32b` (Q4_K_M, ~21 GB weights + KV/image overhead �
 
 - RTX 4080 (16 GB): roughly half the layers
 - RTX 4060 Ti (16 GB): the other half
-- CPU/system RAM: the remainder (~9 % at default `num_ctx 32768`) — eliminable with a custom registry-based Modelfile at a lower `num_ctx` (only ~2315 context tokens are actually used; deferred — the default-context spill is not latency-fatal at ~117 s/doc).
+- CPU/system RAM: the remainder (~9 % at default `num_ctx 32768`). Since 2026-10-26 each Tier-3 request sets `num_ctx` 8192 instead (only ~2315 context tokens are actually used), which should remove the spill — unmeasured until the M0 run.
 
 Ollama distributes layers based on each card's available VRAM, accounting for KV cache and image-token overhead; the 4080 typically gets slightly more layers than the 4060 Ti when free VRAM is similar, since it is faster. For debugging, `PARAMETER num_gpu N` in a custom Modelfile forces exactly N layers onto GPU and the rest onto CPU (note: `num_gpu 99` forces *all* layers and crashes on OOM rather than spilling — see the Mungert findings above).
 

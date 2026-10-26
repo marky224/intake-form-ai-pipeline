@@ -98,6 +98,7 @@ __all__ = [
     "OLLAMA_TEMPERATURE",
     "PIPELINE_VERSION",
     "PROVIDER_NAME",
+    "NUM_CTX",
     "QWEN_MODEL_TAG",
     "TIER",
     "Tier3Qwen32bLocal",
@@ -120,6 +121,16 @@ TIER: TierId = "3a"
 #: ``seq_add`` assert regardless of num_ctx/VRAM; Q8_0 → impractical CPU
 #: spill). See the module docstring.
 QWEN_MODEL_TAG = "qwen2.5vl:32b"
+
+#: Context length sent with every Tier-3 request (``options["num_ctx"]``).
+#: Ollama's default on 24-48 GB of VRAM is 32k tokens, whose KV cache (~8 GiB
+#: at 256 KiB per token for this model) pushes the 32B past the two 16 GB
+#: cards and partly onto the CPU. A document needs ~2,300 tokens (~1,990
+#: prompt incl. the image, ~310 output); 8192 leaves 3.5x headroom at ~2 GiB
+#: of KV. Set per request, not in a Modelfile or a server env var, so the
+#: shared Ollama server's other users are untouched. Whether the model then
+#: fits fully on the GPUs, and its speed, is unmeasured until the M0 run.
+NUM_CTX = 8192
 
 #: Pipeline version stamped onto stub ``FormMetadata``. Phase 5's orchestrator
 #: overrides this with the live pipeline version; the stub keeps the form
@@ -154,7 +165,7 @@ def _invoke_model(client: Any, png: bytes, form_cls: type[T]) -> dict[str, Any]:
     function for the real Ollama API shape (``messages[].images=[png]``,
     ``format=<schema>``, ``keep_alive``) — identical to Tier 2 (same family).
     """
-    return _qwen_vl.invoke_model(client, png, form_cls, model_tag=QWEN_MODEL_TAG)
+    return _qwen_vl.invoke_model(client, png, form_cls, model_tag=QWEN_MODEL_TAG, num_ctx=NUM_CTX)
 
 
 class Tier3Qwen32bLocal:

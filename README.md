@@ -28,7 +28,7 @@ The interesting part of this project is not that a curve goes up. It's that meas
 
 **Read the +0.098 with these caveats.** Most of it is Synthea's digit-suffixed synthetic names. Of the 107 first- and last-name cells the 32B turns from wrong to right, 74 are names the 7B read without their digit suffix (for first names the digits often went into the middle name: "Ramona980" read as "Ramona" + "980"), 6 are names it left blank and 27 are swaps and other misreads; it turns no right name wrong — a synthetic-data effect, not a general one. Street addresses, where the 32B drops apartment suffixes, still give back 5 cells (37 when Tier 3 read every field), and that loss is kept, not patched. The rules were chosen after test-split results had been seen: the 2026-10-16 Tier 3 rule after inspecting test; the 2026-10-24 Tier 1 and routing rules on dev, with the test numbers printed beside dev while they were chosen; and the 2026-10-25 and 2026-10-26 refinements (the specific-and-aligned label gate for finalizing, the stacked-cell label split, a validator-failing or generic-label Tier-1 reading not strict-parking) in answer to a code review that named three test documents and test parked-cell counts. On the 98-doc dev split (the 2026-10-18 readings, one per document) the cascade gives 0.842 → 0.791 → 0.900 — one run, no confidence interval, and no longer an uninspected split.
 
-**Two things the cached numbers don't show yet.** Tier 3 now gets a narrowed prompt of 3–4 fields per document live, while the replay cache holds its full 27-field readings, so the cached Tier 3 values may differ from what a live narrowed call would read; that drift is not yet measured. And the 32B still spills to CPU on the two 16 GB cards (Ollama gives it a 32k context by default; one document needs ~2,300 tokens): the 2026-10-18 dev run averaged 91.7 s per document in Tier 3 at ~4 tokens/s. With only the routed fields, that decode drops to an estimated ~15 s per document at the same rate; pinning the context so the model fits on the GPUs is the next change, and live timing comes with it.
+**Two things the cached numbers don't show yet.** Tier 3 now gets a narrowed prompt of 3–4 fields per document live, while the replay cache holds its full 27-field readings, so the cached Tier 3 values may differ from what a live narrowed call would read; that drift is not yet measured. And the 32B spilled to CPU on the two 16 GB cards (Ollama gives it a 32k context by default; one document needs ~2,300 tokens): the 2026-10-18 dev run averaged 91.7 s per document in Tier 3 at ~4 tokens/s. With only the routed fields, that decode drops to an estimated ~15 s per document at the same rate. Since 2026-10-26 every Tier-3 request pins `num_ctx` 8192 (~2 GiB of KV cache instead of ~8 GiB), which should let the model fit on the GPUs — but that is unmeasured until a live run (the M0 run), and live timing comes with it.
 
 **Tier 1's 0.868 is flattered by the corpus.** All 584 documents come from one renderer template, so a parser that reads that table well reads every document well; generalization to other CMS-1500 layouts is unmeasured. And PaddleOCR-VL copies Synthea's digit-suffixed names literally ("Ramona980"), which the 7B splits — that is most of why Tier 1+2 dips below Tier 1 (first names: 80 right at Tier 1, 2 after Tier 2). `docs/eval-methodology.md` "By-stage ablation" has the full disclosure and the known limits.
 
@@ -100,7 +100,7 @@ Corrections submitted from the queue flow back through `src/rag/aliases.py`: any
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 1144 tests (1125 fast + 19 slow)
+just test           # 1145 tests (1126 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the
@@ -130,7 +130,7 @@ intake-form-ai-pipeline/
 │   ├── finetune/            # QLoRA text post-corrector (Phase 9 experiment)
 │   ├── demo/                # Streamlit: data.py (testable core) + app.py (view)
 │   ├── synthetic_data/      # synthea/, render/ (Playwright CMS-1500), docile/
-│   ├── tests/               # 1144 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+│   ├── tests/               # 1145 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 │   └── data/                # SQLite v1.db + ColQwen .npy cache (gitignored runtime)
 ├── alias_table_seed.json    # 469 aliases / 86 records, frozen v1.1.0 (canonical, repo root)
 ├── scripts/                 # dev tooling (regen fixtures, dual-quant sanity)

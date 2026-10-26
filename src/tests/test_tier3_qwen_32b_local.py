@@ -218,6 +218,25 @@ def test_invoke_model_passes_image_and_schema_via_real_ollama_shape(monkeypatch)
     assert out["_mode"] == "json"  # serialized JSON-safe for the cache
 
 
+def test_every_tier3_request_pins_num_ctx_8192():
+    """Every Tier-3 request carries ``options["num_ctx"] = 8192`` (per
+    request: no Modelfile, no server env var), so the 32B's KV cache is
+    ~2 GiB instead of Ollama's 32k default. Tier 2 sends no ``num_ctx``."""
+    from cascade.providers import tier2_qwen_7b_local
+
+    seen = []
+
+    class _FakeClient:
+        def chat(self, **kwargs):
+            seen.append(kwargs["options"])
+            return {"message": {"role": "assistant", "content": "{}"}}
+
+    tier3_qwen_32b_local._invoke_model(_FakeClient(), b"PNG", HealthcareIntakeForm)
+    assert seen[-1]["num_ctx"] == 8192
+    tier2_qwen_7b_local._invoke_model(_FakeClient(), b"PNG", HealthcareIntakeForm)
+    assert "num_ctx" not in seen[-1]
+
+
 # ---------------------------------------------------------------------------
 # 4. _load_ollama_client seam (gated live path)
 # ---------------------------------------------------------------------------
