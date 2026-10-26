@@ -39,6 +39,7 @@ data "aws_caller_identity" "current" {}
 # Pick the first 3 availability zones that don't require explicit opt-in.
 # Excludes Local Zones, Wavelength Zones, and AZs in opt-in regions.
 data "aws_availability_zones" "available" {
+  # checkov:skip=CKV_AWS_394:local.azs slices the first 3 zone names, and AWS gives a newly added AZ the next letter, so it sorts after the existing ones and the slice does not move. Pinning zone IDs would hardcode one region while var.aws_region stays configurable.
   state = "available"
 
   filter {
