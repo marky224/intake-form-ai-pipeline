@@ -12,7 +12,7 @@ the committed replay cache ($0, deterministic — CI reproduces it):
   faithful "Tier 3 disabled" ceiling without touching the orchestrator.
 - **Tier 1+2+3** — the real cascade.
 
-Result since 2026-10-25: ``0.866 → 0.806 → 0.904`` — not monotone. Tier 1
+Result since 2026-10-26: ``0.868 → 0.806 → 0.904`` — not monotone. Tier 1
 reads the CMS-1500 table (colspan grid, box numbers stripped, packed boxes
 split, MM/DD/YYYY dates) and finalizes a date, ZIP or state that passes its
 validator under a label naming the field specifically; every other
@@ -301,7 +301,7 @@ _H = 778
 
 #: The mechanism, wrapped to fit — Mark's ask: the logic lives in the graph.
 _MECHANISM = (
-    "Tier 1 finalizes a date, ZIP or state that passes its validator; the 7B",
+    "Tier 1 finalizes a valid date, ZIP or state under a specific label; the 7B",
     "re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).",
     "Tier 3 reads only fields where Tier 1 and Tier 2 disagree or Tier 1 read",
     "nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no",
@@ -320,7 +320,7 @@ def _funnel_caption(funnel: Funnel) -> tuple[str, ...]:
     tier settles and about the empty cells (counts formatted from ``funnel``)."""
     return (
         "Cells resolved by tier ≤ N (cumulative), by the tier whose value was kept. Tier 1's",
-        f"{funnel.tier1} cells are the dates, ZIPs and states that passed validation. Tier 3 "
+        f"{funnel.tier1} cells are valid dates, ZIPs and states under specific labels. Tier 3 "
         "reads only",
         "fields where Tier 1 and Tier 2 disagree or Tier 1 read nothing; its value is kept in",
         f"{funnel.tier3a} cells ({funnel.tier3a_matched_tier1} matching Tier 1, "

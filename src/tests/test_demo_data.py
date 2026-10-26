@@ -112,7 +112,7 @@ def test_second_read_disagreement_review_queue_reality() -> None:
 
 
 def test_two_stage_f1_tier1_and_cascade_climb() -> None:
-    """Tier-1 stage F1 climbs as the alias table fills (0.480 → 0.866 since
+    """Tier-1 stage F1 climbs as the alias table fills (0.483 → 0.868 since
     2026-10-24). End-to-end cascade F1 climbs too (0.857 → 0.904): Tier 1's
     readings decide which fields Tier 3 reads. (Until 2026-10-24 the
     cascade was flat — the Phase 6 robustness stat.)"""
@@ -147,7 +147,7 @@ def test_by_stage_summary_matches_measured_result_and_monotone_funnel() -> None:
     assert isinstance(bs, ByStageSummary)
 
     f1s = [round(f, 3) for _, f in bs.stages]
-    assert f1s == [0.866, 0.806, 0.904], f"by-stage F1 drifted: {f1s}"
+    assert f1s == [0.868, 0.806, 0.904], f"by-stage F1 drifted: {f1s}"
     assert not bs.regresses
 
     cum = [c for _, c in bs.funnel_cumulative]

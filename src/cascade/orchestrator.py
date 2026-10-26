@@ -53,8 +53,8 @@ to Tier 3, which overwrote correct Tier-2 dates. Why Tier-1/Tier-2
 disagreement decides what Tier 3 reads (2026-10-24): Tier 1 (OCR + alias
 table) and Tier 2 (a VLM) are different readers, and their agreement is a
 strong signal on the cached replay: where Tier 1's reading of a covered
-field equals Tier 2's, Tier 1's value is right in 453 of 453 dev cells and
-477 of 479 test cells. Tier 3 then reads 3 to 4 fields per document instead of
+field equals Tier 2's, Tier 1's value is right in 458 of 458 dev cells and
+480 of 482 test cells. Tier 3 then reads 3 to 4 fields per document instead of
 every Tier-2 field (~26).
 
 **Escalation predicate.** The rule is per-field confidence < gate

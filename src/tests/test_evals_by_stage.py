@@ -30,7 +30,7 @@ from evals.by_stage import (
 # validated Tier-2 value is never overwritten). Tier 1+2 sits below Tier 1:
 # Tier 2 replaces correct Tier-1 readings it doesn't finalize.
 # Of the 115 empty cells, 92 are missed (signature) and 23 true negatives.
-_EXPECTED_F1 = (0.866, 0.806, 0.904)
+_EXPECTED_F1 = (0.868, 0.806, 0.904)
 _EXPECTED_FUNNEL = Funnel(
     tier1=250,
     tier2=611,
@@ -46,7 +46,7 @@ _EXPECTED_FUNNEL = Funnel(
 
 def _sample() -> ByStage:
     return ByStage(
-        stages=[("Tier 1", 0.866), ("Tier 1+2", 0.806), ("Tier 1+2+3", 0.904)],
+        stages=[("Tier 1", 0.868), ("Tier 1+2", 0.806), ("Tier 1+2+3", 0.904)],
         funnel=_EXPECTED_FUNNEL,
     )
 
@@ -56,7 +56,7 @@ def test_render_is_deterministic_and_has_no_timestamp():
     b = render_by_stage_svg(_sample(), seed_version="1.0.0")
     assert a == b
     assert "<svg" in a and a.endswith("</svg>\n")
-    assert "0.866" in a and "0.806" in a and "0.904" in a
+    assert "0.868" in a and "0.806" in a and "0.904" in a
     assert "alias_table_seed v1.0.0" in a
     # Both panels present.
     assert "F1 by cumulative cascade stage" in a
@@ -227,4 +227,4 @@ def test_cli_by_stage_summary_survives_a_logging_reset(monkeypatch, capsys):
         root.handlers[:] = saved_handlers
         root.setLevel(saved_level)
     out = capsys.readouterr()
-    assert "[dev split] by-stage F1: 0.866 → 0.806 → 0.904" in out.out + out.err
+    assert "[dev split] by-stage F1: 0.868 → 0.806 → 0.904" in out.out + out.err
