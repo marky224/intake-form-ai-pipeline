@@ -64,11 +64,11 @@ The CI workflow (`.github/workflows/ci.yml`, `bicep-build` job) runs the same on
 
 - **Bootstrap parallel** (state backend + GitHub OIDC federation). Bicep is stateless ARM, so the Terraform-state-bucket half has no analog. The OIDC-federation half (User-Assigned Managed Identity + federated credential for the GitHub repo) is real but inert without an actual Azure subscription wired to CI — adding it would imply readiness to deploy, which is not the goal. The Terraform `bootstrap/` README is the canonical reference for the federation pattern; the Azure equivalent is `Microsoft.ManagedIdentity/userAssignedIdentities` + `Microsoft.ManagedIdentity/userAssignedIdentities/federatedIdentityCredentials`.
 - **`Microsoft.DocumentDB/databaseAccounts` (Cosmos DB)** for the cold-start lock. Lands with the compute layer, same phase as the AWS DynamoDB single-item lock.
-- **Compute** (Functions, Container Apps, AKS, ML workspaces). The architecture-locked file targets AWS Lambda + Step Functions; Azure analogs (Functions + Logic Apps or Container Apps Jobs) come into scope only if Azure ever moves past the documentation-only branch.
+- **Compute** (Functions, Container Apps, AKS, ML workspaces). The locked architecture targets AWS Lambda + Step Functions; Azure analogs (Functions + Logic Apps or Container Apps Jobs) come into scope only if Azure ever moves past the documentation-only branch.
 
 ## Why this exists
 
-This project's locked architecture (see `architecture-locked.md` Infrastructure section) commits to AWS-primary with an Azure parallel branch — Bicep, no deployment. The portfolio value is in demonstrating:
+This project's locked architecture commits to AWS-primary with an Azure parallel branch — Bicep, no deployment. The portfolio value is in demonstrating:
 
 1. That the same architecture is buildable on Azure end-to-end, with explicit awareness of where the service models diverge (PG scale-to-zero, budget time grains, VPC vs VNet endpoint cost models).
 2. That hardening parity is the same across clouds — TLS-only, CMK-from-vault, public-access-blocked, audit-log export — and the choice of cloud doesn't relax those defaults.

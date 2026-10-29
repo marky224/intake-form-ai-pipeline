@@ -98,7 +98,7 @@ from intake_schemas import (
 
 logger = logging.getLogger(__name__)
 
-#: Per-field gates (architecture-locked.md "Router (V1)" / README). 0.85
+#: Per-field gates (the locked router design / README). 0.85
 #: decides which Tier-1 fields go to Tier 2. 0.80 is the review gate after
 #: the Tier 3 second read (the name predates the second read).
 GATE_TIER1_TO_TIER2 = 0.85

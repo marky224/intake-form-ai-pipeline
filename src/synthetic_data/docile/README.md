@@ -42,8 +42,8 @@ just synthetic-data-docile-build --limit 5    # 5-doc smoke
   renamed upstream from `labeled-trainval` post the pinned 2024-05-15 script
   commit — the old name now 404s `NoSuchKey` with a valid token).
   The `test`/`synthetic`/`unlabeled` archives are explicitly rejected by
-  `download.py` per the half-now-half-later corpus-partitioning lock in
-  `cost-model.md` — the `test` split is reserved for the post-launch
+  `download.py` per the half-now-half-later corpus-partitioning lock — the
+  `test` split is reserved for the post-launch
   Phase 7 `just process-batch` recipe.
 - **Annotation task:** KILE (the 55-field key-information taxonomy) only.
   LIR (`line_item_extractions`, `line_item_headers`) is parsed but not

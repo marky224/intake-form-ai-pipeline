@@ -18,7 +18,7 @@ the committed corpus is 6 CMS-1500, all ``test`` — `finetune.dataset`
 yields **0** real training pairs by design (leakage guard). The real
 fine-tune + measured F1 delta is the ``FINETUNE_LIVE=true just
 finetune-train`` step on the local GPU box once the deferred local corpus
-populates ``train`` (handoff: ``phase9-live-train.md``). The committed
+populates ``train``. The committed
 deliverable is the reproducible pipeline + harness + honest write-up.
 """
 

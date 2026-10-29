@@ -14,10 +14,9 @@ wrapper exists to:
   recipe is invoked interactively.
 - Enforce a single allowed dataset (``annotated-trainval``; renamed
   upstream from ``labeled-trainval`` — see ``BUILD_DATASET``). The
-  half-now-half-later corpus-partitioning lock in ``cost-model.md``
-  reserves the ``test`` split for the Phase 7 ``just process-batch``
-  recipe; rejecting ``test`` here is defense-in-depth against
-  accidentally pulling it during a build.
+  half-now-half-later corpus-partitioning lock reserves the ``test`` split
+  for the Phase 7 ``just process-batch`` recipe; rejecting ``test`` here is
+  defense-in-depth against accidentally pulling it during a build.
 - Be idempotent: re-running is a no-op when the corpus is already on
   disk, matching the ``upload.py`` content-addressable retry pattern.
 
@@ -179,8 +178,7 @@ def download_labeled_trainval(
         raise ValueError(
             f"Phase 3.5 may only download {BUILD_DATASET!r}; got {dataset!r}. "
             f"The test/synthetic/unlabeled splits are reserved for the Phase 7 "
-            f"process-batch recipe per the half-now-half-later partitioning lock "
-            f"in cost-model.md."
+            f"process-batch recipe per the half-now-half-later partitioning lock."
         )
 
     # Idempotency check runs FIRST — before verify_vendored_script and

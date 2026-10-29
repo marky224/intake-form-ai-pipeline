@@ -33,8 +33,8 @@ infeasible on the build box** (RTX 4080 + RTX 4060 Ti ≈
 The rescoped "dual-quant" deliverable is therefore: document the Mungert
 infeasibility + ship Q4_K_M with its measured validation F1, applying the
 contingency tree's absolute-F1 branches (>=0.80 ship / 0.65-0.80 document
-gap and ship / <0.65 fall back). See ``architecture-locked.md`` "Quantization
-choice and contingency tree" for the recorded empirical decision.
+gap and ship / <0.65 fall back). See ``docs/local-development.md`` "Local
+Tier 3 model setup" for the recorded empirical decision.
 
 **Device:** combined VRAM pool (RTX 4080 + RTX 4060 Ti). Per the project
 hardware notes ``can_device_access_peer(0, 1) = False`` on this AM4 board, so
@@ -118,7 +118,7 @@ TIER: TierId = "3a"
 #: as Tier 2's ``qwen2.5vl:7b`` pull. Locked 2026-05-17 after the Mungert
 #: Q8_0/Q6_K imports proved infeasible on the build box (Q6_K → M-RoPE
 #: ``seq_add`` assert regardless of num_ctx/VRAM; Q8_0 → impractical CPU
-#: spill). See the module docstring + ``architecture-locked.md``.
+#: spill). See the module docstring.
 QWEN_MODEL_TAG = "qwen2.5vl:32b"
 
 #: Pipeline version stamped onto stub ``FormMetadata``. Phase 5's orchestrator

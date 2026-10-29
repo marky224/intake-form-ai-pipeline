@@ -17,7 +17,7 @@ DocILE train) by the caller.
 were never used for prompt/threshold tuning (they are held-out validation
 fixtures), so they are an honest test slice; the F1-over-time chart is
 computed over them. ``train``/``dev`` populate locally when the deferred
-500-doc local-store render runs (``phases.md`` Phase 3 follow-up) — that is
+500-doc local-store render runs (a Phase 3 follow-up) — that is
 why ``assign_split`` exists even though the committed manifest doesn't use
 it. No DocILE entry is ever committed (CC-BY-NC-ND); the DocILE manifest is
 built locally and gitignored.
