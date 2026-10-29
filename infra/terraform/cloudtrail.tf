@@ -20,7 +20,7 @@
 # existing locked posture for state and project buckets — same threat
 # model: account ID + ARNs + IAM principal names, no customer data).
 resource "aws_cloudtrail" "this" {
-  # checkov:skip=CKV_AWS_35:SSE-S3 (AES256) on the trail bucket matches the project's locked posture for state and project buckets — same threat model (account ID + ARNs + IAM principals, no customer data); KMS adds cost without changing the model. CLAUDE.md "Build gotchas" carries the long-form reasoning.
+  # checkov:skip=CKV_AWS_35:SSE-S3 (AES256) on the trail bucket matches the project's locked posture for state and project buckets — same threat model (account ID + ARNs + IAM principals, no customer data); KMS adds cost without changing the model.
   # checkov:skip=CKV_AWS_67:Single-region (us-east-1) by design — the project does not provision resources in other regions, so a multi-region trail would just emit empty events from regions with no project activity. include_global_service_events covers IAM/STS/CloudFront which are global-service events delivered to whichever region's trail is enabled.
   # checkov:skip=CKV_AWS_252:SNS topic + alerting are compute-layer territory, deferred until a SOC-style monitoring story exists to attach to. Same deferral pattern as the CW Logs delivery skip below.
   # checkov:skip=CKV2_AWS_10:S3-only delivery is the locked tradeoff. CW Logs ingest is $0.50/GB and metric-filter/SNS alerting belongs in the compute layer; revisit once there's something concrete to alarm on.

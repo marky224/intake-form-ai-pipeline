@@ -55,7 +55,8 @@ Vertical = Literal["healthcare", "business"]
 
 #: Locked Stage 1 classification threshold. Healthcare when the accumulated
 #: inverse-frequency-weighted match score ≥ this. Starting value 1.0 per
-#: architecture-locked.md "Router (V1)"; Phase 6 eval-sweep may retune.
+#: the router lock (see ``docs/hipaa-architecture.md``); Phase 6 eval-sweep
+#: may retune.
 STAGE1_THRESHOLD_N = 1.0
 
 #: Seed verticals whose aliases *disqualify* an alias from the

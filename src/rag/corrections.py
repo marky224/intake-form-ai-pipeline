@@ -23,8 +23,8 @@ split as ``demo/data.py`` vs. ``demo/app.py``):
    documents. Degrades cleanly (returns ``False``) when no GPU / no cached
    embedding is available — CI never has one.
 
-``bootstrap_alias_table`` formalizes the "alias-table population from seed"
-phases.md bullet: the committed ``alias_table_seed.json`` *is* the loop's
+``bootstrap_alias_table`` formalizes the planned "alias-table population
+from seed" step: the committed ``alias_table_seed.json`` *is* the loop's
 bootstrap corpus of already-known corrections (canonical-priority order);
 the overlay is its live extension. There is no separate table to populate —
 making that explicit is the deliverable.

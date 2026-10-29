@@ -5,7 +5,8 @@ exists. The opt-in ``EVAL_LIVE=true`` env var bypasses the cache so the
 provider hits the live upstream API and (on success) writes the fresh
 response back to the fixture.
 
-This is the cost-discipline lever from ``.claude-context/cost-model.md``:
+This is the cost-discipline lever (``docs/eval-methodology.md``, "Cached
+fixtures vs live mode"):
 CI runs without ``EVAL_LIVE`` and never makes live calls, so a PR can rerun
 the cascade tests an arbitrary number of times for $0.
 

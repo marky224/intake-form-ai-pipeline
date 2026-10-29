@@ -50,7 +50,7 @@ ALLOWED_SPLITS = frozenset(["train", "val"])
 _BBOX_CLAMP_TOL = 0.02
 """Splits Phase 3.5 may iterate. The ``test`` split is reserved for the
 Phase 7 ``process-batch`` recipe per the half-now-half-later
-partitioning lock in ``cost-model.md``."""
+partitioning lock."""
 
 
 @dataclass(frozen=True)

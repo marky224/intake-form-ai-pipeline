@@ -9,7 +9,7 @@ This document covers the local development environment — GPU configuration, Ol
 - AMD Ryzen 7 5800X3D
 - RTX 4080 (16 GB) + RTX 4060 Ti (16 GB), both on motherboard PCIe slots, no NVLink
 - Combined 32 GB VRAM, PCIe-only inter-GPU communication
-- Ubuntu (hostname `openclaw-pc`)
+- Ubuntu
 
 ## Local Tier 2 model setup (Qwen 2.5 VL 7B)
 
@@ -32,7 +32,7 @@ ollama pull qwen2.5vl:32b
 ollama list | grep qwen2.5vl   # qwen2.5vl:32b (~21 GB) + qwen2.5vl:7b (~6 GB)
 ```
 
-That is the entire setup. On the build box (`openclaw-pc`, RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averages ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-splits the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500.
+That is the entire setup. On the build box (RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averages ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-splits the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500.
 
 ### Why registry Q4_K_M, not a higher-precision Mungert import?
 
@@ -45,7 +45,7 @@ The architecture *originally* locked a higher-precision path: Q8_0 imported from
 - **A bare `FROM`-only Modelfile silently produces garbage** (HTTP 200, `prompt_eval_count=None`, zero populated fields): the imported GGUF has no chat template, so the prompt is never wrapped in Qwen's `<|im_start|>…<|im_end|>` markers. A correct VL import must carry the registry model's `TEMPLATE` + `SYSTEM` + `PARAMETER temperature` (`ollama show --modelfile qwen2.5vl:32b | awk '/^TEMPLATE /{f=1}/^LICENSE /{f=0}f'`).
 - Tooling notes that still bite anyone attempting the Mungert path: `huggingface-cli` is deprecated — the CLI is now `hf` (`pip install -U huggingface_hub`); Mungert's README documents `…-q6_k.gguf` but the actual upload is `…-q6_k_m.gguf` (the Q6_K_M variant); the repo also carries `bf16-q8_0`/`f16-q8_0`/`bf16-q6_k`/`f16-q6_k` mixed-precision variants you do not want — pin exact filenames, never glob.
 
-**Decision:** ship the registry **Q4_K_M** build — the only configuration that runs correctly on this hardware. No Ollama upgrade was taken (issue #19915 was open at decision time; an upgrade is an unconfirmed fix that also restarts the shared Ollama server). The full empirical decision + the still-applicable absolute-F1 contingency branches are recorded in the project's `architecture-locked.md` "Quantization choice and contingency tree" — treat that as the source of truth.
+**Decision:** ship the registry **Q4_K_M** build — the only configuration that runs correctly on this hardware. No Ollama upgrade was taken (issue #19915 was open at decision time; an upgrade is an unconfirmed fix that also restarts the shared Ollama server). The still-applicable absolute-F1 contingency branches are listed under [Contingency](#contingency) below.
 
 ### Vision-capability sanity check
 
@@ -59,7 +59,7 @@ The model should produce a sensible description, not text-only output or garbage
 
 ### Contingency
 
-If Tier 3 validation reveals problems (vision broken, or F1 below the contingency-tree bar), the fallback path is defined in `architecture-locked.md` "Quantization choice and contingency tree": F1 ≥ 0.80 ship; 0.65–0.80 document the gap publicly and ship; < 0.65 or hallucinating → InternVL3.5-8B local → Tier 3 marked unavailable. In the complete V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there is no cloud fallback above Tier 3, by design. The optional BAA-cloud enhancement would route Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, staying operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
+If Tier 3 validation reveals problems (vision broken, or F1 below the contingency-tree bar), the fallback path is the locked contingency tree: F1 ≥ 0.80 ship; 0.65–0.80 document the gap publicly and ship; < 0.65 or hallucinating → InternVL3.5-8B local → Tier 3 marked unavailable. In the complete V1, "Tier 3 unavailable" means the cascade fails escalated documents to a local review queue with full error history — there is no cloud fallback above Tier 3, by design. The optional BAA-cloud enhancement would route Tier-3-bound escalations to Tier 3b (Bedrock Sonnet) instead, staying operational at higher cost. Don't deviate from the documented contingency without surfacing the issue first.
 
 The optional enhancement also defines a broader operational failover via `EXTRACTION_MODE=degraded` in `.env.example`: were the home-GPU bridge from a deployed endpoint unreachable, all local tiers would be skipped and every document would escalate straight through Tier 2-cloud → Tier 3b. It does not apply to the complete V1, which has no deployed endpoint, no bridge, and no degraded mode — the build machine runs everything in-process.
 
@@ -222,7 +222,7 @@ The business-documents half of the synthetic corpus comes from the DocILE academ
 
 ### Scope (locked)
 
-- **Splits downloaded:** `annotated-trainval` only (combined train + val; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 vendored-script commit — see the `download.py` `BUILD_DATASET` note). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock in `.claude-context/cost-model.md`. The download wrapper enforces this — passing `dataset != "annotated-trainval"` raises immediately.
+- **Splits downloaded:** `annotated-trainval` only (combined train + val; upstream renamed it from `labeled-trainval` after the pinned 2024-05-15 vendored-script commit — see the `download.py` `BUILD_DATASET` note). The `test`, `synthetic`, and `unlabeled` archives are reserved for the post-launch Phase 7-V2 `just process-batch` recipe per the half-now-half-later corpus-partitioning lock. The download wrapper enforces this — passing `dataset != "annotated-trainval"` raises immediately.
 - **Annotation task:** KILE only. The `line_item_extractions` (LIR) block is parsed but not staged into the sidecar — Phase 4 cascade work uses the KILE taxonomy against `BusinessDocumentForm` (36 implemented fields, from the upstream `KILE_FIELDTYPES`).
 - **Rasterization DPI:** 200, matching DocILE's `metadata.page_sizes_at_200dpi` so bbox coordinates round-trip cleanly between normalized and pixel space.
 

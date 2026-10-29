@@ -22,8 +22,8 @@ providers' structure so CI never needs a GPU):
   the newly-recognized phrasing to the alias overlay, and refreshes the
   retrieval corpus.
 
-Storage decision (deviates from a literal reading of
-``architecture-locked.md`` "Embeddings: ... sqlite-vec"): ColQwen is a
+Storage decision (deviates from a literal reading of the locked
+``sqlite-vec`` embeddings choice): ColQwen is a
 *late-interaction multivector* model — one matrix of per-patch token
 vectors per document, scored by MaxSim. ``sqlite-vec``'s ``vec0`` is
 single-vector KNN with no native late interaction, so honoring the literal
@@ -31,6 +31,6 @@ lock would force lossy mean-pooling that defeats the locked model choice
 and add a dependency that buys nothing at a 6-500 document corpus where
 brute-force MaxSim is exact and instant. We keep the reserved BLOB column
 shape exactly (genuinely reads/writes-only, no migration) and do MaxSim in
-NumPy. The deviation is documented in ``architecture-locked.md`` and
-``docs/eval-methodology.md`` rather than silently followed as a checkbox.
+NumPy. The deviation is documented in ``docs/eval-methodology.md`` rather
+than silently followed as a checkbox.
 """

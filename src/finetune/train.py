@@ -17,8 +17,8 @@ Why this can't produce a headline number in CI or from the build machine:
 the committed corpus is 6 CMS-1500, all ``test`` — `finetune.dataset`
 yields **0** real training pairs by design (leakage guard). The real
 fine-tune + measured F1 delta is the ``FINETUNE_LIVE=true just
-finetune-train`` step on ``openclaw-pc`` once the deferred local corpus
-populates ``train`` (handoff: ``phase9-live-train.md``). The committed
+finetune-train`` step on the local GPU box once the deferred local corpus
+populates ``train``. The committed
 deliverable is the reproducible pipeline + harness + honest write-up.
 """
 
@@ -82,8 +82,7 @@ def train(
     if not is_finetune_live():
         raise FineTuneUnavailable(
             "FINETUNE_LIVE is not set. QLoRA training is GPU-box-only; run "
-            "`FINETUNE_LIVE=true just finetune-train` on openclaw-pc "
-            "(see .claude-context/starter-prompts/phase9-live-train.md)."
+            "`FINETUNE_LIVE=true just finetune-train` on the local GPU box."
         )
 
     jsonl_path = Path(jsonl_path)

@@ -12,7 +12,7 @@ GPU-box artifact), :func:`correct_field` returns the cascade value
 unchanged and **nothing from the heavy stack is imported**. So the entire
 evaluate pipeline runs $0/no-GPU and honestly reports a **zero delta
 identity baseline**; a real delta only appears after
-``FINETUNE_LIVE=true just finetune-train`` on ``openclaw-pc``.
+``FINETUNE_LIVE=true just finetune-train`` on the local GPU box.
 
 :func:`corrected_form` returns a light shim whose scorable attributes look
 like ``ExtractedField`` (``.value`` / ``.tier_used``) so the *existing*
