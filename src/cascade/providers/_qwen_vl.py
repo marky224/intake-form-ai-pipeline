@@ -412,7 +412,7 @@ def invoke_model(
 
     The image is passed via the message's ``images=[<raw png bytes>]`` key —
     the ``ollama`` client b64-encodes ``bytes`` itself. This is the *real*
-    Ollama API shape verified on ``openclaw-pc`` (Tier 2 PR #51);
+    Ollama API shape verified on the build box (Tier 2 PR #51);
     ``architecture-locked.md`` describes the call conceptually in OpenAI
     ``content:[{type:image}]`` form, which is NOT how the Python client
     passes images. Tier 3's registry 32B (``qwen2.5vl:32b``, Q4_K_M) honors

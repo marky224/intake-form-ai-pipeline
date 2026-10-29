@@ -35,7 +35,7 @@ Per the V2 architecture, the cascade structure is identical in V2 standard mode 
 
 Cost: **~$9.50 per 1,000 documents** at estimated cascade escalation rates. V2 HIPAA-mode deployment adds the operator's on-prem hardware amortization (local-tier GPU silicon they're already buying for other workloads) and their existing BAA with AWS for the cloud tiers. There is no second cost number to publish — the cascade fires identically whether documents are PHI or not.
 
-Pre-pivot architecture history is documented in the project's internal `.claude-context/cost-model.md` "Pre-pivot cost history" section. Brief summary: pre-2026-05-12 the cascade routed Tier 1 to Novita and Tier 3 to Together AI in standard mode and swapped them out at the routing layer for `HIPAA_MODE=on` (~$24 → ~$150/1K cost differential). The Hybrid pivot (2026-05-12) dropped the non-BAA cloud surface entirely, collapsing both modes to ~$9.50/1K. The V1 pivot (2026-05-14) further dropped the BAA cloud surface for V1, leaving cloud tiers exclusively to V2.
+Pre-pivot architecture history, in brief: pre-2026-05-12 the cascade routed Tier 1 to Novita and Tier 3 to Together AI in standard mode and swapped them out at the routing layer for `HIPAA_MODE=on` (~$24 → ~$150/1K cost differential). The Hybrid pivot (2026-05-12) dropped the non-BAA cloud surface entirely, collapsing both modes to ~$9.50/1K. The V1 pivot (2026-05-14) further dropped the BAA cloud surface for V1, leaving cloud tiers exclusively to V2.
 
 ## Synthetic-to-real-PHI swap path (what a real-PHI adopter would do)
 

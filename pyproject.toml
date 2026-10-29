@@ -74,7 +74,7 @@ dependencies = [
 # streamlit is the Phase 7-V1 local demo's UI (`just demo`). The demo's
 # cascade-run + two-stage-F1 logic lives in `demo/data.py` and is unit-tested
 # WITHOUT importing streamlit (CI never imports streamlit); `demo/app.py` is
-# the thin Streamlit view layer, run only locally on `openclaw-pc`. The demo
+# the thin Streamlit view layer, run only locally on the build box. The demo
 # drives the cascade through the default cached-replay path ($0, no GPU).
 # streamlit sits in its own non-default `demo` group, so `uv sync` (and CI's
 # `uv sync --frozen`) skip it; `just demo` runs `uv run --group demo ...`,

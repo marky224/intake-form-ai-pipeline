@@ -17,8 +17,8 @@
 // Monthly, Quarterly, Annually. The TF stack's daily $5 threshold has no
 // direct analog. The accepted impedance:
 //   - Monthly $150 budget = ~$5/day × 30 (slightly headroomed; the TF stack
-//     targets the AWS account whose `Realistic monthly cost: $10-15` per
-//     CLAUDE.md, so $150 sits well above the realistic envelope while still
+//     targets an AWS account with a realistic monthly cost of ~$10-15,
+//     so $150 sits well above the realistic envelope while still
 //     surfacing pathological spikes).
 //   - Tiered notifications at 50%/80%/100% give early signal that a monthly
 //     budget alone wouldn't — closest analog to the TF stack's

@@ -5,7 +5,7 @@ lives in :mod:`demo.data` (which CI imports and tests without Streamlit).
 This module is never imported by CI and never unit-tested — keep logic out
 of it.
 
-Run locally on ``openclaw-pc``::
+Run locally on the build box::
 
     just demo            # cached replay: $0, no GPU, no Ollama/Paddle
     EVAL_LIVE=true just demo   # drive the real local models instead

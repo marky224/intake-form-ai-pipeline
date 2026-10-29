@@ -12,8 +12,7 @@ V1 is local-first (locked 2026-05-14): there is no S3. This module was
 the S3 uploader through Phase 3; V1 refactors it to a filesystem store
 under ``synthetic_data/output/`` (gitignored). The original S3
 implementation is the V2 target — V2 reverts this module to ``boto3``
-PutObject against the documents bucket (see ``.claude-context/phases.md``
-item 3 V2 sub-bullet).
+PutObject against the documents bucket.
 
 Path scheme::
 

@@ -12,7 +12,7 @@ over vision features, not feature extraction itself.
 **Locked quant: Q4_K_M (registry ``qwen2.5vl:32b``).** The architecture
 originally locked a Mungert-GGUF Q8_0 default with a Q8_0-vs-Q6_K dual-quant
 sanity test (demote to Q6_K iff F1 gap ≤ ±0.02). That test was **empirically
-infeasible on the build box** (`openclaw-pc`, RTX 4080 + RTX 4060 Ti ≈
+infeasible on the build box** (RTX 4080 + RTX 4060 Ti ≈
 31.2 GB usable, Ollama 0.20.7) and was rescoped 2026-05-17 (Mark's call):
 
   - Mungert **Q6_K** (custom dual-``FROM`` Modelfile import, ~29 GB, loads
@@ -28,7 +28,7 @@ infeasible on the build box** (`openclaw-pc`, RTX 4080 + RTX 4060 Ti ≈
   - Registry **Q4_K_M** ``qwen2.5vl:32b`` is the only config that runs
     correctly: ~117 s/doc for the full-field read (mean of the 92 committed
     replay fixtures, 107-161 s), clean schema-constrained JSON, ~18
-    fields/doc on a CMS-1500 (verified on `openclaw-pc` 2026-05-17).
+    fields/doc on a CMS-1500 (verified on the build box 2026-05-17).
 
 The rescoped "dual-quant" deliverable is therefore: document the Mungert
 infeasibility + ship Q4_K_M with its measured validation F1, applying the
@@ -66,7 +66,7 @@ escalation are Phase 5 orchestrator work.
 the dep. Cached-replay tests never touch the live path; only the
 ``EVAL_LIVE=true`` workflow on the build machine reaches Ollama. The
 registry 32B honors the same ``format=<json-schema>`` schema-constrained
-decoding as the 7B registry build (verified on ``openclaw-pc`` before this
+decoding as the 7B registry build (verified on the build box before this
 provider was locked — same "check the real upstream API shape" discipline as
 the Tier 1 PaddleOCR-VL + Tier 2 lessons; this is also *why* registry was
 chosen over the Mungert import, which hits the M-RoPE ``seq_add`` assert).
