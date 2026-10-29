@@ -9,9 +9,8 @@
 skip-check:
   # SSE-S3 (AES256) is locked over SSE-KMS for state + project buckets. State
   # holds account ID + ARNs (sensitive but not customer data); the KMS cost
-  # and operational tradeoff don't change the threat model. CLAUDE.md "Build
-  # gotchas" carries the long-form reasoning. CodeRabbit/Trivy AWS-0132 is
-  # the same finding from a different scanner.
+  # and operational tradeoff don't change the threat model. CodeRabbit/Trivy
+  # AWS-0132 is the same finding from a different scanner.
   - CKV_AWS_145
   # Cross-region replication is a DR control; portfolio scope (single-region
   # demo, recreatable from synthetic data) doesn't justify the cost. Revisit

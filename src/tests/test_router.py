@@ -4,7 +4,7 @@ Covers the locked behaviors and the schema-version drift guard:
 
 1. **Vocabulary inclusion rule** — distinctive = in ``healthcare`` and not
    in ``base``/``insurance``/``hr``. Hard-asserts the locked example terms
-   (drift guard per architecture-locked.md "Schema-version coupling") plus
+   (the locked schema-version drift guard) plus
    the global invariant that no excluded-vertical alias ever leaks.
 2. **OCR-line flattening** from a Tier 1 raw_response (table + text blocks).
 3. **Stage 1 scoring** — inverse-frequency weight, once-per-alias.
@@ -43,7 +43,7 @@ def _fresh_vocab_cache():
 
 # --- 1. Vocabulary inclusion rule -----------------------------------------
 
-# Locked examples (architecture-locked.md "Router (V1)"). These exact
+# Locked examples (the router lock). These exact
 # verticals were verified against alias_table_seed.json; if a seed
 # regeneration moves any of these, this test fails loudly (the intended
 # schema-version drift guard).

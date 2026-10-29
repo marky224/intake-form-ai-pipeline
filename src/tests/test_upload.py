@@ -357,8 +357,8 @@ def test_store_render_dir_raises_on_unpaired_files(tmp_path: Path) -> None:
 def test_default_store_prefix_matches_locked_design() -> None:
     """The CLI default prefix must match the locked design path.
 
-    Bumping this string requires an updated ``current-state.md`` and the
-    cascade providers that read these paths.
+    Bumping this string requires updating the cascade providers that read
+    these paths.
     """
     assert DEFAULT_STORE_PREFIX == "synthetic/healthcare/cms1500"
 

@@ -163,8 +163,8 @@ def test_ingest_dataset_rejects_test_split(dataset_root: Path, tmp_path: Path) -
 
     Matches on ``process-batch`` rather than the ``half-now-half-later``
     marketing phrase so the test stays green if the error wording is
-    polished. ``process-batch`` is the locked Phase 7 recipe name in
-    ``cost-model.md`` — semantically stable.
+    polished. ``process-batch`` is the locked Phase 7 recipe name —
+    semantically stable.
     """
     render_dir = tmp_path / "render"
     with pytest.raises(ValueError, match="process-batch"):

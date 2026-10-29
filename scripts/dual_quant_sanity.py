@@ -2,8 +2,8 @@
 
 Originally a Q8_0-vs-Q6_K dual-quant sanity test; the Mungert Q8_0/Q6_K
 imports proved infeasible on the build box (M-RoPE ``seq_add`` assert /
-VRAM — see ``architecture-locked.md`` "Quantization choice and contingency
-tree"), so Tier 3 ships the registry ``qwen2.5vl:32b`` (Q4_K_M) and this
+VRAM — see ``docs/local-development.md`` "Local Tier 3 model setup"), so
+Tier 3 ships the registry ``qwen2.5vl:32b`` (Q4_K_M) and this
 script is now the **rescoped single-config validation harness**: a focused,
 deliberately coarse field-level micro-F1 used only to apply the contingency
 tree's still-applicable *absolute*-F1 branches:

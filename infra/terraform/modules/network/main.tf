@@ -4,7 +4,7 @@ locals {
 }
 
 resource "aws_vpc" "this" {
-  # checkov:skip=CKV2_AWS_11:VPC flow logs land in PR 5 (CloudFront/WAF) — natural co-location with the network/edge work. Tracking comment in CLAUDE.md "Next" section.
+  # checkov:skip=CKV2_AWS_11:VPC flow logs land in PR 5 (CloudFront/WAF) — natural co-location with the network/edge work.
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true

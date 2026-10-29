@@ -6,8 +6,7 @@
 - ``embed`` — (re)generate the committed ColQwen ``.npy`` fixtures for the
   demo corpus. Only meaningful under ``EVAL_LIVE=true`` on the GPU box
   (``just embed`` sets it); without it every image is a cache hit / miss
-  and nothing is regenerated. This is the live-regen step documented in
-  ``.claude-context/starter-prompts/phase8-live-regen.md``.
+  and nothing is regenerated. This is the ``just embed`` live-regen step.
 """
 
 from __future__ import annotations
