@@ -106,7 +106,7 @@ Corrections submitted from the queue flow back through `src/rag/aliases.py`: any
 git clone https://github.com/marky224/intake-form-ai-pipeline
 cd intake-form-ai-pipeline
 just install        # uv sync + pre-commit
-just test           # 1157 tests (1138 fast + 19 slow)
+just test           # 1158 tests (1139 fast + 19 slow)
 just lint           # ruff + ruff-format + black
 
 just demo           # Streamlit on :8501 — real 3-tier cascade over the
@@ -136,7 +136,7 @@ intake-form-ai-pipeline/
 │   ├── finetune/            # QLoRA text post-corrector (Phase 9 experiment)
 │   ├── demo/                # Streamlit: data.py (testable core) + app.py (view)
 │   ├── synthetic_data/      # synthea/, render/ (Playwright CMS-1500), docile/
-│   ├── tests/               # 1157 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
+│   ├── tests/               # 1158 tests + fixtures/ (eval-cache, eval-validation, synthea, docile)
 │   └── data/                # SQLite v1.db + ColQwen .npy cache (gitignored runtime)
 ├── alias_table_seed.json    # 469 aliases / 86 records, frozen v1.1.0 (canonical, repo root)
 ├── scripts/                 # dev tooling (regen fixtures, dual-quant sanity, M0 live Tier-3 run)

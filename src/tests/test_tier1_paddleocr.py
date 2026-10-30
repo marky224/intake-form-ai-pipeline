@@ -676,6 +676,20 @@ def test_text_block_labels_match_whole_words():
     assert text("ESTATE STATE: MA").address_state.value == "MA"
 
 
+def test_text_block_value_glued_to_a_punctuated_label_splits():
+    """A label ending in punctuation needs no word break after it:
+    "D.O.B.01/16/2020" and "CHART #A1234" read their values."""
+    from datetime import date
+
+    def text(content: str) -> HealthcareIntakeForm:
+        block = {"block_bbox": [0, 0, 1, 1], "block_label": "text", "block_content": content}
+        return _parse_response(_hc_raw([block]), HealthcareIntakeForm)
+
+    assert text("D.O.B.01/16/2020").date_of_birth.value == date(2020, 1, 16)
+    assert text("CHART #A1234").patient_id.value == "A1234"
+    assert _strip_label_prefix("PATIENT ACCOUNT #12345", "Patient Account #") == "12345"
+
+
 def test_label_naming_another_party_still_finalizes():
     """Known limit, pinned (2026-10-30): the specific-label gate checks the
     alias that matched, not the rest of the label, so a valid value under

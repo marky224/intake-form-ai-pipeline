@@ -267,12 +267,17 @@ def _strip_label_prefix(text: str, alias: str) -> str | None:
     the alias anywhere in ``text`` ("STATE" in "ESTATE STATE: MA" is the
     second word) — block_content may include some preamble before the
     label, but typically the alias appears at the start. The pattern is the
-    escaped alias between two lookarounds, so it is linear time.
+    escaped alias between two lookarounds, so it is linear time. A
+    lookaround applies only on an edge that is a word character, so a value
+    glued to a label ending in punctuation still splits ("D.O.B.01/16/2020",
+    "CHART #A1234").
     """
     if not alias.strip():
         return None
     upper_alias = alias.upper().strip()
-    found = re.search(r"(?<![A-Z0-9'])" + re.escape(upper_alias) + r"(?![A-Z0-9'])", text.upper())
+    before = r"(?<![A-Z0-9'])" if _WORD.fullmatch(upper_alias[0]) else ""
+    after = r"(?![A-Z0-9'])" if _WORD.fullmatch(upper_alias[-1]) else ""
+    found = re.search(before + re.escape(upper_alias) + after, text.upper())
     if found is None:
         return None
     remainder = text[found.end() :]
