@@ -32,7 +32,7 @@ The interesting part of this project is not that a curve goes up. It's that meas
 - **It fits on the GPUs.** `ollama ps` reports `100% GPU` (31 GB at context 8192); `nvidia-smi` shows 15,157 of 16,376 MiB used on the RTX 4080 and 14,935 of 16,380 MiB on the RTX 4060 Ti.
 - **Speed.** A full 27-field read took 20.97 s per document at 19.46 tokens/s; the narrowed read the cascade sends (3.7 fields per document) took 6.17 s at 20.90 tokens/s. The model loaded once (9.6 s).
 - **F1 from the live readings** (dev, not the headline): 0.842 → 0.791 → 0.902 with the full reads and → 0.917 with the narrowed reads, against 0.900 from the cache.
-- **Narrowed vs full.** A routed field's narrowed reading matches its full reading on 305 of 364 fields (83.8%). The 59 differences are mostly names and streets (first name 26, last name 14, street 9, reason for visit 7, date signed 2, date of birth 1). In 7 of them the full read left the field blank and the narrowed read filled it — in the ones listed, a date put into reason for visit (e.g. "09/30/2025"), which also cuts the true negatives from 27 to 21.
+- **Narrowed vs full.** A routed field's narrowed reading matches its full reading on 305 of 364 fields (83.8%). The 59 differences, counted from the raw M0 responses, are mostly names and streets (first name 26, last name 14, street 9, reason for visit 7, date signed 2, date of birth 1). In 7 of them the full read left the field blank and the narrowed read filled it — all 7 are reason for visit given a date (e.g. "09/30/2025"), which also cuts the true negatives from 27 to 21.
 
 One run, no confidence interval. The committed replay cache and the test-split numbers above are unchanged: test stays the final number.
 
