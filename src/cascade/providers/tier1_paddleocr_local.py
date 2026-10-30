@@ -263,18 +263,19 @@ def _strip_label_prefix(text: str, alias: str) -> str | None:
     """Strip ``alias`` (case-insensitive) + a separator from ``text``'s start-or-mid.
 
     Returns the remaining value text, or None if the alias isn't found or the
-    remainder is empty. The match finds the FIRST occurrence of the alias
-    anywhere in ``text`` — block_content may include some preamble before the
-    label, but typically the alias appears at the start.
+    remainder is empty. The match finds the FIRST whole-word occurrence of
+    the alias anywhere in ``text`` ("STATE" in "ESTATE STATE: MA" is the
+    second word) — block_content may include some preamble before the
+    label, but typically the alias appears at the start. The pattern is the
+    escaped alias between two lookarounds, so it is linear time.
     """
     if not alias.strip():
         return None
-    upper_text = text.upper()
     upper_alias = alias.upper().strip()
-    pos = upper_text.find(upper_alias)
-    if pos < 0:
+    found = re.search(r"(?<![A-Z0-9'])" + re.escape(upper_alias) + r"(?![A-Z0-9'])", text.upper())
+    if found is None:
         return None
-    remainder = text[pos + len(upper_alias) :]
+    remainder = text[found.end() :]
     remainder = _LABEL_VALUE_SEPARATORS.sub("", remainder, count=1).rstrip()
     return remainder if remainder else None
 
@@ -302,6 +303,7 @@ def _match_block(
         return None
 
     text_len = len(text_stripped)
+    text_words = _words(text_stripped)
     best: tuple[str, str | None, float, str] | None = None
 
     for canonical_name, aliases in alias_map.items():
@@ -310,6 +312,10 @@ def _match_block(
             if not alias_stripped:
                 continue
             if alias_stripped.upper() not in text_stripped.upper():
+                continue
+            # Whole words only ("ESTATE: MA" is no state label), as for
+            # table cells (_best_label_match).
+            if _word_index(text_words, _words(alias_stripped)) is None:
                 continue
             score = min(len(alias_stripped) / text_len, 1.0)
             if best is None or score > best[2]:
@@ -854,12 +860,14 @@ def parse_with_generic_labels(raw: dict[str, Any], form_cls: type[T]) -> tuple[T
     kinds = {name: inner for name, (inner, _meta) in _extractable_fields(form_cls).items()}
     generic = _generic_aliases(alias_map)
 
-    # canonical_name → (ExtractedField, rank, final_ok). Best rank wins on
-    # collision: a reading that passes its validator, then an aligned
-    # label/value pair (see _table_pairs), then the higher alias score.
-    # ``final_ok``: an aligned reading whose matched alias names this field
-    # specifically (see _generic_aliases), the only kind that may finalize.
-    best_by_field: dict[str, tuple[ExtractedField[Any], tuple[bool, bool, float], bool]] = {}
+    # canonical_name → (ExtractedField, rank, final_ok, generic_label). Best
+    # rank wins on collision: a reading that passes its validator, then an
+    # aligned label/value pair (see _table_pairs), then the higher alias
+    # score. ``final_ok``: an aligned reading whose matched alias names this
+    # field specifically (see _generic_aliases), the only kind that may
+    # finalize. ``generic_label``: the label matched only a generic alias
+    # (reported by parse_with_generic_labels; no strict parking).
+    best_by_field: dict[str, tuple[ExtractedField[Any], tuple[bool, bool, float], bool, bool]] = {}
 
     def offer(
         name: str,

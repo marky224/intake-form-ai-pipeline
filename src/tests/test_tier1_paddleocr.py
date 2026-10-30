@@ -662,6 +662,36 @@ def test_text_block_with_a_specific_label_finalizes():
         assert field.confidence >= GATE_TIER1_TO_TIER2, content
 
 
+def test_text_block_labels_match_whole_words():
+    """ "ESTATE" and "STATEMENT" contain "STATE" but aren't the word: a text
+    block gives no state; "ESTATE STATE: MA" reads the value after the
+    real label."""
+
+    def text(content: str) -> HealthcareIntakeForm:
+        block = {"block_bbox": [0, 0, 1, 1], "block_label": "text", "block_content": content}
+        return _parse_response(_hc_raw([block]), HealthcareIntakeForm)
+
+    assert text("ESTATE: MA").address_state.value is None
+    assert text("STATEMENT: MA").address_state.value is None
+    assert text("ESTATE STATE: MA").address_state.value == "MA"
+
+
+def test_label_naming_another_party_still_finalizes():
+    """Known limit, pinned (2026-10-30): the specific-label gate checks the
+    alias that matched, not the rest of the label, so a valid value under
+    another party's label ("INSURED'S ZIP CODE", "SPOUSE BIRTH DATE",
+    "EMPLOYER STATE") is final at Tier 1. Disclosed in eval-methodology."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    for label, value, name in (
+        ("INSURED&#x27;S ZIP CODE", "02481", "address_zip"),
+        ("SPOUSE BIRTH DATE", "01/16/1990", "date_of_birth"),
+        ("EMPLOYER STATE", "MA", "address_state"),
+    ):
+        field = getattr(_table_form(f"<td>{label}</td>", f"<td>{value}</td>"), name)
+        assert field.confidence >= GATE_TIER1_TO_TIER2, label
+
+
 def test_updated_is_not_a_date_label_in_any_layout():
     """ "UPDATED" contains "DATE" but isn't the word: no date signed from a
     stacked cell or from a label cell above a date."""
