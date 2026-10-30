@@ -1,6 +1,6 @@
 """Live correction-driven alias overlay (the production half of the loop).
 
-The committed ``alias_table_seed.json`` is **v1.0.0 and frozen**: it is the
+The committed ``alias_table_seed.json`` is **v1.1.0 and frozen**: it is the
 canonical-priority corpus the progressive-partition F1 chart is plotted
 from, and ``docs/eval-methodology.md`` (L117-123) explicitly forbids
 in-place edits to it — a real reseed is a deliberate v2.0.0 bump, not a
@@ -21,7 +21,7 @@ the overlay changes so the next extraction sees the new alias.
 
 **The progressive-partition F1 sweep must not see the overlay.** That sweep
 (``evals/alias_partition.active_alias_batch``) tells the *frozen offline
-analogue* of this loop — feeding a growing slice of the v1.0.0 seed and
+analogue* of this loop — feeding a growing slice of the v1.1.0 seed and
 plotting Tier-1 F1. If runtime corrections leaked into it the portfolio
 chart would silently drift. So ``active_alias_batch`` enters
 :func:`suppress_overlay`; while suppressed :func:`overlay_records` returns

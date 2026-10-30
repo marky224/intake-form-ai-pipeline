@@ -6,13 +6,14 @@ focused unit coverage of the escalation
 predicate, retry-then-escalate policy, HIPAA_MODE no-op, and the Tier 1
 exhaustion path.
 
-Tier 3 second read (since 2026-10-16): Tier 3 re-reads every field Tier 2
-handled and agreement sets the final confidence — matching readings are
-accepted, any mismatch parks for review, and a Tier-2 value that passes its
-validator is never overwritten (the old type heuristic sent every date to
-Tier 3, which overwrote correct dates). The second-read tests below layer a
-stub Tier 3 over the cached Tier 2 reading so each rule is exercised on a
-real document.
+Tier 3 routing (since 2026-10-24): Tier 3 reads only the fields Tier 1
+covers where Tier 1 and Tier 2 disagree or Tier 1 read nothing; agreement
+between readers sets the final confidence — matching readings are accepted,
+any mismatch parks for review, a Tier-2 value that passes its validator is
+never overwritten (the old type heuristic sent every date to Tier 3, which
+overwrote correct dates), and two Qwen readings agreeing against Tier 1's
+park. The second-read tests layer a stub Tier 3 over the cached Tier 2
+reading of a real document; the routing tests run fully stubbed tiers.
 """
 
 from __future__ import annotations
@@ -83,9 +84,9 @@ def test_e2e_cms1500_cached(png_path, memconn):
     # Per-doc invariants that hold across the full 92-doc test split.
     # (Stage / escalation *shape* varies per doc at broad scale — the old
     # per-doc `router_stage == 1` held only for the 6 hand-picked docs;
-    # asserting it per-doc now would mean cherry-picking the corpus. Tier 3
-    # reads exactly Tier 2's field set — asserted on every doc by
-    # test_tier3_second_reads_every_tier2_field below.)
+    # asserting it per-doc now would mean cherry-picking the corpus. Which
+    # fields Tier 3 reads is asserted on every doc by
+    # test_tier3_reads_only_the_routed_fields below.)
     assert isinstance(rec.form, HealthcareIntakeForm)
     assert rec.vertical == "healthcare"
     assert rec.router_stage in {1, 2}
@@ -112,16 +113,305 @@ def test_e2e_cms1500_cached(png_path, memconn):
     )
 
 
-def test_tier3_second_reads_every_tier2_field(memconn):
-    """Tier 3 is a second reader: on every doc it gets exactly the field set
-    Tier 2 handled (no narrowing between Tier 2 and Tier 3)."""
+def test_tier3_reads_only_the_routed_fields(memconn):
+    """Tier 3 reads only fields Tier 1 covers where Tier 1 and Tier 2 disagree
+    or Tier 1 read nothing; every other Tier-2 field is settled before Tier
+    3, at the agreement confidence (covered) or the single-read confidence
+    (uncovered)."""
     providers = orchestrator.build_cascade()
+    covered = t1.covered_fields(HealthcareIntakeForm)
     for p in _validation_pngs():
         rec = orchestrator.process_document(
             p.read_bytes(), doc_id=p.stem, conn=memconn, providers=providers
         )
         esc2 = rec.escalations.get("2", [])
-        assert rec.escalations.get("3a", []) == esc2
+        esc3 = rec.escalations.get("3a", [])
+        assert set(esc3) <= set(esc2) & covered
+        for name in set(esc2) - set(esc3):
+            ef = getattr(rec.form, name)
+            if ef.value is None:
+                continue
+            expected = (
+                orchestrator.AGREEMENT_CONFIDENCE
+                if name in covered
+                else orchestrator.SINGLE_READ_CONFIDENCE
+            )
+            assert ef.confidence == expected, (p.name, name)
+
+
+# --- Routing rules on a stubbed document -------------------------------------
+
+
+def _healthcare_route(monkeypatch):
+    """Route every document to the healthcare form without Stage 2."""
+    decision = orchestrator.RouteDecision("healthcare", 1, 9.9, HealthcareIntakeForm)
+    monkeypatch.setattr(orchestrator, "route", lambda *_a, **_k: decision)
+
+
+class _StubTier1:
+    """Tier 1 reading one CMS-1500 name box (``Doe12, Jane34``) and, when
+    given, ``extra`` table rows (``(label_row, value_row)`` HTML)."""
+
+    name = "tier1_stub"
+    tier = 1
+
+    def __init__(self, extra: tuple[str, str] | None = None):
+        self.extra = extra
+
+    def extract(self, png, form_cls):
+        html = (
+            "<table><tr><td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td></tr>"
+            "<tr><td>Doe12, Jane34</td></tr>"
+        )
+        if self.extra:
+            html += f"<tr>{self.extra[0]}</tr><tr>{self.extra[1]}</tr>"
+        html += "</table>"
+        raw = {"parsing_res_list": [{"block_label": "table", "block_content": html}]}
+        return ProviderResult(
+            form=t1._parse_response(raw, form_cls), latency_ms=1.0, cost_usd=0.0, raw_response=raw
+        )
+
+
+class _StubQwen:
+    """A Qwen tier that reads ``values`` (blank for every other field) and
+    records which fields it was asked for."""
+
+    def __init__(self, tier, values: dict):
+        self.name = f"qwen_stub_{tier}"
+        self.tier = tier
+        self.values = values
+        self.asked: list[str] = []
+
+    def extract(self, png, form_cls):
+        names = list(_qwen_vl._extractable_fields(form_cls))
+        self.asked = names
+        form = form_cls(metadata=t1._stub_metadata(form_cls))
+        for name in names:
+            value = self.values.get(name)
+            setattr(
+                form,
+                name,
+                ExtractedField(
+                    value=value, confidence=0.0 if value is None else 1.0, tier_used=self.tier
+                ),
+            )
+        return ProviderResult(form=form, latency_ms=1.0, cost_usd=0.0, raw_response={})
+
+
+def _stub_run(memconn, monkeypatch, tier2_values: dict, tier3_values: dict, tier3=None, tier1=None):
+    _healthcare_route(monkeypatch)
+    t2s = _StubQwen(2, tier2_values)
+    t3s = tier3 if tier3 is not None else _StubQwen("3a", tier3_values)
+    rec = orchestrator.process_document(
+        b"png", doc_id="stub", conn=memconn, providers=(tier1 or _StubTier1(), t2s, t3s)
+    )
+    return rec, t3s
+
+
+def test_tier1_tier2_agreement_settles_a_field_without_tier3(memconn, monkeypatch):
+    """Tier 1 and Tier 2 both read last name "Doe12": accepted at the
+    agreement confidence and never sent to Tier 3. First name differs
+    ("Jane34" vs "Jane"), so it goes to Tier 3."""
+    rec, t3s = _stub_run(
+        memconn, monkeypatch, {"last_name": "Doe12", "first_name": "Jane"}, {"first_name": "Jane"}
+    )
+    assert "last_name" not in t3s.asked
+    assert "first_name" in t3s.asked
+    last = rec.form.last_name
+    assert (last.value, last.tier_used) == ("Doe12", 2)
+    assert last.confidence == orchestrator.AGREEMENT_CONFIDENCE
+
+
+def test_uncovered_field_is_a_single_read(memconn, monkeypatch):
+    """Tier 1 doesn't cover ``patient_id``: Tier 2's reading is accepted at
+    the single-read confidence (above the review gate) and Tier 3 never
+    sees the field."""
+    rec, t3s = _stub_run(memconn, monkeypatch, {"patient_id": "abc-123"}, {})
+    assert "patient_id" not in t3s.asked
+    pid = rec.form.patient_id
+    assert (pid.value, pid.tier_used) == ("abc-123", 2)
+    assert pid.confidence == orchestrator.SINGLE_READ_CONFIDENCE
+    assert pid.confidence >= orchestrator.GATE_TIER2_TO_TIER3
+    assert "patient_id" not in _parked(rec)
+
+
+def test_covered_field_tier1_missed_goes_to_tier3(memconn, monkeypatch):
+    """Tier 1 covers the city but read none here: Tier 2's city goes to
+    Tier 3, and the two readings agreeing settles it. The last name, which
+    Tier 1 read the same as Tier 2, is not sent."""
+    rec, t3s = _stub_run(
+        memconn,
+        monkeypatch,
+        {"address_city": "Wellesley", "last_name": "Doe12"},
+        {"address_city": "Wellesley"},
+    )
+    assert "address_city" in t3s.asked
+    assert "last_name" not in t3s.asked
+    city = rec.form.address_city
+    assert city.value == "Wellesley"
+    assert city.confidence == orchestrator.AGREEMENT_CONFIDENCE
+
+
+def test_tier3_matching_tier1_is_accepted(memconn, monkeypatch):
+    """Tier 2 reads "Jane", Tier 1 and Tier 3 read "Jane34": Tier 3's value
+    is taken at the agreement confidence (two independent readers) and the
+    field doesn't park."""
+    rec, _ = _stub_run(memconn, monkeypatch, {"first_name": "Jane"}, {"first_name": "Jane34"})
+    first = rec.form.first_name
+    assert (first.value, first.tier_used) == ("Jane34", "3a")
+    assert first.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "first_name" not in _parked(rec)
+
+
+def test_tier2_and_tier3_agreeing_against_tier1_parks(memconn, monkeypatch):
+    """Strict parking: both Qwen tiers read "Jane" where Tier 1 read
+    "Jane34". The value is kept but the field parks for review."""
+    rec, _ = _stub_run(memconn, monkeypatch, {"first_name": "Jane"}, {"first_name": "Jane"})
+    first = rec.form.first_name
+    assert first.value == "Jane"
+    assert first.confidence == orchestrator.DISAGREEMENT_CONFIDENCE
+    assert "first_name" in _parked(rec)
+    assert rec.status == store.RUN_STATUS_REVIEW
+
+
+def test_tier3_down_parks_every_routed_field(memconn, monkeypatch):
+    """Tier 3 fails past its retry budget: every routed field holding a
+    value parks (Tier 2's provisional confidence never survives), while
+    fields settled before Tier 3 keep their confidence."""
+    monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
+    dead3 = _DeadTier("tier3_qwen_32b_local", "3a")
+    rec, _ = _stub_run(
+        memconn,
+        monkeypatch,
+        {"first_name": "Jane", "last_name": "Doe12", "patient_id": "abc-123"},
+        {},
+        tier3=dead3,
+    )
+    t3_error = next(e for e in rec.error_history if e.get("tier") == "3a")
+    assert "first_name" in t3_error["fields"]
+    assert rec.form.first_name.confidence == orchestrator.DISAGREEMENT_CONFIDENCE
+    assert "first_name" in _parked(rec)
+    assert rec.form.last_name.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert rec.form.patient_id.confidence == orchestrator.SINGLE_READ_CONFIDENCE
+    assert rec.final_tier == "2"
+
+
+def test_tier2_down_sends_every_escalated_field_to_tier3(memconn, monkeypatch):
+    """Tier 2 fails: there is no Tier-2 reading to compare, so Tier 3 reads
+    every field Tier 2 should have. Tier 3 reads the last name as "doe12"
+    where Tier 1 read "Doe12": the two match after normalization, so the
+    field is accepted instead of parking over a case difference."""
+    monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
+    _healthcare_route(monkeypatch)
+    t3s = _StubQwen("3a", {"last_name": "doe12"})
+    rec = orchestrator.process_document(
+        b"png",
+        doc_id="stub",
+        conn=memconn,
+        providers=(_StubTier1(), _DeadTier("tier2_qwen_7b_local", 2), t3s),
+    )
+    assert rec.escalations["3a"] == rec.escalations["2"]
+    assert t3s.asked == rec.escalations["2"]
+    assert rec.form.last_name.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "last_name" not in _parked(rec)
+
+
+def test_tier1_reading_failing_its_validator_counts_as_no_reading(memconn, monkeypatch):
+    """Tier 1 reads a ZIP-shaped "02145" as the state (a column shift): it
+    fails the state validator, so it is no reading at all. Tier 3 still
+    reads the field (Tier 1 "read nothing"), and Tier 2 and Tier 3 agreeing
+    on "MA" settles it instead of strict-parking against the bad reading."""
+    tier1 = _StubTier1(("<td>5C. STATE</td>", "<td>02145</td>"))
+    rec, t3s = _stub_run(
+        memconn,
+        monkeypatch,
+        {"address_state": "MA"},
+        {"address_state": "MA"},
+        tier1=tier1,
+    )
+    assert "address_state" in t3s.asked
+    state = rec.form.address_state
+    assert state.value == "MA"
+    assert state.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "address_state" not in _parked(rec)
+
+
+def test_generic_label_reading_routes_but_never_strict_parks(memconn, monkeypatch):
+    """Tier 1 reads box 15's own date under "15. OTHER DATE" — a label only
+    the generic alias "Date" matches — as the date signed. It differs from
+    Tier 2, so the field goes to Tier 3; Tier 2 and Tier 3 agreeing on the
+    real date settles it at the agreement confidence instead of
+    strict-parking against the generic reading."""
+    from datetime import date
+
+    tier1 = _StubTier1(("<td>15. OTHER DATE</td>", "<td>02/01/2026</td>"))
+    rec, t3s = _stub_run(
+        memconn,
+        monkeypatch,
+        {"date_signed": date(2026, 3, 1)},
+        {"date_signed": date(2026, 3, 1)},
+        tier1=tier1,
+    )
+    assert "date_signed" in t3s.asked
+    signed = rec.form.date_signed
+    assert signed.value == date(2026, 3, 1)
+    assert signed.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    assert "date_signed" not in _parked(rec)
+
+
+def test_generic_label_reading_that_agrees_still_skips_tier3(memconn, monkeypatch):
+    """The same generic-label reading agreeing with Tier 2 is accepted
+    without Tier 3 (it still counts for routing)."""
+    from datetime import date
+
+    tier1 = _StubTier1(("<td>15. OTHER DATE</td>", "<td>02/01/2026</td>"))
+    rec, t3s = _stub_run(memconn, monkeypatch, {"date_signed": date(2026, 2, 1)}, {}, tier1=tier1)
+    assert "date_signed" not in t3s.asked
+    assert rec.form.date_signed.confidence == orchestrator.AGREEMENT_CONFIDENCE
+
+
+def test_tier2_and_tier3_blank_drop_tier1_reading(memconn, monkeypatch):
+    """Documented limit (Mark's call, 2026-10-25): when Tier 2 and Tier 3
+    both read nothing for a field Tier 1 read, the field stays confidently
+    blank — Tier 1's reading is dropped, not parked."""
+    rec, _ = _stub_run(memconn, monkeypatch, {}, {})
+    first = rec.form.first_name
+    assert first.value is None
+    assert "first_name" not in _parked(rec)
+
+
+def test_form_without_tier1_coverage_keeps_the_second_read(memconn, monkeypatch):
+    """Tier 1 covers no ``BusinessDocumentForm`` field, so routing can't
+    compare readers: Tier 3 re-reads every Tier-2 field as before — a match
+    is accepted at the agreement confidence, a mismatch parks."""
+    from intake_schemas import BusinessDocumentForm
+
+    decision = orchestrator.RouteDecision("business", 2, 0.0, BusinessDocumentForm)
+    monkeypatch.setattr(orchestrator, "route", lambda *_a, **_k: decision)
+
+    class _EmptyTier1:
+        name = "tier1_stub"
+        tier = 1
+
+        def extract(self, png, form_cls):
+            raw = {"parsing_res_list": []}
+            return ProviderResult(
+                form=t1._parse_response(raw, form_cls),
+                latency_ms=1.0,
+                cost_usd=0.0,
+                raw_response=raw,
+            )
+
+    t2s = _StubQwen(2, {"amount_due": "100.00", "customer_billing_name": "ACME"})
+    t3s = _StubQwen("3a", {"amount_due": "100.00", "customer_billing_name": "ACME Inc"})
+    rec = orchestrator.process_document(
+        b"png", doc_id="biz", conn=memconn, providers=(_EmptyTier1(), t2s, t3s)
+    )
+    assert t3s.asked == rec.escalations["2"]
+    assert rec.form.amount_due.confidence == orchestrator.AGREEMENT_CONFIDENCE
+    billed = rec.form.customer_billing_name
+    assert billed.confidence == orchestrator.DISAGREEMENT_CONFIDENCE
+    assert "customer_billing_name" in _parked(rec)
 
 
 class _Tier3Override:
@@ -150,10 +440,15 @@ class _Tier3Override:
         return ProviderResult(form=form, latency_ms=1.0, cost_usd=0.0, raw_response={})
 
 
+#: A test doc whose Tier 1 reads no date of birth, so the DOB reaches Tier 2
+#: and Tier 3 (since 2026-10-24 a validated Tier-1 date is final at Tier 1).
+_NO_T1_DOB_DOC = 15
+
+
 def _second_read(memconn, overrides: dict):
     """Run one cached doc with (Tier 1, Tier 2, stub Tier 3) and also return
     the Tier-1+2 baseline form (Tier 3 slot = Tier 2) for comparison."""
-    png = _validation_pngs()[0]
+    png = _validation_pngs()[_NO_T1_DOB_DOC]
     t1p, t2p, _ = orchestrator.build_cascade()
     base = orchestrator.process_document(
         png.read_bytes(), doc_id="base", conn=memconn, providers=(t1p, t2p, t2p)
@@ -188,9 +483,10 @@ def test_tier3_never_overwrites_validated_date(memconn):
 
 
 def test_agreement_accepts_without_review(memconn):
-    """Tier 3 reads every field exactly as Tier 2 did: every populated
-    second-read field is accepted at the agreement confidence and the doc
-    clears the cascade (dates included — no type-based parking)."""
+    """Tier 3 reads every routed field exactly as Tier 2 did, and on this
+    doc Tier 1 read none of them: every populated second-read field is
+    accepted at the agreement confidence and the doc clears the cascade
+    (dates included — no type-based parking)."""
     _, rec = _second_read(memconn, {})
     assert not _parked(rec)
     assert rec.status == store.RUN_STATUS_EXTRACTED
@@ -278,40 +574,17 @@ class _DeadTier:
         raise ConnectionError(f"{self.name} down")
 
 
-def test_tier3_down_keeps_tier2_provisional_confidences(memconn, monkeypatch):
-    """Tier 3 fails past its retry budget: Tier 2's provisional type-heuristic
-    confidences survive — the date parks, the string passes — and the error
-    history names every field Tier 3 was asked to re-read."""
-    monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
-    png = _validation_pngs()[0]
-    t1p, t2p, _ = orchestrator.build_cascade()
-    rec = orchestrator.process_document(
-        png.read_bytes(),
-        doc_id=png.stem,
-        conn=memconn,
-        providers=(t1p, t2p, _DeadTier("tier3_qwen_32b_local", "3a")),
-    )
-    assert rec.escalations["3a"] == rec.escalations["2"]
-    t3_error = next(e for e in rec.error_history if e.get("tier") == "3a")
-    assert t3_error["fields"] == rec.escalations["2"]
-    assert rec.final_tier == "2"
-    parked = _parked(rec)
-    assert "date_of_birth" in parked
-    assert rec.form.date_of_birth.confidence == _qwen_vl.FORMAT_COERCED_CONFIDENCE
-    assert "last_name" not in parked
-    assert rec.form.last_name.confidence == _qwen_vl.CLEAN_VALUE_CONFIDENCE
-    assert rec.status == store.RUN_STATUS_REVIEW
-
-
 def test_tier2_down_reconciles_tier1_against_tier3(memconn, monkeypatch):
     """Tier 2 fails: Tier 3's second read is reconciled against Tier 1's
-    values. A Tier-1 value that passes its validator is kept on a mismatch;
-    one that fails it (a column-shifted ZIP) is replaced by Tier 3's."""
+    values. A Tier-1 ZIP that passes its validator is final at Tier 1, so
+    Tier 3 never reads it; one that fails it (a column-shifted ZIP) is
+    replaced by Tier 3's."""
     monkeypatch.setattr(orchestrator.time, "sleep", lambda *_: None)
     t1p, _, _ = orchestrator.build_cascade()
     dead2 = _DeadTier("tier2_qwen_7b_local", 2)
 
-    # Doc 1: Tier 1 reads a valid ZIP (01749); Tier 3 reads another one.
+    # Doc 1: Tier 1 reads a valid ZIP (01749); the stub Tier 3 would read
+    # another one, but never gets the field.
     png = _validation_pngs()[1]
     rec = orchestrator.process_document(
         png.read_bytes(),
@@ -321,7 +594,8 @@ def test_tier2_down_reconciles_tier1_against_tier3(memconn, monkeypatch):
     )
     assert any(e.get("tier") == "2" for e in rec.error_history)
     assert (rec.form.address_zip.value, rec.form.address_zip.tier_used) == ("01749", 1)
-    assert "address_zip" in _parked(rec)
+    assert "address_zip" not in rec.escalations["3a"]
+    assert "address_zip" not in _parked(rec)
 
     # Doc 0: Tier 1's ZIP is column-shifted ("555-451-8687") and fails the
     # validator, so Tier 3's reading is taken.

@@ -763,6 +763,21 @@ def test_seed_fields_have_aliases():
     assert no_aliases == []
 
 
+def test_seed_builder_reproduces_the_committed_seed():
+    """``build_alias_seed.build_seed()`` regenerates the committed
+    ``alias_table_seed.json`` exactly, apart from ``generated_at`` (the
+    build date). Until 2026-10-25 the builder keyed the signature aliases as
+    ``signature_present``, so a regenerate dropped all six."""
+    from build_alias_seed import build_seed
+
+    with open("alias_table_seed.json") as f:
+        committed = json.load(f)
+    built = build_seed()
+    committed.pop("generated_at")
+    built.pop("generated_at")
+    assert built == committed
+
+
 def test_alias_seed_position_zero_is_canonical():
     """
     Position 0 of every record's aliases is the canonical/authoritative

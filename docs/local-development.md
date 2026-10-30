@@ -32,7 +32,7 @@ ollama pull qwen2.5vl:32b
 ollama list | grep qwen2.5vl   # qwen2.5vl:32b (~21 GB) + qwen2.5vl:7b (~6 GB)
 ```
 
-That is the entire setup. On the build box (RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averages ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-splits the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500.
+That is the entire setup. On the build box (RTX 4080 + RTX 4060 Ti, Ollama 0.20.7) the full-field read averaged ~117 s/doc at the model's default `num_ctx 32768` (mean of the 92 committed replay fixtures; 107–161 s, the 161 s being the cold first call) (Ollama auto-split the ~31 GB across the two cards with a small ~9 % CPU spill), producing clean schema-constrained JSON at ~18 populated fields/doc on a CMS-1500. Since 2026-10-26 the provider sends `num_ctx` 8192 with every Tier-3 request (`options={"num_ctx": 8192}`, per request — no Modelfile, no server env var); measured once (M0, 2026-10-30, dev split, below), the 32B then runs fully on the two GPUs at 20.97 s per full read (19.46 tokens/s) and 6.17 s per narrowed read.
 
 ### Why registry Q4_K_M, not a higher-precision Mungert import?
 
@@ -69,9 +69,29 @@ Tier 3's registry `qwen2.5vl:32b` (Q4_K_M, ~21 GB weights + KV/image overhead �
 
 - RTX 4080 (16 GB): roughly half the layers
 - RTX 4060 Ti (16 GB): the other half
-- CPU/system RAM: the remainder (~9 % at default `num_ctx 32768`) — eliminable with a custom registry-based Modelfile at a lower `num_ctx` (only ~2315 context tokens are actually used; deferred — the default-context spill is not latency-fatal at ~117 s/doc).
+- CPU/system RAM: the remainder (~9 % at default `num_ctx 32768`). Since 2026-10-26 each Tier-3 request sets `num_ctx` 8192 instead (only ~2315 context tokens are actually used). Measured in M0 (2026-10-30): no spill — `ollama ps` showed `100% GPU` (31 GB at context 8192) and `nvidia-smi` 15,157 / 16,376 MiB on the RTX 4080, 14,935 / 16,380 MiB on the RTX 4060 Ti.
 
 Ollama distributes layers based on each card's available VRAM, accounting for KV cache and image-token overhead; the 4080 typically gets slightly more layers than the 4060 Ti when free VRAM is similar, since it is faster. For debugging, `PARAMETER num_gpu N` in a custom Modelfile forces exactly N layers onto GPU and the rest onto CPU (note: `num_gpu 99` forces *all* layers and crashes on OOM rather than spilling — see the Mungert findings above).
+
+## M0: live Tier-3 measurement on the dev split
+
+`scripts/m0_tier3.py` measures what the cached replay can't: the 32B with `num_ctx` 8192 pinned per request. It runs unattended on the GPU box (overnight, with every other Ollama model and the embedder stopped):
+
+```bash
+# from the checkout that holds the dev replay files (src/tests/fixtures/eval-cache/)
+uv run --offline python -m scripts.m0_tier3 \
+    --image-dir <dev render folder, e.g. the primary checkout's src/synthetic_data/output/render> \
+    --work-dir <new empty folder outside the repository> \
+    --output <folder outside the repository>/m0-summary.json
+```
+
+- **Refuses to start** (exit 2) if `ollama ps` shows any other model loaded, or if `qwen2.5vl:32b` is not already installed (`ollama list`); it never pulls. It also refuses a `--work-dir` or `--output` inside the repository, the primary checkout, the image folder or the source cache, and a non-empty work dir.
+- **Only Tier 3 runs live**, so the 32B loads once. Tier 1, Tier 2 and the router's Stage 2 are replayed from copies of the cached dev files in `--work-dir/seed-cache`; a cache miss is an error, never a live call. The images are only read.
+- **M0a** reads every field of every dev document (the prompt the cache was recorded with); **M0b** reads only the fields the cascade routes to Tier 3 for each document (~3.7 per document on dev).
+- **Outputs:** the JSON summary at `--output` — `status`, the Ollama version and `ollama ps` before, with the model loaded (`processor_loaded`, e.g. `100% GPU` or `22%/78% CPU/GPU`) and after; `gpu_memory`, the per-card `nvidia-smi` lines before, loaded and after; `unloaded` (the runner stops the 32B with `ollama stop` once `ps_after` is taken, so it doesn't hold the GPUs for the hour `keep_alive` asks for); per pass `tokens_per_s`, `seconds_per_call_*`, `load_seconds`, `prompt_eval_seconds`, `fields_per_call`; `by_stage_f1` and `funnel` from the new readings for M0a and M0b beside `cached_replay`; and `narrowed_vs_full` (how often a routed field's narrowed reading matches its full reading, with up to 25 disagreements). Raw responses are kept in `--work-dir/m0a-full/` and `m0b-narrowed/`.
+- **Duration:** 45 minutes on 2026-10-30 (2,679 s: M0a 34 min at 20.97 s per full read, M0b 10 min at 6.17 s per narrowed read, with the model on the GPUs); up to ~3 hours if the model ever spills to the CPU again (~85 s and ~15 s at the 2026-10-18 rate). `--max-minutes` (default 240) caps the run and `--call-timeout` (default 600 s) one call; any failure exits 1 and still writes the summary with `status: failed`. M0a's numbers are written before M0b starts, so they survive an M0b failure.
+- `--dry-run` does the preflight, seeding and routing without a model call; `--limit N` runs a pilot on the first N documents.
+- **Result (2026-10-30, 98 dev documents, Ollama 0.20.7):** `status: ok`; the 32B ran at `100% GPU`. M0a: 19.46 tokens/s, 20.97 s per call; M0b: 20.90 tokens/s, 6.17 s per call, 3.7 fields per call. Dev by-stage F1 0.842 → 0.791 → 0.902 (M0a) and → 0.917 (M0b) against 0.900 from the cache. Narrowed vs full: 305 of 364 routed fields agree (83.8%). `docs/eval-methodology.md` ("Known limits") has the breakdown.
 
 ## Tier 1 PaddleOCR-VL setup
 

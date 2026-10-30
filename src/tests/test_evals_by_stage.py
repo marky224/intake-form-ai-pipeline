@@ -21,26 +21,32 @@ from evals.by_stage import (
     render_by_stage_svg,
 )
 
-# Re-measured 2026-10-16, cached, $0, with confidently-blank cells that
-# have ground truth scored as false negatives and Tier 3 as a second reader
-# (agreement sets confidence; a validated Tier-2 value is never overwritten).
+# Re-measured 2026-10-25, cached, $0. Tier 1 reads the CMS-1500 boxes and
+# finalizes a date, ZIP or state that passes its validator under a label
+# naming the field specifically (250 cells: not the generic "Date"); Tier
+# 3 reads only the fields Tier 1 covers where Tier 1 and Tier 2 disagree or
+# Tier 1 has no valid reading (Tier 3 matching Tier 1 settles a field;
+# matching Tier 2 settles it only without a valid Tier-1 reading; a
+# validated Tier-2 value is never overwritten). Tier 1+2 sits below Tier 1:
+# Tier 2 replaces correct Tier-1 readings it doesn't finalize.
 # Of the 115 empty cells, 92 are missed (signature) and 23 true negatives.
-_EXPECTED_F1 = (0.340, 0.791, 0.853)
+_EXPECTED_F1 = (0.868, 0.806, 0.904)
 _EXPECTED_FUNNEL = Funnel(
-    tier1=2,
-    tier2=820,
-    tier3a=167,
+    tier1=250,
+    tier2=611,
+    tier3a=128,
     missed=92,
     true_negative=23,
-    tier3a_free_text=158,
-    tier3a_tier2_blank=8,
-    tier3a_failed_validator=1,
+    tier3a_matched_tier1=100,
+    tier3a_free_text=26,
+    tier3a_tier2_blank=2,
+    tier3a_failed_validator=0,
 )
 
 
 def _sample() -> ByStage:
     return ByStage(
-        stages=[("Tier 1", 0.340), ("Tier 1+2", 0.791), ("Tier 1+2+3", 0.853)],
+        stages=[("Tier 1", 0.868), ("Tier 1+2", 0.806), ("Tier 1+2+3", 0.904)],
         funnel=_EXPECTED_FUNNEL,
     )
 
@@ -50,7 +56,7 @@ def test_render_is_deterministic_and_has_no_timestamp():
     b = render_by_stage_svg(_sample(), seed_version="1.0.0")
     assert a == b
     assert "<svg" in a and a.endswith("</svg>\n")
-    assert "0.340" in a and "0.791" in a and "0.853" in a
+    assert "0.868" in a and "0.806" in a and "0.904" in a
     assert "alias_table_seed v1.0.0" in a
     # Both panels present.
     assert "F1 by cumulative cascade stage" in a
@@ -58,7 +64,9 @@ def test_render_is_deterministic_and_has_no_timestamp():
     # Funnel remainder shown explicitly, not hidden — and split by truth.
     assert "92 missed" in a and "23 blank on form" in a
     assert "92 missed (value on the form, none extracted)" in a
-    assert "167 cells: 158 free text with no validator, 8 Tier-2" in a
+    # The chart keeps the disclosure that the rules followed test results.
+    assert "rules chosen after test results were seen" in a
+    assert "128 cells (100 matching Tier 1, 26 free text, 2 Tier-2 blanks" in a
     # Every stage label is drawn under both panels (cap labels must not
     # replace the last bar's axis label).
     for stage in ("Tier 1", "Tier 1+2", "Tier 1+2+3"):
@@ -78,9 +86,14 @@ def test_funnel_is_monotone_and_totals_consistent():
     assert f.total == 1104
     assert f.populated == 989
     cum = [c for _, c in f.cumulative]
-    assert cum == [2, 822, 989]
+    assert cum == [250, 861, 989]
     assert cum == sorted(cum), "the funnel must be monotone by tier"
-    reasons = f.tier3a_free_text + f.tier3a_tier2_blank + f.tier3a_failed_validator
+    reasons = (
+        f.tier3a_matched_tier1
+        + f.tier3a_free_text
+        + f.tier3a_tier2_blank
+        + f.tier3a_failed_validator
+    )
     assert reasons == f.tier3a
 
 
@@ -216,4 +229,4 @@ def test_cli_by_stage_summary_survives_a_logging_reset(monkeypatch, capsys):
         root.handlers[:] = saved_handlers
         root.setLevel(saved_level)
     out = capsys.readouterr()
-    assert "[dev split] by-stage F1: 0.340 → 0.791 → 0.853" in out.out + out.err
+    assert "[dev split] by-stage F1: 0.868 → 0.806 → 0.904" in out.out + out.err

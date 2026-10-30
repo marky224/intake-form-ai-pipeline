@@ -25,9 +25,10 @@ Shipped:
     ``field_attempts`` + ``review_queue``; ``corrections`` + ``embeddings``
     reserved for Phase 8)
   - ``cascade.orchestrator`` — chains the three providers: Tier-1 fields
-    under 0.85 escalate to Tier 2 (prompt-narrowing), Tier 3 second-reads
-    every Tier-2 field and agreement sets the final confidence, a field
-    under 0.80 after that → review queue; retry-then-escalate failure
+    under 0.85 escalate to Tier 2 (prompt-narrowing); Tier 3 reads only the
+    fields where Tier 1 and Tier 2 disagree (or Tier 1 read nothing) and
+    agreement between readers sets the final confidence; a field under
+    0.80 after that → review queue; retry-then-escalate failure
     handling; ``HIPAA_MODE`` no-op (no V1 provider-routing surface)
   - ``cascade.validators`` — format / plausibility checks (date range, ZIP,
     state, phone); a validated Tier-2 value is never overwritten by Tier 3

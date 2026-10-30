@@ -46,7 +46,8 @@ implemented in ``_qwen_vl`` from PR (d-V1), 2026-05-16):
    match score, not a model-reported number" posture.)
    **Superseded for routing on 2026-10-16:** the heuristic followed field
    type (every date went to Tier 3, which overwrote correct dates), so the
-   orchestrator now sets final confidence from Tier 2 / Tier 3 agreement.
+   orchestrator now sets final confidence from agreement between readers
+   (since 2026-10-24 Tier 1 / Tier 2 first, then Tier 3 where they differ).
    This provider still stamps the heuristic as a provisional value.
 
 2. **``bounding_box=None`` for every Tier 2 field.** 7B bbox grounding is

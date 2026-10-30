@@ -76,8 +76,8 @@ from intake_schemas import (
 #     to the END of the relevant list. They represent the latest-discovered
 #     variants and naturally belong in the highest-N batches.
 #   - DO NOT insert in the middle or reorder existing entries unless you
-#     intend to bump the seed version (currently "1.0.0"). A reorder is
-#     a v2.0.0 change because it changes the v1.0.0 historical chart.
+#     intend to bump the seed version (currently "1.1.0"). A reorder is
+#     a v2.0.0 change because it changes the historical Tier-1 series.
 #   - Adding a new (canonical_name, vertical) record is fine at any time
 #     — new records just join the partition at all batches simultaneously.
 #
@@ -119,6 +119,7 @@ ALIASES: dict[tuple[str, str], list[str]] = {
         "Street Number and Name",
         "Residential Address",
         "Home Address",
+        "Patient's Address",  # CMS-1500 box 5 (appended in seed 1.1.0)
     ],
     ("address_apt", "base"): [
         "Apt",
@@ -175,7 +176,7 @@ ALIASES: dict[tuple[str, str], list[str]] = {
         "E-Mail",
         "Email Address (optional)",
     ],
-    ("signature_present", "base"): [
+    ("signature", "base"): [
         "Signature",
         "Sign Here",
         "Signature of Employee",
@@ -419,6 +420,7 @@ ALIASES: dict[tuple[str, str], list[str]] = {
         "Reason for Today's Visit",
         "Presenting Problem",
         "CC",
+        "Diagnosis or Nature of Illness or Injury",  # CMS-1500 box 21 (seed 1.1.0)
     ],
     ("allergies", "healthcare"): [
         "Allergies",
@@ -492,6 +494,7 @@ ALIASES: dict[tuple[str, str], list[str]] = {
         "Last Name",
         "Family Name",
         "Patient's Name (Last)",
+        "Patient's Name",  # CMS-1500 box 2, "LAST, FIRST" (seed 1.1.0)
     ],
     ("middle_name", "healthcare"): [
         "Patient's Middle Initial",
@@ -776,7 +779,7 @@ def build_seed() -> dict[str, Any]:
     fields.sort(key=lambda r: (vertical_order[r["vertical"]], r["canonical_name"]))
 
     return {
-        "version": "1.0.0",
+        "version": "1.1.0",
         "generated_at": str(date.today()),
         "schema_module": "intake_schemas",
         "description": (

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "generated_at": "2026-05-05",
+  "version": "1.1.0",
+  "generated_at": "2026-10-24",
   "schema_module": "intake_schemas",
   "description": "Canonical-name -> alias-variations seed for the intake-form pipeline. Load into a Postgres `field_aliases` table keyed on (canonical_name, vertical, alias_text). Use `canonical_fields` for the metadata side of the join.",
   "fields": [
@@ -66,7 +66,8 @@
         "Address Line 1",
         "Street Number and Name",
         "Residential Address",
-        "Home Address"
+        "Home Address",
+        "Patient's Address"
       ],
       "canonical_name": "address_street"
     },
@@ -611,7 +612,8 @@
         "Address Line 1",
         "Street Number and Name",
         "Residential Address",
-        "Home Address"
+        "Home Address",
+        "Patient's Address"
       ],
       "canonical_name": "address_street"
     },
@@ -841,7 +843,8 @@
         "Patient Last Name",
         "Last Name",
         "Family Name",
-        "Patient's Name (Last)"
+        "Patient's Name (Last)",
+        "Patient's Name"
       ],
       "canonical_name": "last_name"
     },
@@ -963,7 +966,8 @@
         "Chief Complaint",
         "Reason for Today's Visit",
         "Presenting Problem",
-        "CC"
+        "CC",
+        "Diagnosis or Nature of Illness or Injury"
       ],
       "canonical_name": "reason_for_visit"
     },

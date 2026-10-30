@@ -45,10 +45,10 @@ from intake_schemas import (
 #: type decides this statically so the cached-replay path is reproducible
 #: from the fixture alone (no runtime value-comparison heuristics).
 #:
-#: Both values here are *provisional*: a type label, not evidence. Since
-#: 2026-10-16 the orchestrator replaces them with the Tier 2 / Tier 3
-#: agreement confidence (``orchestrator._reconcile_second_read``); they
-#: survive only if Tier 3 fails.
+#: Both values here are *provisional*: a type label, not evidence. The
+#: orchestrator replaces every one of them with an agreement, single-read
+#: or disagreement confidence (``orchestrator._route_to_tier3`` and
+#: ``orchestrator._reconcile_second_read``, since 2026-10-24).
 CLEAN_VALUE_CONFIDENCE = 1.0
 
 #: Confidence for a non-string scalar that had to be format-coerced from the
@@ -407,8 +407,12 @@ def invoke_model(
     model_tag: str,
     temperature: float = OLLAMA_TEMPERATURE,
     keep_alive: str = OLLAMA_KEEP_ALIVE,
+    num_ctx: int | None = None,
 ) -> dict[str, Any]:
     """Run one Qwen 2.5 VL chat completion (7B or 32B per ``model_tag``).
+
+    ``num_ctx``, when given, is sent as the request's context length
+    (``options={"num_ctx": ...}``); otherwise Ollama's default applies.
 
     The image is passed via the message's ``images=[<raw png bytes>]`` key —
     the ``ollama`` client b64-encodes ``bytes`` itself. This is the *real*
@@ -426,11 +430,14 @@ def invoke_model(
     """
     prompt = build_extraction_prompt(form_cls)
     schema = build_response_schema(form_cls)
+    options: dict[str, Any] = {"temperature": temperature}
+    if num_ctx is not None:
+        options["num_ctx"] = num_ctx
     response = client.chat(
         model=model_tag,
         messages=[{"role": "user", "content": prompt, "images": [png]}],
         format=schema,
-        options={"temperature": temperature},
+        options=options,
         keep_alive=keep_alive,
     )
     # ChatResponse is a pydantic model on the modern client; older shapes are

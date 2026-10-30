@@ -25,20 +25,23 @@ def test_full_sweep_two_stages_persisted_and_tier1_climbs():
     n_batches = len(series["tier1"])
     assert n_batches >= 8  # ~8-9 given the current seed
 
-    # Headline: Tier-1 F1 climbs sharply from canonical-only (batch 1), then
-    # asymptotes to a plateau. At the broad 92-doc scale the plateau has a
-    # sub-0.001 non-monotone wobble at the alias-saturation tail (batch 2 is
-    # the exact peak; later batches sit a hair below) — honest behavior, not
-    # smoothed into a strictly-monotone curve.
+    # Headline: Tier-1 F1 climbs from canonical-only (batch 1) as more of
+    # the form's labels match (0.483 → 0.868 on the test split since the
+    # 2026-10-24 parser fixes); the seed-1.1.0 CMS-1500 box labels enter at
+    # batches 6 and 9. Measured as is, not smoothed.
     t1 = [f for _, f in series["tier1"]]
     assert t1[0] < t1[-1], "Tier-1 F1 must improve with alias coverage"
     assert t1[-1] - t1[0] > 0.05, "the climb must be non-trivial"
     assert max(t1) - t1[-1] < 0.005, "tail must plateau near the peak"
 
-    # Robustness: end-to-end cascade F1 is invariant to alias coverage
-    # (strong Tier 2/3 escalation compensates) — the documented finding.
+    # End-to-end: until 2026-10-24 cascade F1 was invariant to alias
+    # coverage (Tier 2/3 recovered what the alias layer missed). Tier 1 now
+    # finalizes validated values and its readings decide which fields Tier
+    # 3 reads, so the cascade climbs with alias coverage too (0.857 → 0.904
+    # on the test split).
     casc = [f for _, f in series["cascade"]]
-    assert len(set(round(f, 6) for f in casc)) == 1
+    assert casc[-1] - casc[0] > 0.02
+    assert casc[-1] == max(casc)
 
     # Both stages persisted for every (doc, batch).
     conn = eval_store.connect(db)

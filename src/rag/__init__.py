@@ -5,7 +5,7 @@ Pydantic at boundaries, heavy deps lazy-imported (mirrors the cascade
 providers' structure so CI never needs a GPU):
 
 - :mod:`rag.aliases` — the live correction-driven alias overlay. The
-  committed ``alias_table_seed.json`` (v1.0.0, frozen — it drives the
+  committed ``alias_table_seed.json`` (v1.1.0, frozen — it drives the
   portfolio F1 chart) is **never** mutated. Reviewer corrections append to a
   gitignored ``data/corrections_aliases.json`` overlay that the router +
   Tier 1 alias loaders union in. The progressive-partition F1 sweep

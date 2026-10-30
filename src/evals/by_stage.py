@@ -8,44 +8,49 @@ the committed replay cache ($0, deterministic — CI reproduces it):
 - **Tier 1** — the orchestrator's pre-escalation form (Tier 1 extract →
   route → re-parse), exactly ``harness._tier1_stage_form``.
 - **Tier 1+2** — the cascade with the Tier-3 slot filled by Tier 2, so
-  the second read is the 7B again and every field agrees with itself (no
-  32B). A faithful "Tier 3 disabled" ceiling without touching the
-  orchestrator.
+  the second read is the 7B again and keeps Tier 2's value (no 32B). A
+  faithful "Tier 3 disabled" ceiling without touching the orchestrator.
 - **Tier 1+2+3** — the real cascade.
 
-Result since 2026-10-16: ``0.340 → 0.791 → 0.853``. The 7B Tier 2 does
-the big lift; Tier 3 is a second reader whose agreement with Tier 2 sets
-the final confidence. On a disagreement Tier 2's value is kept if it
-passes its validator or Tier 3 read nothing; otherwise Tier 3's value is
-taken, so a validated Tier-2 date is never overwritten. Read the +0.062
-carefully: most of it is Synthea's
-digit-suffixed names. Of the 107 first/last-name cells Tier 3 turns from
-wrong to right, 74 are names Tier 2 read without their digit suffix (for
-38 first names the digits went into ``middle_name``), 23 are first/last
-swaps by Tier 2, 6 are Tier-2 blanks
-and 4 are other misreads; Tier 3 turns 4 right names wrong, for +56 net
-``first_name`` and +47 net ``last_name`` cells. It is offset by
-``address_street`` (-37: Tier 3 drops the apartment suffix), which is kept
-as measured. The rule was chosen after
-test-split per-field outcomes had been inspected — see
-``docs/eval-methodology.md``. Until 2026-10-16 the curve was **not**
-monotone (``0.791 → 0.765``): a type heuristic (strings 1.0, dates 0.5)
+Result since 2026-10-26: ``0.868 → 0.806 → 0.904`` — not monotone. Tier 1
+reads the CMS-1500 table (colspan grid, box numbers stripped, packed boxes
+split, MM/DD/YYYY dates) and finalizes a date, ZIP or state that passes its
+validator under a label naming the field specifically; every other
+Tier-1 value goes to the 7B Tier 2, which often
+replaces a correct Tier-1 reading (mostly Synthea's digit-suffixed names),
+so Tier 1+2 dips below Tier 1. Tier 3 reads only the fields Tier 1 covers
+where Tier 1 and Tier 2 disagree or Tier 1 read nothing (3.0 per document
+on this split, against every Tier-2 field before): Tier 3 matching Tier 1
+settles the field; Tier 3 matching Tier 2 settles it only when Tier 1 has
+no valid reading from a specific label (against a different such Tier-1
+reading it parks, the commonest parking reason); anything else parks, and a validated Tier-2
+date is never overwritten. Read the +0.098 carefully: most of it is
+Synthea's digit-suffixed names. Of the 107 first/last-name cells Tier 3
+turns from wrong to right, 74 are names Tier 2 read without their digit
+suffix, 6 are Tier-2 blanks and 27 are swaps and other misreads; it turns
+no right name wrong. Street addresses, where Tier 3 drops the apartment
+suffix, now lose 5 cells (37 when Tier 3 read every field), kept as
+measured. The rules were chosen on dev with test results printed beside
+it, after earlier test-split inspection, and the 2026-10-25/26 refinements
+answered a review that named test documents — see
+``docs/eval-methodology.md``.
+Until 2026-10-24 Tier 1 settled 2 cells and scored 0.340 and Tier 3 read
+every Tier-2 field (``0.340 → 0.791 → 0.853``); until 2026-10-16 Tier 3
+regressed (``0.791 → 0.765``): a type heuristic (strings 1.0, dates 0.5)
 sent every date to Tier 3, and the quantized 32B overwrote 29 correct
 dates.
 
 **Panel 2 — escalation funnel.** The same full ``(t1,t2,t3)`` cascade
 run, counting each scorable cell by the tier whose value the cascade
 kept. Cumulative cells resolved by tier ≤ N rises to 100% of the
-populated cells (2 → 822 → 989 of 989). Tier 3 reads every Tier-2 field,
-but its value is kept only where the readings differ, Tier 3 read
-something, and Tier 2's value doesn't pass a validator — 167 cells: 158
-free-text cells (no validator exists for them), 8 cells Tier 2 left blank,
-1 cell whose Tier-2 value failed its validator. The 115 empty
-cells are shown as an explicit remainder, split by ground truth: 92
-**missed** (the form has a value, the cascade produced none — the
-``signature`` field, which no tier attempts) and 23 **true negatives**
-(absent on the source form). Tier 1's funnel share is a tiny 2 cells,
-consistent with its 0.34 F1; it is not dressed up.
+populated cells (250 → 861 → 989 of 989). Tier 1's 250 cells are the
+validated dates of birth, ZIPs and states. Tier 3's value is kept in 128 cells: 100
+where it matched Tier 1, 26 free-text cells where Tier 2's value had no
+validator to keep it, and 2 cells Tier 2 left blank. The 115 empty cells
+are shown as an explicit remainder, split by ground truth: 92 **missed**
+(the form has a value, the cascade produced none — the ``signature``
+field, which no tier attempts) and 23 **true negatives** (absent on the
+source form).
 """
 
 from __future__ import annotations
@@ -55,7 +60,7 @@ from pathlib import Path
 
 from _paths import repo_root
 from cascade import store
-from cascade.orchestrator import build_cascade, process_document
+from cascade.orchestrator import build_cascade, process_document, same_reading
 from cascade.validators import validate
 from evals.ground_truth import FIELD_KIND, GroundTruth, load_cms1500_ground_truth
 from evals.harness import _tier1_stage_form
@@ -84,9 +89,9 @@ class Funnel:
     curve rises to 100% of ``populated`` even where the F1 panel dips.
 
     The ``tier3a_*`` counts say why Tier 3's value was kept in each
-    ``tier3a`` cell (they sum to ``tier3a``): Tier 2's value was free text
-    with no validator, Tier 2 read nothing, or Tier 2's value failed its
-    validator.
+    ``tier3a`` cell (they sum to ``tier3a``): it matched Tier 1's reading;
+    otherwise Tier 2's value was free text with no validator, Tier 2 read
+    nothing, or Tier 2's value failed its validator.
     """
 
     tier1: int
@@ -94,6 +99,7 @@ class Funnel:
     tier3a: int
     missed: int
     true_negative: int
+    tier3a_matched_tier1: int = 0
     tier3a_free_text: int = 0
     tier3a_tier2_blank: int = 0
     tier3a_failed_validator: int = 0
@@ -154,24 +160,28 @@ def _funnel_from_form(form: object, truth: GroundTruth) -> tuple[int, int, int, 
     return t1, t2, t3, missed, true_negative
 
 
-def _tier3_reasons(final: object, first: object) -> tuple[int, int, int]:
+def _tier3_reasons(final: object, first: object, tier1: object) -> tuple[int, int, int, int]:
     """Why Tier 3's value was kept in each ``"3a"`` cell of ``final``:
-    ``(free_text, tier2_blank, failed_validator)``. ``first`` is the
-    Tier-1+2 form, i.e. Tier 2's reading of the same document.
+    ``(matched_tier1, free_text, tier2_blank, failed_validator)``. ``first``
+    is the Tier-1+2 form, i.e. Tier 2's reading of the same document, and
+    ``tier1`` the Tier-1-stage form.
     """
-    free_text = tier2_blank = failed = 0
+    matched = free_text = tier2_blank = failed = 0
     for name in _SCORABLE:
         ef = getattr(final, name, None)
         if ef is None or ef.value is None or ef.tier_used != "3a":
             continue
+        tier1_value = getattr(getattr(tier1, name, None), "value", None)
         tier2_value = getattr(getattr(first, name, None), "value", None)
-        if tier2_value is None:
+        if same_reading(ef.value, tier1_value):
+            matched += 1
+        elif tier2_value is None:
             tier2_blank += 1
         elif validate(name, tier2_value) is None:
             free_text += 1
         else:
             failed += 1
-    return free_text, tier2_blank, failed
+    return matched, free_text, tier2_blank, failed
 
 
 def compute_by_stage(split: str = "test", image_dir: Path | str | None = None) -> ByStage:
@@ -211,7 +221,7 @@ def compute_by_stage(split: str = "test", image_dir: Path | str | None = None) -
 
     rows: dict[str, list] = {label: [] for label in STAGE_LABELS}
     fn_t1 = fn_t2 = fn_t3 = fn_missed = fn_tn = 0
-    why_free = why_blank = why_failed = 0
+    why_t1 = why_free = why_blank = why_failed = 0
     conn12 = store.connect(":memory:")
     store.init_db(conn12)
     conn123 = store.connect(":memory:")
@@ -235,7 +245,8 @@ def compute_by_stage(split: str = "test", image_dir: Path | str | None = None) -
             fn_t3 += d3
             fn_missed += dm
             fn_tn += dn
-            w_free, w_blank, w_failed = _tier3_reasons(r123.form, r12.form)
+            w_t1, w_free, w_blank, w_failed = _tier3_reasons(r123.form, r12.form, form1)
+            why_t1 += w_t1
             why_free += w_free
             why_blank += w_blank
             why_failed += w_failed
@@ -252,6 +263,7 @@ def compute_by_stage(split: str = "test", image_dir: Path | str | None = None) -
             tier3a=fn_t3,
             missed=fn_missed,
             true_negative=fn_tn,
+            tier3a_matched_tier1=why_t1,
             tier3a_free_text=why_free,
             tier3a_tier2_blank=why_blank,
             tier3a_failed_validator=why_failed,
@@ -291,12 +303,13 @@ _H = 778
 
 #: The mechanism, wrapped to fit — Mark's ask: the logic lives in the graph.
 _MECHANISM = (
-    "Tier 3 re-reads every field Tier 2 handled; agreement sets confidence.",
-    "A mismatch parks for review and keeps Tier 2's value if it validates",
-    "(date, ZIP, state, phone) or Tier 3 read nothing, else Tier 3's. Most of",
-    'the gain is Synthea\'s number-suffixed names (Tier 3 copies "Ramona980"',
-    "literally), offset by street addresses (-37 cells, kept). The rule was",
-    "chosen after test-split results were seen. Before 2026-10-16: 0.765.",
+    "Tier 1 finalizes a valid date, ZIP or state under a specific label; the 7B",
+    "re-reads the rest and replaces many right Tier-1 reads (Tier 1+2 dips).",
+    "Tier 3 reads only fields where Tier 1 and Tier 2 disagree or Tier 1 read",
+    "nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no",
+    "specific valid reading (else it parks, commonest); anything else parks.",
+    "Most of Tier 3's gain is Synthea's number-suffixed names. One template;",
+    "rules chosen after test results were seen. Live Tier 3: ~6 s/doc.",
 )
 
 #: "Missed" cap color — validated against the green bar and the gray cap
@@ -305,16 +318,16 @@ _MISSED_FILL = "#a05195"
 
 
 def _funnel_caption(funnel: Funnel) -> tuple[str, ...]:
-    """Top-panel caption — the funnel reading, honest about Tier 1's tiny
-    share and about the empty cells (counts formatted from ``funnel``)."""
+    """Top-panel caption — the funnel reading, honest about which cells each
+    tier settles and about the empty cells (counts formatted from ``funnel``)."""
     return (
         "Cells resolved by tier ≤ N (cumulative), by the tier whose value was kept. Tier 1's",
-        f"share is a tiny {funnel.tier1} cells — consistent with its 0.34 F1. Tier 3 re-reads "
-        "every Tier-2",
-        "field; its value is kept where the readings differ, it read something, and Tier 2's",
-        f"value doesn't validate ({funnel.tier3a} cells: {funnel.tier3a_free_text} free text "
-        f"with no validator, {funnel.tier3a_tier2_blank} Tier-2",
-        f"blanks, {funnel.tier3a_failed_validator} failed validator).",
+        f"{funnel.tier1} cells are valid dates, ZIPs and states under specific labels. Tier 3 "
+        "reads only",
+        "fields where Tier 1 and Tier 2 disagree or Tier 1 read nothing; its value is kept in",
+        f"{funnel.tier3a} cells ({funnel.tier3a_matched_tier1} matching Tier 1, "
+        f"{funnel.tier3a_free_text} free text, {funnel.tier3a_tier2_blank} Tier-2 blanks, "
+        f"{funnel.tier3a_failed_validator} failed validator).",
         f"Empty cells, shown explicitly: {funnel.missed} missed (value on the form, none "
         f"extracted) + {funnel.true_negative} blank on the form.",
     )

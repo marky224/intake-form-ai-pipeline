@@ -592,5 +592,5 @@
     "tier3_qwen_32b_local": "qwen2.5vl:32b Q4_K_M (Ollama registry)"
   },
   "replay_cache": "tests/fixtures/eval-cache/",
-  "seed_version": "1.0.0"
+  "seed_version": "1.1.0"
 }

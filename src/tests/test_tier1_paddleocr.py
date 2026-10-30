@@ -34,14 +34,15 @@ from cascade.providers.tier1_paddleocr_local import (
     TIER,
     Tier1PaddleOcrLocal,
     _alias_map_for_form,
-    _iter_table_label_value_pairs,
+    _best_label_match,
     _match_block,
-    _match_label_only,
     _parse_bbox,
     _parse_html_table,
     _parse_page_size,
     _parse_response,
     _strip_label_prefix,
+    _table_cells,
+    _table_pairs,
 )
 from intake_schemas import (
     BusinessDocumentForm,
@@ -73,6 +74,17 @@ def eval_live_off(monkeypatch):
 def eval_live_on(monkeypatch):
     """Force EVAL_LIVE on — bypasses cache, hits the live path."""
     monkeypatch.setenv("EVAL_LIVE", "true")
+
+
+def _pairs(html: str) -> list[tuple[str, str]]:
+    """``(label, value)`` pairs of a table block, alignment dropped."""
+    return [(label, value) for label, value, _aligned in _table_pairs(html)]
+
+
+def _label(text: str, alias_map: dict) -> tuple[str, float] | None:
+    """``(field, score)`` of ``_best_label_match``, alias dropped."""
+    match = _best_label_match(text, alias_map)
+    return None if match is None else (match[0], match[1])
 
 
 def _hc_raw(blocks: list[dict]) -> dict:
@@ -181,7 +193,7 @@ def test_match_block_returns_best_alias_match():
     alias_map = {"first_name": ["First Name", "Given Name"]}
     match = _match_block("First Name: Jane", alias_map)
     assert match is not None
-    canonical, value, score = match
+    canonical, value, score, _alias = match
     assert canonical == "first_name"
     assert value == "Jane"
     assert score > 0.5
@@ -192,7 +204,7 @@ def test_match_block_prefers_longer_alias():
     alias_map = {"address_street": ["Street Address", "Address"]}
     match = _match_block("Street Address: 123 Main St", alias_map)
     assert match is not None
-    canonical, value, score = match
+    canonical, value, score, _alias = match
     assert canonical == "address_street"
     assert value == "123 Main St"
 
@@ -216,7 +228,7 @@ def test_match_block_label_only_block_yields_no_value():
     match = _match_block("First Name", alias_map)
     # Score is exactly 1.0; passes threshold; but value is None.
     assert match is not None
-    canonical, value, score = match
+    canonical, value, score, _alias = match
     assert canonical == "first_name"
     assert value is None
     assert score == 1.0
@@ -228,41 +240,41 @@ def test_match_block_no_aliases_match_returns_none():
 
 
 # ---------------------------------------------------------------------------
-# _match_label_only (used for table-cell label matching)
+# _best_label_match (table-cell and stacked-cell label matching)
 # ---------------------------------------------------------------------------
 
 
-def test_match_label_only_returns_canonical_and_score():
+def test_best_label_match_returns_canonical_and_score():
     alias_map = {"first_name": ["First Name"], "last_name": ["Last Name"]}
-    match = _match_label_only("First Name", alias_map)
+    match = _label("First Name", alias_map)
     assert match is not None
     assert match[0] == "first_name"
     assert match[1] == pytest.approx(1.0)
 
 
-def test_match_label_only_below_threshold_returns_none():
+def test_best_label_match_below_threshold_returns_none():
     """Long label cell with tiny alias substring scores below threshold."""
     alias_map = {"sex": ["Sex"]}  # alias "Sex" is 3 chars
     # text 30 chars → 3/30 = 0.10 < 0.30
-    assert _match_label_only("Astronaut Travel History Sex", alias_map) is None
+    assert _label("Astronaut Travel History Sex", alias_map) is None
 
 
-def test_match_label_only_empty_text_returns_none():
-    assert _match_label_only("", {"x": ["X"]}) is None
-    assert _match_label_only("   ", {"x": ["X"]}) is None
+def test_best_label_match_empty_text_returns_none():
+    assert _label("", {"x": ["X"]}) is None
+    assert _label("   ", {"x": ["X"]}) is None
 
 
-def test_match_label_only_picks_higher_scoring_alias():
+def test_best_label_match_picks_higher_scoring_alias():
     """When two aliases match, the longer one wins on score."""
     alias_map = {"first_name": ["First"], "last_name": ["First Name"]}
-    match = _match_label_only("First Name", alias_map)
+    match = _label("First Name", alias_map)
     assert match is not None
     # "First Name" alias (10 chars) outscores "First" (5 chars) at text-len 10.
     assert match[0] == "last_name"
 
 
 # ---------------------------------------------------------------------------
-# _parse_html_table + _iter_table_label_value_pairs (table-aware extractor)
+# _parse_html_table + _table_pairs (table-aware extractor)
 # ---------------------------------------------------------------------------
 
 
@@ -296,7 +308,7 @@ def test_iter_table_pairs_column_aligned_across_two_rows():
         "<tr><td>Jane</td><td>Doe</td></tr>"
         "</table>"
     )
-    pairs = list(_iter_table_label_value_pairs(html))
+    pairs = _pairs(html)
     assert ("First Name", "Jane") in pairs
     assert ("Last Name", "Doe") in pairs
 
@@ -308,7 +320,7 @@ def test_iter_table_pairs_skips_empty_value_cells():
         "<tr><td>Jane</td><td></td></tr>"
         "</table>"
     )
-    pairs = list(_iter_table_label_value_pairs(html))
+    pairs = _pairs(html)
     assert pairs == [("First Name", "Jane")]
 
 
@@ -320,7 +332,7 @@ def test_iter_table_pairs_handles_uneven_row_widths():
         "<tr><td>1</td><td>2</td></tr>"
         "</table>"
     )
-    pairs = list(_iter_table_label_value_pairs(html))
+    pairs = _pairs(html)
     assert pairs == [("A", "1"), ("B", "2")]
 
 
@@ -367,6 +379,405 @@ def test_parse_response_drops_table_pairs_that_fail_pydantic_validation():
     # form construction). tier_used=None means "not attempted".
     assert form.first_name.value == "Jane"
     assert form.date_of_birth.tier_used is None
+
+
+# ---------------------------------------------------------------------------
+# CMS-1500 table reading (2026-10-24): colspan grid, box numbers, packed
+# boxes, same-cell values, MM/DD/YYYY dates, and the validator gate
+# ---------------------------------------------------------------------------
+
+
+def _table_form(*rows: str) -> HealthcareIntakeForm:
+    """Parse one ``table`` block built from ``<tr>`` HTML strings."""
+    html = "<table>" + "".join(f"<tr>{r}</tr>" for r in rows) + "</table>"
+    raw = _hc_raw(
+        [{"block_bbox": [0.0, 0.0, 1.0, 1.0], "block_label": "table", "block_content": html}]
+    )
+    return _parse_response(raw, HealthcareIntakeForm)
+
+
+def test_iter_table_pairs_aligns_columns_through_colspan():
+    """A cell with ``colspan="2"`` covers two columns, so the label after it
+    pairs with the third value cell, not the second."""
+    html = (
+        "<table>"
+        '<tr><td colspan="2">14. OTHER DATE</td><td>5D. ZIP CODE</td></tr>'
+        "<tr><td>x</td><td>y</td><td>02481</td></tr>"
+        "</table>"
+    )
+    pairs = _pairs(html)
+    assert ("5D. ZIP CODE", "02481") in pairs
+    assert ("5D. ZIP CODE", "y") not in pairs
+
+
+def test_best_label_match_scores_the_label_without_its_box_number():
+    """ "5C. STATE" is the alias "State" plus a box number (and "SC." an OCR
+    misread of "5C."): the score is the share of the label text, 1.0."""
+    alias_map = _alias_map_for_form(HealthcareIntakeForm)
+    assert _label("5C. STATE", alias_map) == ("address_state", 1.0)
+    assert _label("SC. STATE", alias_map) == ("address_state", 1.0)
+
+
+def test_name_box_splits_last_first():
+    form = _table_form(
+        "<td>2.PATIENT&#x27;S NAME (LAST, FIRST, M.I.)</td>",
+        "<td>Doe12, Jane34</td>",
+    )
+    assert (form.last_name.value, form.first_name.value) == ("Doe12", "Jane34")
+
+
+def test_birth_date_box_reads_the_date_and_the_sex():
+    """Box 3 packs MM/DD/YYYY and the sex letter (NBSP-padded)."""
+    from datetime import date
+
+    form = _table_form(
+        "<td>3.PATIENT&#x27;S BIRTH DATE / SEX</td>",
+        "<td>06/13/1955 \u00a0 F</td>",
+    )
+    assert form.date_of_birth.value == date(1955, 6, 13)
+    assert form.sex.value == "F"
+
+
+def test_birth_date_box_split_over_two_cells_still_reads_the_sex():
+    from datetime import date
+
+    form = _table_form(
+        '<td colspan="2">3.PATIENT&#x27;S BIRTH DATE / SEX</td>',
+        "<td>06/13/1955</td><td>M</td>",
+    )
+    assert form.date_of_birth.value == date(1955, 6, 13)
+    assert form.sex.value == "M"
+
+
+def test_label_and_values_stacked_in_one_cell():
+    from datetime import date
+
+    form = _table_form(
+        "<td>3. PATIENT&#x27;S BIRTH DATE / SEX\n06/28/1942\nM</td>",
+        "<td>6. RELATIONSHIP TO INSURED\nSelf</td>",
+    )
+    assert form.date_of_birth.value == date(1942, 6, 28)
+    assert form.sex.value == "M"
+
+
+def test_same_cell_date_label_and_value():
+    from datetime import date
+
+    form = _table_form("<td>SIGNED</td><td>DATE 03/01/2026</td>", "<td>31. Physician</td>")
+    assert form.date_signed.value == date(2026, 3, 1)
+
+
+def test_zip_cell_that_also_holds_the_state_reads_the_zip():
+    form = _table_form("<td>5D.ZIP CODE</td>", "<td>MA 02481</td>")
+    assert form.address_zip.value == "02481"
+
+
+def test_diagnosis_box_reads_reason_for_visit():
+    """CMS-1500 box 21's label is in the seed since 1.1.0."""
+    form = _table_form(
+        "<td>21.DIAGNOSIS OR NATURE OF ILLNESS OR INJURY (RELATE A-L TO SERVICE LINE BELOW)</td>",
+        "<td>Sprain (morphologic abnormality)</td>",
+    )
+    assert form.reason_for_visit.value == "Sprain (morphologic abnormality)"
+
+
+def test_validated_values_finalize_and_the_rest_stay_under_the_gate():
+    """A date, ZIP or state that passes its validator clears the 0.85 Tier 1→2
+    gate; a value with no validator (city) never does, even at alias score 1.0."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form(
+        "<td>5B. CITY</td><td>5C. STATE</td><td>5D. ZIP CODE</td><td>3. BIRTH DATE</td>",
+        "<td>Wellesley</td><td>MA</td><td>02481</td><td>01/16/2020</td>",
+    )
+    validated = tier1_paddleocr_local.VALIDATED_CONFIDENCE
+    assert validated >= GATE_TIER1_TO_TIER2
+    for name in ("address_state", "address_zip", "date_of_birth"):
+        assert getattr(form, name).confidence == validated, name
+    assert form.address_city.value == "Wellesley"
+    assert form.address_city.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_value_failing_its_validator_stays_under_the_gate():
+    """A column-shifted state cell ("02145") fails the state validator and
+    escalates instead of being finalized, while a valid state read the same
+    way is final at Tier 1."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form("<td>5C. STATE</td>", "<td>02145</td>")
+    assert form.address_state.value == "02145"
+    assert form.address_state.confidence < GATE_TIER1_TO_TIER2
+    valid = _table_form("<td>5C. STATE</td>", "<td>MA</td>")
+    assert valid.address_state.value == "MA"
+    assert valid.address_state.confidence >= GATE_TIER1_TO_TIER2
+
+
+def test_table_parser_caps_rows_columns_and_colspan():
+    """The OCR text comes from uploaded forms: a huge or hostile table is
+    capped rather than parsed in full."""
+    many_rows = "<table>" + "<tr><td>a</td></tr>" * 5000 + "</table>"
+    assert len(_parse_html_table(many_rows)) <= 200
+    wide = '<table><tr><td colspan="999999">x</td></tr></table>'
+    assert _table_cells(wide) == [[("x", 0, 32)]]
+    bad_span = '<table><tr><td colspan="-3">x</td><td colspan="2a">y</td></tr></table>'
+    assert _table_cells(bad_span) == [[("x", 0, 1), ("y", 1, 2)]]
+
+
+def test_colspan_that_is_a_digit_but_not_a_number_keeps_the_table():
+    """``"²".isdigit()`` is True but ``int("²")`` raises: the cell gets
+    colspan 1 instead of the whole table being dropped (for Tier 1 and for
+    the router's OCR lines)."""
+    from cascade import router
+
+    html = '<table><tr><td colspan="\u00b2">5C. STATE</td></tr><tr><td>MA</td></tr></table>'
+    assert _parse_html_table(html) == [["5C. STATE"], ["MA"]]
+    raw = {"parsing_res_list": [{"block_label": "table", "block_content": html}]}
+    assert router.ocr_lines_from_tier1_raw(raw) == ["5C. STATE", "MA"]
+    assert (
+        _table_form('<td colspan="\u00b2">5C. STATE</td>', "<td>MA</td>").address_state.value
+        == "MA"
+    )
+
+
+def test_label_regexes_stay_fast_on_malformed_text():
+    """Long runs of digits, spaces, slashes or letters (malformed OCR) stay
+    fast: the label, date and word patterns have no nested quantifiers. The
+    compiled patterns are timed directly on the full 100,000-character text
+    (the parser itself cuts a cell to 512 characters first)."""
+    import time
+
+    junk = ["1" * 100_000, " " * 100_000 + "x", "/" * 100_000, "1/" * 50_000, "5C" * 50_000]
+    t0 = time.perf_counter()
+    for text in junk:
+        tier1_paddleocr_local._BOX_NUMBER.sub("", text, count=1)
+        tier1_paddleocr_local._US_DATE.fullmatch(text)
+        tier1_paddleocr_local._WORD.findall(text)
+        _label(text, _alias_map_for_form(HealthcareIntakeForm))
+        _table_form(f"<td>{text}</td>", f"<td>{text}</td>")
+    assert time.perf_counter() - t0 < 5.0
+
+
+def test_box_14_date_under_box_15_never_becomes_date_signed():
+    """Box 14's date ("date of current illness") is one cell stretched under
+    both "14. DATE OF CURRENT ILLNESS" and "15. OTHER DATE". It is box 14's
+    value, so the generic alias "Date" on box 15's label must not read it
+    as the date signed — let alone finalize it."""
+    box_14_15 = (
+        '<td colspan="3">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td>'
+        "<td>15. OTHER DATE</td>",
+        '<td colspan="4">02/01/2026</td>',
+    )
+    assert _table_form(*box_14_15).date_signed.value is None
+
+
+def test_box_12_date_differing_from_box_14_is_read_and_left_for_tier_2():
+    """With box 12 signed on 03/01 and box 14 dated 02/01, Tier 1 reads the
+    signed date from box 12. "DATE" alone is a generic label, so the value
+    stays under the gate for Tier 2 to read too."""
+    from datetime import date
+
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form(
+        '<td colspan="3">14. DATE OF CURRENT ILLNESS, INJURY, OR PREGNANCY (LMP)</td>'
+        "<td>15. OTHER DATE</td>",
+        '<td colspan="4">02/01/2026</td>',
+        "<td>SIGNED</td><td>DATE 03/01/2026</td>",
+        "<td>31. Physician</td>",
+    )
+    assert form.date_signed.value == date(2026, 3, 1)
+    assert form.date_signed.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_stacked_signed_date_cell_is_read():
+    """ "SIGNED\nDATE\n04/01/2026": the label is the first two lines, not
+    the first one alone."""
+    from datetime import date
+
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    form = _table_form("<td>SIGNED\nDATE\n04/01/2026</td>", "<td>31. Physician</td>")
+    assert form.date_signed.value == date(2026, 4, 1)
+    assert form.date_signed.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_generic_date_labels_never_finalize():
+    """A label matched only by the generic alias "Date" may give Tier 1 a
+    reading but never a final value; and "UPDATED" is not a date label."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    assert _table_form("<td>UPDATED 01/02/2026</td>", "<td>x</td>").date_signed.value is None
+    for cell in ("ADMIT DATE 01/02/2026", "24A. DATE(S) 01/02/2026"):
+        signed = _table_form(f"<td>{cell}</td>", "<td>x</td>").date_signed
+        assert signed.confidence < GATE_TIER1_TO_TIER2, cell
+
+
+def test_stacked_cell_tries_a_bounded_number_of_label_splits(monkeypatch):
+    """A 256-line cell (hostile OCR within the 512-character cap) tries at
+    most a dozen label splits — leading lines, or lines right before a short
+    trailing value — instead of one alias scan per line."""
+    calls = []
+    real = tier1_paddleocr_local._best_label_match
+
+    def counting(text, alias_map):
+        calls.append(text)
+        return real(text, alias_map)
+
+    monkeypatch.setattr(tier1_paddleocr_local, "_best_label_match", counting)
+    cell = "\n".join("ABCDEFGHIJKLMNOPQRSTUVWXYZ"[i % 26] for i in range(256))
+    _table_form(f"<td>{cell}</td>")
+    assert 0 < len(calls) <= 12
+
+
+def test_specific_multi_word_date_of_birth_labels_finalize():
+    """Only a one-word alias shared by several fields ("Date") is generic.
+    "DATE OF BIRTH" and "DOB" name the field, so a valid date finalizes."""
+    from datetime import date
+
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    for label in ("DATE OF BIRTH", "DOB", "BIRTH DATE"):
+        dob = _table_form(f"<td>{label}</td>", "<td>01/16/2020</td>").date_of_birth
+        assert dob.value == date(2020, 1, 16), label
+        assert dob.confidence >= GATE_TIER1_TO_TIER2, label
+    signed = _table_form("<td>DATE</td>", "<td>01/16/2020</td>").date_signed
+    assert signed.value == date(2020, 1, 16)
+    assert signed.confidence < GATE_TIER1_TO_TIER2
+
+
+def test_text_block_with_a_specific_label_finalizes():
+    """A text block holding a specific label and a valid value is a final
+    Tier-1 reading, as a table cell would be."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    for content, name in (
+        ("ZIP Code: 02481", "address_zip"),
+        ("State: MA", "address_state"),
+        ("Birth Date: 01/16/2020", "date_of_birth"),
+    ):
+        raw = _hc_raw(
+            [{"block_bbox": [0, 0, 1, 1], "block_label": "text", "block_content": content}]
+        )
+        field = getattr(_parse_response(raw, HealthcareIntakeForm), name)
+        assert field.confidence >= GATE_TIER1_TO_TIER2, content
+
+
+def test_text_block_labels_match_whole_words():
+    """ "ESTATE" and "STATEMENT" contain "STATE" but aren't the word: a text
+    block gives no state; "ESTATE STATE: MA" reads the value after the
+    real label."""
+
+    def text(content: str) -> HealthcareIntakeForm:
+        block = {"block_bbox": [0, 0, 1, 1], "block_label": "text", "block_content": content}
+        return _parse_response(_hc_raw([block]), HealthcareIntakeForm)
+
+    assert text("ESTATE: MA").address_state.value is None
+    assert text("STATEMENT: MA").address_state.value is None
+    assert text("ESTATE STATE: MA").address_state.value == "MA"
+
+
+def test_text_block_value_glued_to_a_punctuated_label_splits():
+    """A label ending in punctuation needs no word break after it:
+    "D.O.B.01/16/2020" and "CHART #A1234" read their values."""
+    from datetime import date
+
+    def text(content: str) -> HealthcareIntakeForm:
+        block = {"block_bbox": [0, 0, 1, 1], "block_label": "text", "block_content": content}
+        return _parse_response(_hc_raw([block]), HealthcareIntakeForm)
+
+    assert text("D.O.B.01/16/2020").date_of_birth.value == date(2020, 1, 16)
+    assert text("CHART #A1234").patient_id.value == "A1234"
+    assert _strip_label_prefix("PATIENT ACCOUNT #12345", "Patient Account #") == "12345"
+
+
+def test_label_naming_another_party_still_finalizes():
+    """Known limit, pinned (2026-10-30): the specific-label gate checks the
+    alias that matched, not the rest of the label, so a valid value under
+    another party's label ("INSURED'S ZIP CODE", "SPOUSE BIRTH DATE",
+    "EMPLOYER STATE") is final at Tier 1. Disclosed in eval-methodology."""
+    from cascade.orchestrator import GATE_TIER1_TO_TIER2
+
+    for label, value, name in (
+        ("INSURED&#x27;S ZIP CODE", "02481", "address_zip"),
+        ("SPOUSE BIRTH DATE", "01/16/1990", "date_of_birth"),
+        ("EMPLOYER STATE", "MA", "address_state"),
+    ):
+        field = getattr(_table_form(f"<td>{label}</td>", f"<td>{value}</td>"), name)
+        assert field.confidence >= GATE_TIER1_TO_TIER2, label
+
+
+def test_updated_is_not_a_date_label_in_any_layout():
+    """ "UPDATED" contains "DATE" but isn't the word: no date signed from a
+    stacked cell or from a label cell above a date."""
+    assert _table_form("<td>UPDATED\n01/02/2026</td>", "<td>x</td>").date_signed.value is None
+    assert _table_form("<td>UPDATED</td>", "<td>01/02/2026</td>").date_signed.value is None
+
+
+def test_box_15_with_its_own_date_loses_to_the_stacked_box_12_date():
+    """Box 15 holds its own date; the stacked box-12 cell holds the date
+    signed. The box-12 reading ("DATE" right above the value) wins."""
+    from datetime import date
+
+    form = _table_form(
+        "<td>14. DATE OF CURRENT ILLNESS</td><td>15. OTHER DATE</td>",
+        "<td>01/15/2026</td><td>02/01/2026</td>",
+        "<td>SIGNED\nDATE\n04/01/2026</td>",
+    )
+    assert form.date_signed.value == date(2026, 4, 1)
+
+
+def test_stacked_label_after_a_paragraph_is_read():
+    """The signature paragraph and box 12's date share one cell; the label
+    "SIGNED / DATE" sits right before the date."""
+    from datetime import date
+
+    cell = (
+        "I authorize the release of any medical or other information necessary "
+        "to process this claim. I also request payment of government benefits "
+        "either to myself or to the party who accepts assignment below.\n"
+        "SIGNED\nDATE\n04/02/2026"
+    )
+    assert _table_form(f"<td>{cell}</td>", "<td>x</td>").date_signed.value == date(2026, 4, 2)
+
+
+def test_colspan_too_long_for_int_keeps_the_table():
+    """A colspan of 5,000 decimal digits is past Python's int() limit: it is
+    the column cap, not an exception that drops the table (for Tier 1 and
+    the router). Leading zeros don't count as digits."""
+    from cascade import router
+
+    html = f'<table><tr><td colspan="{"1" * 5000}">5C. STATE</td></tr><tr><td>MA</td></tr></table>'
+    assert _parse_html_table(html) == [["5C. STATE"], ["MA"]]
+    raw = {"parsing_res_list": [{"block_label": "table", "block_content": html}]}
+    assert router.ocr_lines_from_tier1_raw(raw) == ["5C. STATE", "MA"]
+    assert _table_cells(html)[0] == [("5C. STATE", 0, 32)]
+    assert _table_cells('<table><tr><td colspan="001">x</td></tr></table>') == [[("x", 0, 1)]]
+
+
+def test_parse_reports_readings_from_a_generic_label():
+    """``parse_with_generic_labels`` names the fields read under a generic
+    label ("DATE"), so the orchestrator can skip strict parking for them."""
+    html = (
+        "<table><tr><td>3. BIRTH DATE</td><td>DATE</td></tr>"
+        "<tr><td>01/16/2020</td><td>03/01/2026</td></tr></table>"
+    )
+    raw = _hc_raw([{"block_bbox": [0, 0, 1, 1], "block_label": "table", "block_content": html}])
+    form, generic = tier1_paddleocr_local.parse_with_generic_labels(raw, HealthcareIntakeForm)
+    assert form.date_signed.value is not None and form.date_of_birth.value is not None
+    assert generic == frozenset({"date_signed"})
+
+
+def test_value_stretched_under_two_labels_still_reads_the_specific_one():
+    """OCR column drift: the street value starts under the insured-name
+    label and ends under the address label. The address label names the
+    field specifically, so the street is still read (but not aligned, so it
+    could never finalize)."""
+    form = _table_form(
+        "<td>4.INSURED&#x27;S NAME (LAST, FIRST, M.I.)</td><td></td>"
+        "<td>5.PATIENT&#x27;S ADDRESS (STREET)</td><td>6.RELATIONSHIP TO INSURED</td>",
+        '<td>SAME</td><td colspan="2">1065 Hamill Center Suite 34</td><td>Self</td>',
+    )
+    assert form.address_street.value == "1065 Hamill Center Suite 34"
 
 
 # ---------------------------------------------------------------------------

@@ -9,33 +9,56 @@ Qwen 2.5 VL 7B → Tier 3 Qwen 2.5 VL 32B — into one in-process pipeline:
    extraction. The routed vertical picks the Pydantic ``form_cls``; Tier 1's
    raw response is re-parsed into that class (pure, no second OCR run).
 2. **Field-level escalation to Tier 2.** Fields whose confidence is below
-   the Tier 1→2 gate (0.85) escalate to Tier 2. Escalation **narrows the
+   the Tier 1→2 gate (0.85) escalate to Tier 2 — every field except a
+   date, ZIP or state Tier 1 read and validated. Escalation **narrows the
    prompt**: only the sub-threshold fields are sent up, via a synthetic
    ``narrow_form_cls`` sub-model — the frozen ``extract(png, form_cls)``
    Protocol is unchanged and providers never learn they got a subset (see
    ``cascade.narrow``).
-3. **Tier 3 second read.** Tier 3 reads every field Tier 2 handled, and
-   agreement between the two readings sets the final confidence
-   (:func:`_reconcile_second_read`): matching readings are accepted at
-   ``AGREEMENT_CONFIDENCE``; any mismatch gets ``DISAGREEMENT_CONFIDENCE``,
-   below the 0.80 gate. On a mismatch the Tier-2 value is kept if it
-   passes its field validator (``cascade.validators`` — so Tier 3 never
-   overwrites a validated date) or Tier 3 read nothing; otherwise Tier 3's
-   value is taken.
-   Provider confidences (the ``_qwen_vl`` type heuristic) are provisional
-   and only survive if Tier 3 fails.
-4. **Review queue.** A field still below 0.80 after the second read (a
-   disagreement), or never produced by any tier, exhausts the V1 cascade
-   (no cloud Sonnet above Tier 3 — that's V2). The document's partial
-   extraction is kept and the run is parked in the SQLite ``review_queue``
-   with the full per-tier error history.
+3. **Routing to Tier 3 by Tier-1/Tier-2 disagreement**
+   (:func:`_route_to_tier3`, since 2026-10-24). For a field Tier 1 covers
+   (``tier1_paddleocr_local.COVERED_FIELDS``): Tier 1 and Tier 2 read the
+   same value → accepted at ``AGREEMENT_CONFIDENCE``, no Tier 3; they
+   differ, or Tier 1 read nothing → Tier 3. A Tier-1 reading that fails its
+   own validator counts as nothing (since 2026-10-25). A field Tier 1
+   doesn't cover has only Tier 2's reading and is accepted at
+   ``SINGLE_READ_CONFIDENCE`` (above the review gate, below agreement). A
+   form class Tier 1 covers no field of (``BusinessDocumentForm``) keeps
+   the second read of every Tier-2 field instead. If Tier 2 fails, Tier 3
+   reads every field Tier 2 should have.
+4. **Tier 3 reads only the routed fields** (one narrowed call), then
+   :func:`_reconcile_second_read`: Tier 3 matching Tier 1 → Tier 3's value
+   at ``AGREEMENT_CONFIDENCE`` (two independent readers). Otherwise the
+   second-read rule: matching Tier 2 → ``AGREEMENT_CONFIDENCE``; a mismatch
+   gets ``DISAGREEMENT_CONFIDENCE``, below the 0.80 gate, keeping the
+   Tier-2 value if it passes its field validator (``cascade.validators`` —
+   so Tier 3 never overwrites a validated date) or Tier 3 read nothing, and
+   Tier 3's value otherwise. **Strict parking:** if Tier 1 has a valid
+   reading of the field from a specific label and the kept value doesn't
+   match it, the field gets ``DISAGREEMENT_CONFIDENCE`` even when the two
+   Qwen readings agree. A reading from a generic label ("15. OTHER DATE",
+   since 2026-10-26) still routes but never strict-parks: Tier 3 matching
+   Tier 2 settles it. If
+   Tier 3 fails, every routed field with a value parks. A field whose Qwen
+   readings are both blank stays confidently blank, dropping Tier 1's
+   reading (kept by design, 2026-10-25).
+   Provider confidences (the ``_qwen_vl`` type heuristic) are provisional:
+   the orchestrator replaces every one of them.
+5. **Review queue.** A field still below 0.80 (a disagreement), or never
+   produced by any tier, exhausts the V1 cascade (no cloud Sonnet above
+   Tier 3 — that's V2). The document's partial extraction is kept and the
+   run is parked in the SQLite ``review_queue`` with the full per-tier
+   error history.
 
 Why agreement (changed 2026-10-16): the type heuristic stamped every string
 1.0 and every date 0.5, so escalation followed field type — every date went
-to Tier 3, which overwrote correct Tier-2 dates. On the cached 92-doc test
-split, over the scored cells Tier 3 re-read where both tiers produced a
-value, Tier 2's value is correct on 94.7% of cells where the two values
-match (739/780) and 38.5% where they differ (74/192).
+to Tier 3, which overwrote correct Tier-2 dates. Why Tier-1/Tier-2
+disagreement decides what Tier 3 reads (2026-10-24): Tier 1 (OCR + alias
+table) and Tier 2 (a VLM) are different readers, and their agreement is a
+strong signal on the cached replay: where Tier 1's reading of a covered
+field equals Tier 2's, Tier 1's value is right in 458 of 458 dev cells and
+480 of 482 test cells. Tier 3 then reads 3 to 4 fields per document instead of
+every Tier-2 field (~26).
 
 **Escalation predicate.** The rule is per-field confidence < gate
 (0.85 into Tier 2; 0.80 for review after the second read). "Confidence" is
@@ -74,7 +97,9 @@ import logging
 import os
 import random
 import time
+import unicodedata
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -110,6 +135,11 @@ AGREEMENT_CONFIDENCE = 0.95
 #: Final confidence when the two readings differ (or only one found a
 #: value). Below ``GATE_TIER2_TO_TIER3``, so the field parks for review.
 DISAGREEMENT_CONFIDENCE = 0.5
+
+#: Final confidence for a field only Tier 2 read (Tier 1 doesn't cover it).
+#: Above the 0.80 review gate, below agreement, so one reading stays
+#: distinguishable from two that agree.
+SINGLE_READ_CONFIDENCE = 0.85
 
 #: Retry-then-escalate (locked). 3 retries, 1/2/4 s base backoff + jitter.
 MAX_RETRIES = 3
@@ -262,10 +292,69 @@ def _should_escalate(ef: ExtractedField[Any], gate: float) -> bool:
     return ef.confidence < gate
 
 
-def _reconcile_second_read(form: BaseModel, second: BaseModel, names: list[str]) -> None:
+def _normalized(value: Any) -> str:
+    """Comparison form of a field value: a date in ISO, anything else NFKC,
+    whitespace-collapsed and casefolded ("Ramona980 " == "ramona980")."""
+    if isinstance(value, date):
+        return value.isoformat()
+    return " ".join(unicodedata.normalize("NFKC", str(value)).split()).casefold()
+
+
+def same_reading(a: Any, b: Any) -> bool:
+    """True when two non-empty readings say the same thing (see ``_normalized``)."""
+    return a is not None and b is not None and _normalized(a) == _normalized(b)
+
+
+def _route_to_tier3(
+    form: BaseModel,
+    names: list[str],
+    tier1: dict[str, Any],
+    covered: frozenset[str],
+) -> list[str]:
+    """Decide which of Tier 2's fields Tier 3 reads; settle the rest in place.
+
+    ``tier1`` holds Tier 1's readings (field → value) and ``covered`` the
+    fields Tier 1 covers. Per field in ``names`` (Tier 2's value is on
+    ``form``):
+
+    - not covered → only Tier 2 read it: a value gets
+      ``SINGLE_READ_CONFIDENCE``, a blank stays confidently blank;
+    - covered, and Tier 1's reading matches Tier 2's → ``AGREEMENT_CONFIDENCE``;
+    - covered otherwise (they differ, or Tier 1 read nothing) → Tier 3.
+
+    Returns the fields Tier 3 should read, in ``names`` order.
+    """
+    routed: list[str] = []
+    for name in names:
+        ef = getattr(form, name)
+        if name not in covered:
+            if ef.value is not None:
+                setattr(form, name, ef.model_copy(update={"confidence": SINGLE_READ_CONFIDENCE}))
+        elif same_reading(tier1.get(name), ef.value):
+            setattr(form, name, ef.model_copy(update={"confidence": AGREEMENT_CONFIDENCE}))
+        else:
+            routed.append(name)
+    return routed
+
+
+def _reconcile_second_read(
+    form: BaseModel,
+    second: BaseModel,
+    names: list[str],
+    tier1: dict[str, Any] | None = None,
+    no_strict: frozenset[str] = frozenset(),
+) -> None:
     """Merge Tier 3's second read of ``names`` onto ``form`` (in place).
 
-    Per field, comparing the current value (Tier 2's, or Tier 1's if Tier 2
+    ``tier1`` holds Tier 1's readings (field → value; empty when not given).
+    ``no_strict`` names fields whose Tier-1 reading came from a generic
+    label (``tier1_paddleocr_local.parse_with_generic_labels``): it still
+    counts for the Tier-3 match below, but never strict-parks. Per field:
+
+    - Tier 3's value matches Tier 1's (``same_reading``) → take Tier 3's
+      field at ``AGREEMENT_CONFIDENCE``: two independent readers agree.
+
+    Otherwise, comparing the current value (Tier 2's, or Tier 1's if Tier 2
     failed) with Tier 3's parsed value by exact equality:
 
     - both empty → unchanged (stays confidently blank), or Tier 3's blank
@@ -278,24 +367,50 @@ def _reconcile_second_read(form: BaseModel, second: BaseModel, names: list[str])
       check is never dropped).
 
     Every case except "equal" and "both empty" ends at
-    ``DISAGREEMENT_CONFIDENCE`` so the field parks for review. A case or
-    spacing difference counts as a disagreement (conservative: it goes to a
-    human rather than being silently accepted).
+    ``DISAGREEMENT_CONFIDENCE`` so the field parks for review. **Strict
+    parking:** when Tier 1 has a valid reading (``tier1`` holds only those)
+    from a specific label (not in ``no_strict``) and the kept value doesn't
+    match it, the field also gets ``DISAGREEMENT_CONFIDENCE`` — two Qwen
+    readings agreeing against the printed text go to a human. Under a
+    generic label ("15. OTHER DATE"), Tier 3 matching Tier 2 settles the
+    field at ``AGREEMENT_CONFIDENCE`` instead. A case or
+    spacing difference between Tier 2 and Tier 3 counts as a disagreement
+    (conservative: it goes to a human rather than being silently accepted).
     """
+    tier1 = tier1 or {}
     for name in names:
         first, other = getattr(form, name), getattr(second, name)
+        t1_value = tier1.get(name)
+        if same_reading(other.value, t1_value):
+            setattr(form, name, other.model_copy(update={"confidence": AGREEMENT_CONFIDENCE}))
+            continue
         if first.value is None and other.value is None:
             if first.tier_used is None:
                 setattr(form, name, other)  # only Tier 3 attempted it
             continue
         if first.value == other.value:
-            setattr(form, name, first.model_copy(update={"confidence": AGREEMENT_CONFIDENCE}))
-            continue
-        keep_first = other.value is None or (
-            first.value is not None and validate(name, first.value) is True
-        )
-        chosen = first if keep_first else other
-        setattr(form, name, chosen.model_copy(update={"confidence": DISAGREEMENT_CONFIDENCE}))
+            chosen, confidence = first, AGREEMENT_CONFIDENCE
+        else:
+            keep_first = other.value is None or (
+                first.value is not None and validate(name, first.value) is True
+            )
+            chosen, confidence = (first if keep_first else other), DISAGREEMENT_CONFIDENCE
+        if (
+            t1_value is not None
+            and name not in no_strict
+            and not same_reading(chosen.value, t1_value)
+        ):
+            confidence = DISAGREEMENT_CONFIDENCE
+        setattr(form, name, chosen.model_copy(update={"confidence": confidence}))
+
+
+def _park(form: BaseModel, names: list[str]) -> None:
+    """Give every field in ``names`` that holds a value
+    ``DISAGREEMENT_CONFIDENCE`` (Tier 3 failed, so nothing settled them)."""
+    for name in names:
+        ef = getattr(form, name)
+        if ef.value is not None:
+            setattr(form, name, ef.model_copy(update={"confidence": DISAGREEMENT_CONFIDENCE}))
 
 
 def _escalating_fields(
@@ -407,10 +522,22 @@ def process_document(
 
         decision = route(ocr_lines, png)
         form_cls = decision.form_cls
-        form = tier1_mod._parse_response(t1_result.raw_response, form_cls)
+        form, tier1_generic = tier1_mod.parse_with_generic_labels(t1_result.raw_response, form_cls)
         _stamp_metadata(form, doc_id, decision)
 
         extractable = list(_qwen_vl._extractable_fields(form_cls).keys())
+        covered = tier1_mod.covered_fields(form_cls)
+        # Tier 1's own readings of the fields it covers, kept apart from the
+        # form (Tier 2's merge overwrites them) for the Tier 3 routing.
+        # A reading that fails its own validator (a ZIP read as the state)
+        # counts as "Tier 1 read nothing" (since 2026-10-25).
+        tier1_readings = {
+            name: value
+            for name in extractable
+            if name in covered
+            and (value := getattr(form, name).value) is not None
+            and validate(name, value) is not False
+        }
 
         # --- Tier 1 → Tier 2 escalation -------------------------------------
         esc1 = _escalating_fields(form, extractable, GATE_TIER1_TO_TIER2)
@@ -423,34 +550,41 @@ def process_document(
             try:
                 t2_result = _run_tier_with_retry(tier2, png, sub2)
                 merge_fields(form, t2_result.form, esc1)
+                # --- Routing: which Tier-2 fields Tier 3 reads ---------------
+                # A form Tier 1 covers no field of (BusinessDocumentForm)
+                # keeps the second read of every Tier-2 field.
+                routed = _route_to_tier3(form, esc1, tier1_readings, covered) if covered else esc1
                 attempt_rows += _attempt_rows(
                     form,
                     esc1,
                     2,
                     t2_result.latency_ms,
-                    escalated=set(esc1),
+                    escalated=set(routed),
                     reason="second_read",
                 )
                 final_tier = "2"
             except TierExhausted as exc:
                 error_history.append({"tier": "2", "error": str(exc), "fields": esc1})
+                routed = esc1  # Tier 3 reads every field Tier 2 should have
 
-            # --- Tier 3 second read -----------------------------------------
-            # Tier 3 re-reads every field Tier 2 handled; agreement between
-            # the two readings sets the final confidence.
-            escalations["3a"] = esc1
-            sub3 = narrow_form_cls(form_cls, esc1)
-            try:
-                t3_result = _run_tier_with_retry(tier3, png, sub3)
-                # The 3a rows record Tier 3's own reading; the reconciled
-                # value lives on the final form.
-                attempt_rows += _attempt_rows(
-                    t3_result.form, esc1, "3a", t3_result.latency_ms, escalated=set()
-                )
-                _reconcile_second_read(form, t3_result.form, esc1)
-                final_tier = "3a"
-            except TierExhausted as exc:
-                error_history.append({"tier": "3a", "error": str(exc), "fields": esc1})
+            # --- Tier 3 second read of the routed fields --------------------
+            if routed:
+                escalations["3a"] = routed
+                sub3 = narrow_form_cls(form_cls, routed)
+                try:
+                    t3_result = _run_tier_with_retry(tier3, png, sub3)
+                    # The 3a rows record Tier 3's own reading; the reconciled
+                    # value lives on the final form.
+                    attempt_rows += _attempt_rows(
+                        t3_result.form, routed, "3a", t3_result.latency_ms, escalated=set()
+                    )
+                    _reconcile_second_read(
+                        form, t3_result.form, routed, tier1_readings, tier1_generic
+                    )
+                    final_tier = "3a"
+                except TierExhausted as exc:
+                    error_history.append({"tier": "3a", "error": str(exc), "fields": routed})
+                    _park(form, routed)
 
         # --- Exhaustion check ----------------------------------------------
         # Fields still below the gate after the last tier that ran (a

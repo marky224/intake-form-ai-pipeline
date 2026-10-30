@@ -19,11 +19,12 @@ Two tables:
   the batch number matches ``docs/eval-methodology.md``.
 
 ``stage`` is ``"tier1"`` or ``"cascade"``. The Phase-6 finding: end-to-end
-``"cascade"`` F1 is *invariant* to alias coverage (strong Tier 2/3
-escalation recovers whatever the alias layer missed), so the headline
-F1-over-time chart plots the ``"tier1"`` stage — the layer the alias table
-actually governs, which genuinely climbs then asymptotes. ``"cascade"`` is
-persisted alongside as the robustness stat.
+``"cascade"`` F1 was *invariant* to alias coverage (strong Tier 2/3
+escalation recovered whatever the alias layer missed), so the headline
+F1-over-time series is the ``"tier1"`` stage — the layer the alias table
+actually governs. ``"cascade"`` is persisted alongside; since 2026-10-24
+Tier 1's readings also decide which fields Tier 3 reads, so it climbs with
+alias coverage too.
 
 Types map onto the V2 Aurora ``eval`` schema the same way ``cascade.store``
 documents (``TEXT``→``VARCHAR``, ``REAL``→``DOUBLE PRECISION``).
@@ -191,7 +192,7 @@ def f1_over_time(
     Reads the batch summaries for one ``(seed_version, git_sha, stage)``
     run. Defaults to ``stage="tier1"`` — the headline F1-over-time series
     (the layer the alias table governs); pass ``"cascade"`` for the
-    end-to-end robustness series.
+    end-to-end series.
     """
     rows = conn.execute(
         """
