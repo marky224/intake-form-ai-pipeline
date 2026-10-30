@@ -309,7 +309,7 @@ _MECHANISM = (
     "nothing. Tier 3 = Tier 1 settles; Tier 3 = Tier 2 only if Tier 1 has no",
     "specific valid reading (else it parks, commonest); anything else parks.",
     "Most of Tier 3's gain is Synthea's number-suffixed names. One template;",
-    "rules chosen on dev with test printed beside it. Live Tier 3 not re-timed.",
+    "rules chosen on dev with test printed beside it. Live Tier 3: ~6 s/doc.",
 )
 
 #: "Missed" cap color — validated against the green bar and the gray cap

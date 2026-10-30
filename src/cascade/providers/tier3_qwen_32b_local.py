@@ -128,9 +128,11 @@ QWEN_MODEL_TAG = "qwen2.5vl:32b"
 #: cards and partly onto the CPU. A document needs ~2,300 tokens (~1,990
 #: prompt incl. the image, ~310 output); 8192 leaves 3.5x headroom at ~2 GiB
 #: of KV. Set per request, not in a Modelfile or a server env var, so the
-#: shared Ollama server's other users are untouched. Whether the model then
-#: fits fully on the GPUs, and its speed, is unmeasured until the M0 run
-#: (``scripts/m0_tier3.py``).
+#: shared Ollama server's other users are untouched. Measured once (M0,
+#: 2026-10-30, 98 dev documents, ``scripts/m0_tier3.py``): the model then runs
+#: fully on the GPUs (``ollama ps`` 100% GPU; 15,157 / 16,376 MiB on the RTX
+#: 4080, 14,935 / 16,380 MiB on the RTX 4060 Ti) at 20.97 s per full read (19.46
+#: tokens/s) and 6.17 s per narrowed read.
 NUM_CTX = 8192
 
 #: Pipeline version stamped onto stub ``FormMetadata``. Phase 5's orchestrator
