@@ -64,6 +64,8 @@ def test_render_is_deterministic_and_has_no_timestamp():
     # Funnel remainder shown explicitly, not hidden — and split by truth.
     assert "92 missed" in a and "23 blank on form" in a
     assert "92 missed (value on the form, none extracted)" in a
+    # The chart keeps the disclosure that the rules followed test results.
+    assert "rules chosen after test results were seen" in a
     assert "128 cells (100 matching Tier 1, 26 free text, 2 Tier-2 blanks" in a
     # Every stage label is drawn under both panels (cap labels must not
     # replace the last bar's axis label).
