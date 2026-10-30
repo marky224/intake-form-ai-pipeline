@@ -38,6 +38,12 @@ class _Ollama:
 
     def __call__(self, argv: list[str]) -> str:
         self.calls.append(argv)
+        if argv[0] == "nvidia-smi":
+            used = "15157" if self.loaded else "0"
+            return f"0, NVIDIA GeForce RTX 4080, {used} MiB, 16376 MiB\n"
+        if argv[1] == "stop":
+            self.loaded = []
+            return ""
         if argv[1] == "--version":
             return "ollama version is 0.20.7\n"
         if argv[1] == "ps":
@@ -156,3 +162,47 @@ def test_help_exits_cleanly(capsys):
         m0.main(["--help"])
     assert exc.value.code == 0
     assert "--image-dir" in capsys.readouterr().out
+
+
+class _FailNarrowed(_Client):
+    """Full reads work; every narrowed read times out."""
+
+    def chat(self, **kwargs):
+        if len(kwargs["format"]["properties"]) < 27:
+            raise TimeoutError("narrowed call timed out")
+        return super().chat(**kwargs)
+
+
+def test_m0a_numbers_survive_a_failing_narrowed_pass(tmp_path):
+    """M0a is summarized before M0b starts: a failure in M0b still leaves
+    M0a's timing and F1 in the summary."""
+    ollama = _Ollama()
+    code = m0.main(_args(tmp_path), run=ollama, client_factory=lambda t: _FailNarrowed(ollama))
+    assert code == m0.EXIT_FAILED
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["status"] == "failed" and "narrowed call timed out" in summary["error"]
+    assert summary["m0a_full"]["calls"] == 3
+    assert summary["m0a_full"]["by_stage_f1"] == summary["cached_replay"]["by_stage_f1"]
+    assert "m0b_narrowed" not in summary
+
+
+def test_run_unloads_the_model_and_records_gpu_memory(tmp_path):
+    """The 32B is stopped at the end, after ps_after shows it loaded, and
+    nvidia-smi's per-card lines are kept before, loaded and after."""
+    ollama = _Ollama()
+    code = m0.main(_args(tmp_path), run=ollama, client_factory=lambda t: _Client(ollama))
+    assert code == m0.EXIT_OK
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["unloaded"] is True
+    stop = ollama.calls.index(["ollama", "stop", "qwen2.5vl:32b"])
+    last_ps = max(i for i, c in enumerate(ollama.calls) if c == ["ollama", "ps"])
+    assert stop > last_ps and "qwen2.5vl:32b" in summary["ollama"]["ps_after"]
+    gpu = summary["gpu_memory"]
+    assert "0 MiB" in gpu["before"] and "15157 MiB" in gpu["loaded"] and "15157 MiB" in gpu["after"]
+    assert ollama.loaded == []
+
+
+def test_dry_run_never_stops_a_model(tmp_path):
+    ollama = _Ollama()
+    assert m0.main(_args(tmp_path, "--dry-run"), run=ollama, client_factory=print) == m0.EXIT_OK
+    assert not any(c[:2] == ["ollama", "stop"] for c in ollama.calls)

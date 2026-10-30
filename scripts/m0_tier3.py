@@ -29,7 +29,12 @@ Safety rules (the run is unattended):
   dir and the output must lie outside the repository, the image dir and
   the primary checkout, and the work dir must be new or empty.
 - ``--max-minutes`` caps the whole run; ``--call-timeout`` caps one call.
-  Any failure exits 1 and still writes the summary with ``status: failed``.
+  Any failure exits 1 and still writes the summary with ``status: failed``;
+  M0a is summarized before M0b starts, so its numbers survive an M0b
+  failure.
+- Records ``nvidia-smi`` per-card memory before, with the model loaded and
+  after, and unloads the 32B (``ollama stop``) at the end once ``ps_after``
+  is taken, so it doesn't hold the GPUs for ``keep_alive``'s hour.
 
 Run (from the repository root, models otherwise idle)::
 
@@ -119,6 +124,23 @@ def _processor(ps_table: str, model: str) -> str | None:
         if line.split() and line.split()[0] == model:
             return line[start:end].strip() or None
     return None
+
+
+#: Per-card memory, as the GPU box's monitoring logs it.
+_NVIDIA_SMI = [
+    "nvidia-smi",
+    "--query-gpu=index,name,memory.used,memory.total",
+    "--format=csv,noheader",
+]
+
+
+def gpu_memory(run: Runner) -> str:
+    """``nvidia-smi`` per-card memory lines, or why they couldn't be read
+    (never fatal: the run's numbers don't depend on it)."""
+    try:
+        return run(_NVIDIA_SMI)
+    except Exception as exc:  # recorded, not raised
+        return f"unavailable: {type(exc).__name__}: {exc}"
 
 
 def preflight(run: Runner) -> dict[str, str]:
@@ -491,10 +513,12 @@ def main(
         "started_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     code = EXIT_FAILED
+    live = False
     try:
         check_paths(args.work_dir, args.output, args.image_dir, args.source_cache)
         before = preflight(run)
         summary["ollama"] = {"version_before": before["version"], "ps_before": before["ps"]}
+        summary["gpu_memory"] = {"before": gpu_memory(run)}
         docs = select_docs(args.split, args.image_dir, args.limit)
         summary["docs"] = len(docs)
         seed = args.work_dir / "seed-cache"
@@ -520,14 +544,17 @@ def main(
             return code
 
         client = client_factory(args.call_timeout)
+        live = True
 
         def note_loaded() -> None:
             ps = run(["ollama", "ps"])
             summary["ollama"]["ps_loaded"] = ps
             summary["ollama"]["processor_loaded"] = _processor(ps, MODEL)
+            summary["gpu_memory"]["loaded"] = gpu_memory(run)
 
         full = live_pass(client, docs, None, args.work_dir / "m0a-full", deadline, note_loaded)
-        narrow = live_pass(client, docs, routed, args.work_dir / "m0b-narrowed", deadline)
+        # Summarize M0a before M0b starts, so a failure or the wall-clock cap
+        # during M0b still leaves M0a's numbers in the summary.
         summary["m0a_full"] = {
             **timing(full),
             **score(
@@ -539,6 +566,7 @@ def main(
                 ids,
             ),
         }
+        narrow = live_pass(client, docs, routed, args.work_dir / "m0b-narrowed", deadline)
         summary["m0b_narrowed"] = (
             {
                 **timing(narrow),
@@ -572,8 +600,18 @@ def main(
                     ["ollama", "--version"]
                 ).strip()
                 summary["ollama"]["ps_after"] = run(["ollama", "ps"])
+                summary.setdefault("gpu_memory", {})["after"] = gpu_memory(run)
             except Exception as exc:  # pragma: no cover - logged, not fatal
                 summary.setdefault("ollama", {})["after_error"] = str(exc)
+        if live:
+            # Free the 32B now (keep_alive would hold it ~1 h on a shared
+            # box), after ps_after has recorded it loaded.
+            try:
+                run(["ollama", "stop", MODEL])
+                summary["unloaded"] = True
+            except Exception as exc:  # recorded; the summary still gets written
+                summary["unloaded"] = False
+                summary["unload_error"] = f"{type(exc).__name__}: {exc}"
         summary["elapsed_s"] = round(time.monotonic() - started, 1)
         summary["finished_at"] = datetime.now(UTC).isoformat(timespec="seconds")
         text = json.dumps(summary, indent=2) + "\n"
