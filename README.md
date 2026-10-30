@@ -88,8 +88,6 @@ Corrections submitted from the queue flow back through `src/rag/aliases.py`: any
 
 ![Per-field correction input panel from the local demo](docs/assets/demo-human-in-the-loop.png)
 
-*This screenshot predates the 2026-10-16 numbers: its replay shows 184 corrections and 1 new alias; the current replay parks 52 documents and logs 63 corrections and 2 new aliases.*
-
 ## What's worth a closer look
 
 **The economics.** V1's cost is $0/1K — local inference on owned hardware, where latency is the meaningful metric, not dollars. The cost-routing argument is what the optional BAA-cloud enhancement would realize: BAA-cloud tiers in the middle and top would take the cascade to ~$9.50/1K, ~32× cheaper than putting every field through a single frontier model (~$300/1K at typical densities). V1 is not a prototype waiting on that number — it is complete, and it produces the measured escalation rates that make the projection credible rather than hypothetical.
@@ -116,8 +114,6 @@ just demo           # Streamlit on :8501 — real 3-tier cascade over the
 ```
 
 ![V1 local demo — by-stage ablation + escalation-funnel headline over the cached 92-doc cascade](docs/assets/demo-screenshot.png)
-
-*This screenshot predates the 2026-10-16 numbers: it shows the old cascade (Tier 3 re-reading 3 fields, type-based 1.000 confidences) and older figures. The numbers in the text are current.*
 
 The demo surfaces, per document: the rendered form, routed vertical and final tier, per-tier escalations, the per-field value/confidence/tier table, the populated review queue, and — as the headline analytics — the **by-stage ablation + escalation funnel** (F1 by cumulative tier, `0.868 → 0.806 → 0.904`, shown beside the *cells-resolved* coverage rising to 100%, both from the same cached run), with the supporting two-stage F1 numbers below it. For live on-GPU inference, `ollama pull qwen2.5vl:7b qwen2.5vl:32b`, install PaddleOCR-VL per `docs/local-development.md`, then `EVAL_LIVE=true just demo`. No cloud calls, no AWS credentials, either way. `just eval` / `by-stage` run the harness and regenerate the CI-drift-guarded SVG; full task list in the `justfile`.
 
