@@ -13,7 +13,7 @@ This document reflects the schema after five architectural changes were applied 
 4. `compute_form_confidence` module-level function for aggregate confidence reporting
 5. `SignatureCapture` sub-model replaces the `signature_present: bool` representation
 
-The 40-test schema suite passes; ruff/black clean against the codified `pyproject.toml` lint config (ruff 0.7.4 + black 26.10.1, pinned to match `.pre-commit-config.yaml`). This document rationalizes the original three-vertical design (Insurance, Healthcare, HR). The Phase-4 vertical pivot has since shipped: `BusinessDocumentForm` (36 KILE fields, sourced from the upstream `rossumai/docile` `KILE_FIELDTYPES`) was added and is active alongside Healthcare; Insurance and HR remain in code as future-extensibility examples per the locked architectural decision but are not in the active cascade. None of this required changes to the shared constructs below — Section 13 records how the pivot landed.
+The 40-test schema suite passes; ruff/black clean against the codified `pyproject.toml` lint config (ruff 0.7.4 + black 26.10.1, pinned in `pyproject.toml`; the pre-commit hooks run them from `uv.lock`). This document rationalizes the original three-vertical design (Insurance, Healthcare, HR). The Phase-4 vertical pivot has since shipped: `BusinessDocumentForm` (36 KILE fields, sourced from the upstream `rossumai/docile` `KILE_FIELDTYPES`) was added and is active alongside Healthcare; Insurance and HR remain in code as future-extensibility examples per the locked architectural decision but are not in the active cascade. None of this required changes to the shared constructs below — Section 13 records how the pivot landed.
 
 ---
 

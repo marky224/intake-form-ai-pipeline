@@ -39,10 +39,9 @@ dependencies = [
 # `docs/local-development.md` "Tier 1 PaddleOCR-VL setup" for the curl-from-
 # Paddle-index commands.
 
-# ruff and black are pinned to the same exact versions as
-# .pre-commit-config.yaml. CI runs `uv sync --frozen` then ruff/black, so the
-# dev-deps and pre-commit hooks must agree on tool version. Bump both files
-# together when modernizing tooling.
+# ruff and black are pinned here; CI runs `uv sync --frozen` then ruff/black,
+# and the pre-commit ruff/black hooks run these same pins through
+# `uv run --frozen`. Bump them here (and uv.lock) only.
 #
 # jinja2 + playwright are the synthetic-data renderer's deps (Phase 3 PR (b)).
 # jinja2 templates the CMS-1500 HTML; playwright drives the headless Chromium
