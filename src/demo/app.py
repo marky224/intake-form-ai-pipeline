@@ -35,7 +35,7 @@ from pathlib import Path
 # package (``uv sync``) this is redundant; without it (a fresh checkout someone
 # runs streamlit on directly) this is what keeps things working. Computed
 # inline rather than via ``_paths`` because ``_paths`` itself isn't importable
-# until this line runs. See memory project_src_layout.
+# until this line runs.
 _SRC_ROOT = str(Path(__file__).resolve().parent.parent)
 if _SRC_ROOT not in sys.path:
     sys.path.insert(0, _SRC_ROOT)

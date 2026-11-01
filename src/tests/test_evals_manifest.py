@@ -21,7 +21,7 @@ from evals.manifest import (
 )
 
 # alias_table_seed.json stays at the **repo root** (not under src/) by
-# canonical-artifact contract — see memory project_src_layout. The old
+# canonical-artifact contract. The old
 # ``MANIFEST_PATH.parent.parent`` walk worked when manifest.py lived at
 # ``evals/manifest.py``; under src/ it resolved to ``src/`` instead.
 ALIAS_SEED = json.loads((repo_root() / "alias_table_seed.json").read_text(encoding="utf-8"))

@@ -68,7 +68,7 @@ from evals.manifest import CMS1500_VALIDATION_DIR, CORPUS_RENDER_DIR, load_manif
 from evals.metrics import aggregate, score_form
 
 #: Committed by-stage chart artifact under repo-root ``docs/assets/`` (docs/
-#: stays at the repo root, not under src/ — see memory project_src_layout).
+#: stays at the repo root, not under src/).
 BY_STAGE_CHART_PATH = repo_root() / "docs" / "assets" / "f1-by-stage.svg"
 
 _SCORABLE = list(FIELD_KIND)

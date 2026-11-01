@@ -795,7 +795,7 @@ def main() -> None:
     payload = build_seed()
     # alias_table_seed.json deliberately lives at the repo root, NOT under
     # src/ (canonical-artifact contract; tests open it cwd-relative from
-    # repo root). See memory project_src_layout.
+    # repo root).
     out_path = repo_root() / "alias_table_seed.json"
     out_path.write_text(json.dumps(payload, indent=2, sort_keys=False, ensure_ascii=False) + "\n")
     print(f"Wrote {out_path}")

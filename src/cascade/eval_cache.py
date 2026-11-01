@@ -43,7 +43,7 @@ _EVAL_LIVE_TRUTHY = frozenset({"1", "true", "yes", "y", "on"})
 
 #: Cache root, anchored at the src tree. Layout:
 #: ``src/tests/fixtures/eval-cache/`` (tests moved under src/ in the
-#: 2026-05-19 src-layout refactor; see memory project_src_layout).
+#: 2026-05-19 src-layout refactor).
 CACHE_ROOT = src_root() / "tests" / "fixtures" / "eval-cache"
 
 

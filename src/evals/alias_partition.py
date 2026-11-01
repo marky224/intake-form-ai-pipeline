@@ -48,7 +48,7 @@ from cascade.providers import tier1_paddleocr_local as tier1_mod
 from rag.aliases import suppress_overlay
 
 #: The canonical, full seed. Lives at the **repo root** (not under src/) by
-#: canonical-artifact contract — see memory project_src_layout.
+#: canonical-artifact contract.
 ALIAS_SEED_PATH = repo_root() / "alias_table_seed.json"
 
 

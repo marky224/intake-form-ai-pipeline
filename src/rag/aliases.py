@@ -49,8 +49,7 @@ from _paths import src_root
 #: Gitignored runtime overlay. ``src/data/`` is fully gitignored (see
 #: ``.gitignore``) — the overlay is runtime state like ``src/data/v1.db``,
 #: never committed, never a portfolio artifact. Module-level so tests can
-#: repoint it the same way they repoint ``ALIAS_TABLE_PATH``. See memory
-#: project_src_layout.
+#: repoint it the same way they repoint ``ALIAS_TABLE_PATH``.
 OVERLAY_PATH = src_root() / "data" / "corrections_aliases.json"
 
 #: Overlay schema version. Independent of the seed's ``version`` — the
