@@ -6,7 +6,7 @@
 # black run from uv.lock, so they have no hook rev. Dependabot still opens uv
 # PRs for security updates (enabled in the repo settings, not in this file);
 # they update uv.lock, and pyproject.toml too when the package is pinned there
-# (black).
+# (ruff, black).
 #
 # Grouped: a single weekly PR bumps all action SHAs together rather than one
 # PR per action. Reduces review churn given the slow cadence of action updates.
