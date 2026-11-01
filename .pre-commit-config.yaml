@@ -25,21 +25,23 @@ repos:
         args: ["--fix=lf"]
 
   # Ruff and black run from the uv environment, so they use the exact
-  # versions uv.lock pins (the same ones CI runs). Bump them in pyproject.toml
-  # and uv.lock only; there is no hook rev to keep in sync.
+  # versions uv.lock pins (the same ones CI runs). `uv run --locked` checks
+  # uv.lock against pyproject.toml first, so a stale uv.lock fails the hook
+  # (fix: `uv lock`). Bump them in pyproject.toml and uv.lock only; there is
+  # no hook rev to keep in sync.
   - repo: local
     hooks:
       # Ruff — fast Python linter + formatter (replaces flake8, isort, etc.)
       - id: ruff
         name: ruff
-        entry: uv run --frozen ruff check --force-exclude
+        entry: uv run --locked ruff check --force-exclude
         args: ["--fix"]
         language: system
         types_or: [python, pyi, jupyter]
         require_serial: true
       - id: ruff-format
         name: ruff-format
-        entry: uv run --frozen ruff format --force-exclude
+        entry: uv run --locked ruff format --force-exclude
         language: system
         types_or: [python, pyi, jupyter]
         require_serial: true
@@ -47,7 +49,7 @@ repos:
       # ruff-format catches most cases fast; black is the canonical reference.
       - id: black
         name: black
-        entry: uv run --frozen black
+        entry: uv run --locked black
         language: system
         types_or: [python, pyi]
         require_serial: true
@@ -71,7 +73,7 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: uv run --frozen pytest -x -q
+        entry: uv run --locked pytest -x -q
         language: system
         pass_filenames: false
         types: [python]
