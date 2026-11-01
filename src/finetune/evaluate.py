@@ -9,7 +9,7 @@ is scored exactly the way the cascade is.
 form (``RunRecord.form``) before vs. after correction. The Tier-1-stage
 headline series and the committed F1-over-time SVG are neither recomputed
 nor relabeled — Phase 9 adds a post-cascade delta, it does not move the
-portfolio artifact (memory ``project_phase6_two_stage_f1``).
+portfolio artifact (``docs/eval-methodology.md`` "Two-stage measurement").
 
 On the committed corpus there is no trained adapter (GPU-box artifact), so
 :func:`evaluate` honestly reports an **identity baseline: delta 0.000**.

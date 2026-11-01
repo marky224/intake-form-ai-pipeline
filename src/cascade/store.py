@@ -47,7 +47,7 @@ from _paths import src_root
 
 #: Default DB location. Single file, gitignored (see ``.gitignore``).
 #: Anchored at the src tree (``data/`` moved under src/ in the 2026-05-19
-#: src-layout refactor — see memory project_src_layout). Was cwd-relative
+#: src-layout refactor). Was cwd-relative
 #: ``Path("data/v1.db")`` which only worked when invoked from the repo root.
 DEFAULT_DB_PATH = src_root() / "data" / "v1.db"
 

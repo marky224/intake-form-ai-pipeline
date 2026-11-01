@@ -10,8 +10,8 @@ the GPU** (no Ollama, no Paddle process).
 Two design points worth stating up front, both carried forward from earlier
 phases and surfaced honestly by the demo rather than hidden:
 
-1. **The F1-over-time story is two-stage** (Phase 6, memory
-   ``project_phase6_two_stage_f1``). The *headline* curve is **Tier-1-stage**
+1. **The F1-over-time story is two-stage** (Phase 6; ``docs/eval-methodology.md``
+   "Two-stage measurement"). The *headline* curve is **Tier-1-stage**
    F1 — it climbs as the progressive alias table fills (0.483 → 0.868 on the
    92-doc test split since the 2026-10-24 Tier 1 parser fixes). End-to-end
    **cascade** F1 climbs too (0.857 → 0.904): since 2026-10-24 Tier 1's
@@ -67,8 +67,7 @@ from rag.store import load_corpus, load_embedding
 #: The committed portfolio artifact. Its regeneration is owned by the eval
 #: harness (``just by-stage``); the demo only *surfaces* it — it never
 #: rewrites it. ``f1-by-stage.svg`` is the headline chart (funnel on top,
-#: F1 below). ``docs/`` stays at the repo root (not under src/) — see memory
-#: project_src_layout.
+#: F1 below). ``docs/`` stays at the repo root (not under src/).
 BY_STAGE_CHART_SVG_PATH = repo_root() / "docs" / "assets" / "f1-by-stage.svg"
 
 #: The review gate the per-field panel highlights against (the cascade's

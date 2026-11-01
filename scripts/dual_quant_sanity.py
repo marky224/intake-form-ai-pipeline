@@ -46,7 +46,7 @@ from cascade.providers import _qwen_vl
 from intake_schemas import BusinessDocumentForm, HealthcareIntakeForm
 
 # tests/ and synthetic_data/ both moved under src/ in the 2026-05-19
-# src-layout refactor; was cwd-relative root paths. See memory project_src_layout.
+# src-layout refactor; was cwd-relative root paths.
 CMS1500_DIR = src_root() / "tests" / "fixtures" / "eval-validation" / "cms1500"
 DOCILE_RENDER_DIR = src_root() / "synthetic_data" / "output" / "docile" / "render"
 

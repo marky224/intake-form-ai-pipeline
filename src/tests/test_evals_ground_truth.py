@@ -21,7 +21,7 @@ from intake_schemas import ExtractedField, HealthcareIntakeForm, SignatureCaptur
 # fixtures under src/tests/fixtures/). Was cwd-relative
 # ``glob.glob("tests/fixtures/...")`` which silently returned [] after the
 # 2026-05-19 src-layout move and collapsed 92 parametrized cases into a
-# single "empty parameter set" skip. See memory project_src_layout.
+# single "empty parameter set" skip.
 _SIDECARS = sorted(
     str(p)
     for p in (Path(__file__).parent / "fixtures" / "eval-validation" / "cms1500").glob("*.json")

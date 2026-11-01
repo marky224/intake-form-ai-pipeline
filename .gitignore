@@ -63,7 +63,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Project-specific (regenerable artifacts) — paths relocated under src/ in the
-# 2026-05-19 src-layout refactor (see memory project_src_layout).
+# 2026-05-19 src-layout refactor.
 src/synthetic_data/output/
 src/evals/results/
 # Phase 5-V1 orchestrator SQLite eval store (default cascade.store.DEFAULT_DB_PATH)

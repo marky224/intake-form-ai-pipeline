@@ -1,7 +1,7 @@
 """Single source of truth for repo-relative paths.
 
-Introduced in the 2026-05-19 src-layout refactor (memory
-``project_src_layout``). Before the move, modules computed "the repo root"
+Introduced in the 2026-05-19 src-layout refactor.
+Before the move, modules computed "the repo root"
 ad-hoc as ``Path(__file__).resolve().parent.parent`` because every package
 sat one level below the root. With packages now under ``src/``, that
 expression resolves to ``src/`` rather than the repo root, silently

@@ -94,11 +94,11 @@ demo = [
     "streamlit>=1.40",
 ]
 
-# Installable editable package since the 2026-05-19 src-layout refactor
-# (memory `project_src_layout`). `uv sync` builds + editable-installs the
-# package so `import cascade`, `from _paths import ...`, `python -m evals`
-# etc. resolve from anywhere without pythonpath hacks. Replaces the prior
-# `package = false` flat-layout setup.
+# Installable editable package since the 2026-05-19 src-layout refactor.
+# `uv sync` builds + editable-installs the package so `import cascade`,
+# `from _paths import ...`, `python -m evals` etc. resolve from anywhere
+# without pythonpath hacks. Replaces the prior `package = false`
+# flat-layout setup.
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
@@ -177,7 +177,7 @@ minversion = "8.0"
 python_files = ["test_*.py"]
 testpaths = ["src/tests"]
 # First-party packages live under src/ (installable editable package since the
-# 2026-05-19 src-layout refactor — see memory `project_src_layout`). The
+# 2026-05-19 src-layout refactor). The
 # editable install puts cascade/_paths/intake_schemas/etc. on the import path,
 # so pythonpath is not strictly required. We keep `["src"]` as belt-and-
 # suspenders: lets `pytest src/tests/test_foo.py` work in a fresh checkout

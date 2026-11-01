@@ -184,7 +184,7 @@ def covered_fields(form_cls: type) -> frozenset[str]:
 
 
 #: ``alias_table_seed.json`` path. Lives at the **repo root** (not under
-#: ``src/``) by canonical-artifact contract — see memory project_src_layout.
+#: ``src/``) by canonical-artifact contract.
 ALIAS_TABLE_PATH = repo_root() / "alias_table_seed.json"
 
 #: Map from form class name → set of seed verticals to draw aliases from.

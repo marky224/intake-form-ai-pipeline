@@ -40,7 +40,7 @@ from _paths import src_root
 
 #: Runtime artifact (``src/data/`` is fully gitignored — never committed,
 #: like ``src/data/v1.db`` / the alias overlay). Module-level so tests can
-#: repoint it. See memory project_src_layout.
+#: repoint it.
 TRAIN_JSONL_PATH = src_root() / "data" / "finetune_train.jsonl"
 
 #: The stable corrector instruction. Kept verbatim at train + inference time

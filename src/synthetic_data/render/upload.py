@@ -210,7 +210,7 @@ def store_render_dir(
 
 DEFAULT_STORE_PREFIX = "synthetic/healthcare/cms1500"
 # Anchored at the src tree (synthetic_data moved under src/ in the
-# 2026-05-19 src-layout refactor — see memory project_src_layout). Was
+# 2026-05-19 src-layout refactor). Was
 # cwd-relative ``Path("synthetic_data/output/store")`` which only worked
 # when invoked from the repo root.
 DEFAULT_STORE_ROOT = src_root() / "synthetic_data" / "output" / "store"

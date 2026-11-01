@@ -35,8 +35,7 @@ from finetune.dataset import TRAIN_JSONL_PATH
 #: VL cascade tiers and is a realistic Tier-2-adjacent story).
 QWEN_BASE_MODEL = "Qwen/Qwen2.5-7B-Instruct"
 
-#: Gitignored adapter output dir (``src/data/`` is fully gitignored — see
-#: memory project_src_layout).
+#: Gitignored adapter output dir (``src/data/`` is fully gitignored).
 ADAPTER_DIR = src_root() / "data" / "finetune_adapter"
 
 #: Truthy values for the live gate (mirrors ``cascade.eval_cache``).

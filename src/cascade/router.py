@@ -65,7 +65,7 @@ STAGE1_THRESHOLD_N = 1.0
 _EXCLUDING_VERTICALS = frozenset({"base", "insurance", "hr"})
 
 #: ``alias_table_seed.json`` path. Lives at the **repo root** (not under
-#: ``src/``) by canonical-artifact contract — see memory project_src_layout.
+#: ``src/``) by canonical-artifact contract.
 ALIAS_TABLE_PATH = repo_root() / "alias_table_seed.json"
 
 #: Stage 2 eval-cache slug. Same replay contract as the cascade providers.
