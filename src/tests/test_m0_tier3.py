@@ -24,16 +24,26 @@ _SPEC = importlib.util.spec_from_file_location("m0_tier3", repo_root() / "script
 m0 = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(m0)
 
-_HEADER = "NAME             ID              SIZE     PROCESSOR    CONTEXT    UNTIL"
-_LOADED = "qwen2.5vl:32b    3edc3a52fe98    26 GB    100% GPU     8192       59 minutes from now"
+_HEADER = "NAME                     ID              SIZE     PROCESSOR    CONTEXT    UNTIL"
+_SHOW = "  Model\n    architecture        qwen25vl\n    parameters          33.5B\n"
+
+
+def _loaded(model: str) -> str:
+    """An ``ollama ps`` row for ``model``, aligned with ``_HEADER``."""
+    return f"{model:<25}3edc3a52fe98    26 GB    100% GPU     8192       59 minutes from now"
 
 
 class _Ollama:
     """Fake ``ollama`` CLI: nothing loaded until the first chat, then the 32B."""
 
-    def __init__(self, loaded: list[str] | None = None, installed: bool = True):
+    def __init__(
+        self,
+        loaded: list[str] | None = None,
+        installed: bool = True,
+        models: tuple[str, ...] = ("qwen2.5vl:32b",),
+    ):
         self.loaded = loaded or []
-        self.installed = installed
+        self.models = models if installed else ()
         self.calls: list[list[str]] = []
 
     def __call__(self, argv: list[str]) -> str:
@@ -48,7 +58,9 @@ class _Ollama:
             return "ollama version is 0.20.7\n"
         if argv[1] == "ps":
             return "\n".join([_HEADER, *self.loaded]) + "\n"
-        rows = ["qwen2.5vl:32b    3edc3a52fe98    21 GB    5 months ago"] if self.installed else []
+        if argv[1] == "show":
+            return _SHOW
+        rows = [f"{name}    3edc3a52fe98    21 GB    5 months ago" for name in self.models]
         return "\n".join(["NAME    ID    SIZE    MODIFIED", *rows]) + "\n"
 
 
@@ -58,10 +70,12 @@ class _Client:
     def __init__(self, ollama: _Ollama):
         self.ollama = ollama
         self.options: list[dict] = []
+        self.models: list[str] = []
 
     def chat(self, **kwargs):
         self.options.append(kwargs["options"])
-        self.ollama.loaded = [_LOADED]
+        self.models.append(kwargs["model"])
+        self.ollama.loaded = [_loaded(kwargs["model"])]
         sha = hashlib.sha256(kwargs["messages"][0]["images"][0]).hexdigest()
         return eval_cache.load_cached(tier3.PROVIDER_NAME, sha)
 
@@ -206,3 +220,94 @@ def test_dry_run_never_stops_a_model(tmp_path):
     ollama = _Ollama()
     assert m0.main(_args(tmp_path, "--dry-run"), run=ollama, client_factory=print) == m0.EXIT_OK
     assert not any(c[:2] == ["ollama", "stop"] for c in ollama.calls)
+
+
+_CANDIDATE = "qwen3-vl:32b-instruct"
+
+
+def test_the_given_model_is_checked_called_shown_and_stopped(tmp_path):
+    ollama = _Ollama(models=("qwen2.5vl:32b", _CANDIDATE))
+    client = _Client(ollama)
+    code = m0.main(
+        _args(tmp_path, "--model", _CANDIDATE), run=ollama, client_factory=lambda t: client
+    )
+    assert code == m0.EXIT_OK
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["model"] == _CANDIDATE
+    assert client.models and set(client.models) == {_CANDIDATE}
+    assert all(o["num_ctx"] == 8192 for o in client.options)
+    assert summary["ollama"]["processor_loaded"] == "100% GPU"
+    assert ["ollama", "show", _CANDIDATE] in ollama.calls
+    assert summary["ollama"]["show"] == _SHOW
+    assert ollama.calls[-1] == ["ollama", "stop", _CANDIDATE]
+    assert summary["unloaded"] is True
+
+
+def test_refuses_when_the_given_model_is_not_installed(tmp_path):
+    ollama = _Ollama()  # only qwen2.5vl:32b installed
+    factory_calls = []
+    code = m0.main(
+        _args(tmp_path, "--model", _CANDIDATE), run=ollama, client_factory=factory_calls.append
+    )
+    assert code == m0.EXIT_REFUSED and not factory_calls
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert summary["status"] == "refused" and _CANDIDATE in summary["error"]
+    assert not any(c[:2] in (["ollama", "pull"], ["ollama", "stop"]) for c in ollama.calls)
+
+
+def test_refuses_when_the_tier3_model_is_loaded_but_another_is_given(tmp_path):
+    ollama = _Ollama(loaded=[_loaded("qwen2.5vl:32b")], models=("qwen2.5vl:32b", _CANDIDATE))
+    factory_calls = []
+    code = m0.main(
+        _args(tmp_path, "--model", _CANDIDATE), run=ollama, client_factory=factory_calls.append
+    )
+    assert code == m0.EXIT_REFUSED and not factory_calls
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    assert "qwen2.5vl:32b" in summary["error"]
+
+
+def test_without_model_the_client_sees_the_tier3_tag(tmp_path):
+    """Guards the default; it passes with or without ``--model`` support."""
+    ollama = _Ollama()
+    client = _Client(ollama)
+    assert m0.main(_args(tmp_path), run=ollama, client_factory=lambda t: client) == m0.EXIT_OK
+    assert client.models and set(client.models) == {"qwen2.5vl:32b"}
+    assert ["ollama", "stop", "qwen2.5vl:32b"] in ollama.calls
+
+
+class _Scripted(_Client):
+    """Full reads: one reply with exactly the requested keys, one missing a
+    key, one that isn't JSON. Narrowed reads: exactly the requested keys."""
+
+    def chat(self, **kwargs):
+        super().chat(**kwargs)
+        keys = list(kwargs["format"]["properties"])
+        n = len(self.models)
+        if len(keys) < 27 or n == 1:
+            content = json.dumps(dict.fromkeys(keys))
+        elif n == 2:
+            content = json.dumps(dict.fromkeys(keys[1:]))
+        else:
+            content = "not json"
+        return {
+            "model": kwargs["model"],
+            "message": {"role": "assistant", "content": content},
+            "prompt_eval_count": 1000 * n,
+            "eval_count": 10 * n,
+        }
+
+
+def test_schema_adherence_and_token_counts_per_pass(tmp_path):
+    ollama = _Ollama()
+    client = _Scripted(ollama)
+    assert m0.main(_args(tmp_path), run=ollama, client_factory=lambda t: client) == m0.EXIT_OK
+    summary = json.loads((tmp_path / "summary.json").read_text())
+    full, narrow = summary["m0a_full"], summary["m0b_narrowed"]
+    adherence = full["schema_adherence"]
+    assert (adherence["ok"], adherence["failed"], len(adherence["failed_doc_ids"])) == (1, 2, 2)
+    assert full["prompt_eval_count"] == {"mean": 2000.0, "median": 2000.0, "max": 3000}
+    assert full["eval_count"] == {"mean": 20.0, "median": 20.0, "max": 30}
+    sent = summary["docs_sent_to_tier3"]
+    assert sent > 0
+    assert narrow["schema_adherence"] == {"ok": sent, "failed": 0, "failed_doc_ids": []}
+    assert narrow["eval_count"]["max"] == 10 * (3 + sent)
