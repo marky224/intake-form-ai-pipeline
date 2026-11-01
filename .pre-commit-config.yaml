@@ -28,9 +28,17 @@ repos:
   # versions uv.lock pins (the same ones CI runs). `uv run --locked` checks
   # uv.lock against pyproject.toml first, so a stale uv.lock fails the hook
   # (fix: `uv lock`). Bump them in pyproject.toml and uv.lock only; there is
-  # no hook rev to keep in sync.
+  # no hook rev to keep in sync. The uv-lock-check hook runs whenever
+  # pyproject.toml or uv.lock is staged, so a pin bumped in pyproject.toml
+  # without `uv lock` fails at that commit.
   - repo: local
     hooks:
+      - id: uv-lock-check
+        name: uv-lock-check
+        entry: uv lock --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
       # Ruff — fast Python linter + formatter (replaces flake8, isort, etc.)
       - id: ruff
         name: ruff

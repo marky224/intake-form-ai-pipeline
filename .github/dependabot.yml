@@ -5,7 +5,8 @@
 # .pre-commit-config.yaml and bumped with `pre-commit autoupdate`; ruff and
 # black run from uv.lock, so they have no hook rev. Dependabot still opens uv
 # PRs for security updates (enabled in the repo settings, not in this file);
-# they change pyproject.toml and uv.lock together.
+# they update uv.lock, and pyproject.toml too when the package is pinned there
+# (black).
 #
 # Grouped: a single weekly PR bumps all action SHAs together rather than one
 # PR per action. Reduces review churn given the slow cadence of action updates.

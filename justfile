@@ -22,7 +22,7 @@ install:
     uv sync
     uv run pre-commit install
 
-# Sync deps without modifying uv.lock (CI-equivalent)
+# Sync deps without modifying uv.lock (CI runs `uv sync --locked` instead)
 install-frozen:
     uv sync --frozen
 
