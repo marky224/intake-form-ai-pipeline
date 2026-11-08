@@ -6,17 +6,77 @@ The project is **complete as V1** — a local-first 3-tier extraction pipeline, 
 
 This file is the long-form treatment of that optional BAA-cloud enhancement and the other "considered, not done" decisions. The locked architectural decisions in the project's internal instructions keep the brief framing; this file is where the actual reasoning lives. Where a section below says "V2," read it as "the optional BAA-cloud enhancement, if a real-PHI deployment is ever pursued" — not a planned next phase.
 
-## Tier 3 model upgrade candidate: Qwen3-VL-32B
+## Tier 3 model upgrade: Qwen3-VL-32B (measured, not adopted)
 
-Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants. The relevant new capability is mixed-precision GGUF support — different bit widths for language vs vision components within a single quantized model. This directly addresses the finding from the MBQ paper (arxiv 2412.19509) that VLM language tokens are roughly 10× more sensitive to quantization than vision tokens. In a Qwen 2.5 VL 32B GGUF, the LLM and vision encoder are quantized at the same bit width, so aggressive LLM quantization drags down VLM accuracy more than necessary; mixed precision lets you quantize the LLM aggressively while keeping the vision encoder at full precision.
+Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants. The capability that made it a candidate is mixed-precision GGUF support — different bit widths for language vs vision components within a single quantized model. This directly addresses the finding from the MBQ paper (arxiv 2412.19509) that VLM language tokens are roughly 10× more sensitive to quantization than vision tokens. In a Qwen 2.5 VL 32B GGUF, the LLM and vision encoder are quantized at the same bit width, so aggressive LLM quantization drags down VLM accuracy more than necessary; mixed precision lets you quantize the LLM aggressively while keeping the vision encoder at full precision. Tier 3 ships the registry **Q4_K_M** build of Qwen 2.5 VL 32B because, on 31.2 GB of consumer VRAM, the higher-precision GGUFs are unusable (2026-05-17): Q8_0 spills impractically and the Mungert Q6_K import hits an open llama.cpp M-RoPE `seq_add` assert (#19915). That is aggressive *uniform* quantization, exactly the case the MBQ finding says costs the most accuracy.
 
-The locked architecture is Qwen 2.5 VL 32B (V1's Tier 3; V2's Tier 3a) per the main instructions document. Qwen3-VL-32B is a model-upgrade candidate, not the locked default. Revisit conditions:
+**Result: Tier 3 stays `qwen2.5vl:32b` (Q4_K_M).** A trial of Qwen3-VL-32B Instruct, run live on 2026-11-06 and scored on 2026-11-08, missed five of its seven pre-registered criteria on the dev split. Under the trial's stop rule that ends it: no swap, and the candidate was never run on the test split. Every committed number elsewhere in these docs is unchanged.
 
-1. **Realized (2026-05-17).** Phase 4 found that on 31.2 GB of consumer VRAM the higher-precision Qwen 2.5 VL 32B GGUFs are unusable — Q8_0 spills impractically and the Mungert Q6_K import hits an open llama.cpp M-RoPE `seq_add` assert (#19915) — so V1 Tier 3 ships the **registry Q4_K_M** build: aggressive *uniform* LLM+vision quantization, exactly the case the MBQ finding says costs the most accuracy. A stable mixed-precision Qwen3-VL-32B GGUF (aggressive LLM, full-precision vision) is the natural V2 upgrade to recover that accuracy at similar VRAM. Gated on condition 2.
-2. Qwen3-VL community GGUF repositories mature enough to provide stable, well-documented mixed-precision builds (likely 6+ months post-release).
-3. Phase 9 QLoRA fine-tuning experiments suggest mixed-precision training would yield meaningful gains.
+**What ran.**
+- Candidate: `qwen3-vl:32b-instruct`, the Ollama library's **Q4_K_M** build. That is uniform quantization of the language model and vision encoder alike, *not* a mixed-precision GGUF, so the MBQ-motivated hypothesis above is still untested. Instruct only; the Thinking variant was not tried.
+- Baseline: `qwen2.5vl:32b`'s raw responses from the 2026-10-30 live run on the same machine and Ollama version (0.20.7).
+- The same conditions for both models:
+  - `num_ctx` 8192, temperature 0, and the shared Tier-3 prompt and JSON schema, unchanged.
+  - The 98 dev documents, with Tier 1 and Tier 2 replayed from the same cache. Routing depends only on those two tiers, so every document sends both models the same fields: 364 scored cells, 3.71 per document.
+- Two reads per model, both via `scripts/m0_tier3.py --model`:
+  - **full** reads all 27 fields, the way the committed replay cache was recorded;
+  - **narrowed** reads only the routed fields, which is what the cascade sends live.
+- The win criteria and the stop rule were fixed before any candidate reading existed.
 
-Estimated cost of switching once revisit conditions are met: ~3–5 hours (download, Modelfile import, sanity test, prompt template adjustments for any API differences). Low-risk migration.
+**By-stage dev F1.** Tier 1 and Tier 1+2 are identical in every pass, as they must be: only Tier 3 changed.
+
+| Pass | Model, read | Tier 1 | Tier 1+2 | Tier 1+2+3 |
+|---|---|---|---|---|
+| M0a | `qwen2.5vl:32b`, full | 0.8424 | 0.7910 | 0.9015 |
+| M0b | `qwen2.5vl:32b`, narrowed | 0.8424 | 0.7910 | 0.9173 |
+| M1a | `qwen3-vl:32b-instruct`, full | 0.8424 | 0.7910 | **0.8186** |
+| M1b | `qwen3-vl:32b-instruct`, narrowed | 0.8424 | 0.7910 | **0.9225** |
+
+**The seven criteria (all had to hold on dev).** "Right" counts a cell whose value matches ground truth, or a cell left empty that the form leaves empty. A parked document goes to the review queue.
+
+| # | Criterion | Measured | Threshold | Verdict |
+|---|---|---|---|---|
+| 1 | M1b Tier 1+2+3 beats M0b by a margin | 0.9225 (+0.0052) | ≥ 0.927 (0.917 + 0.010) | **missed** |
+| 2 | On routed cells exactly one model gets right, M1b wins more often (one-sided exact sign test) | 34 vs 25, p = 0.149 | p < 0.05 | **missed** |
+| 3 | The full read doesn't regress: M1a ≥ M0a | 0.8186 | ≥ 0.902 | **missed** |
+| 4 | No scored field has more than 2 fewer right cells than M0b | first_name −4 (82 → 78) | ≥ −2 | **missed** |
+| 5 | Parked documents ≤ M0b's, and accepted-cell precision ≥ M0b's − 0.5 pp | 47 parked (M0b 46); precision 0.9980 | ≤ 46; ≥ 0.9909 | **missed** (parking) |
+| 6 | 100% GPU at `num_ctx` 8192; warm mean ≤ 1.5× the baseline's time per call | 100% GPU; 4.583 s narrowed, 18.787 s full | ≤ 9.3 s; ≤ 31.5 s | met |
+| 7 | At most 1 reply per pass that isn't a JSON object with exactly the requested keys | 0 of 98 in each pass | ≤ 1 | met |
+
+**Speed and VRAM.** Qwen3-VL ran entirely on the two GPUs (`100% GPU`) at `num_ctx` 8192, taking 23 GB on `ollama ps` against `qwen2.5vl:32b`'s 31 GB. Peak `nvidia-smi` was 11,685 MiB on the RTX 4080 and 11,353 MiB on the RTX 4060 Ti. Warm mean time per call (Ollama's own durations):
+- full read: 18.79 s, against 20.89 s for the baseline;
+- narrowed read: 4.58 s, against 6.17 s.
+
+Decode ran at 18.71 and 19.38 tokens/s, against 19.46 and 20.90.
+
+**Why it lost: full reads drop Synthea's digit suffixes.** Synthea appends digits to the names it generates, and the rendered forms print them, so they are part of the ground truth.
+- Reading the whole form, Qwen3-VL drops them. Paired against the baseline's full read, it is wrong on 100 routed cells the baseline got right and right on only 9 the baseline got wrong (sign test p = 1.0). 96 of those 100 cells are first or last names.
+- Narrowed reads keep most suffixes. The two reads of the same routed field agree on 238 of 364 (65.4%), against 305 of 364 (83.8%) for `qwen2.5vl:32b`.
+- The committed replay cache is built from full reads, so adopting this model would publish a lower committed number; criterion 3 exists for that case.
+- The narrowed read, which is what the cascade sends live, is slightly better and about 26% faster, but not by the pre-registered margin: +0.0052 F1, with the paired test unable to tell 34 vs 25 cells from noise.
+
+**Caveat:** most of the movement between the two models is copying synthetic digits, a corpus artifact, not evidence about reading real forms. The corpus has one renderer template. This is one dev run with no confidence interval.
+
+**Diagnostic — not scored, no criterion.** These are the Tier 1+2+3 cells that have ground truth but came out wrong:
+- **Name minus suffix:** a first or last name equal to the printed value without its trailing digits.
+- **Street minus tail:** a street equal to the printed value without its Apt/Unit/Suite tail.
+- **Other wrong values:** every other populated wrong cell.
+- **Missed:** cells left empty. 98 of them are `signature`, which no tier reads.
+
+| Pass | Name minus suffix | Street minus tail | Other wrong values | Missed |
+|---|---|---|---|---|
+| M0a | 29 | 8 | 19 | 98 |
+| M0b | 9 | 0 | 27 | 98 |
+| M1a | 125 | 13 | 9 | 98 |
+| M1b | 22 | 0 | 11 | 98 |
+
+**Revisit conditions.** These still hold after the trial, and apply only to a mixed-precision build:
+
+1. Qwen3-VL community GGUF repositories mature enough to provide stable, well-documented mixed-precision builds (aggressive LLM, full-precision vision). The uniform Q4_K_M library build is measured above and does not earn the swap.
+2. Phase 9 QLoRA fine-tuning experiments suggest mixed-precision training would yield meaningful gains.
+
+Any such build would be measured with the same runner (`scripts/m0_tier3.py --model <tag>`) against the same pre-registered criteria, including the full-read criterion this build failed, before the test split is run. The measurement is cheap to repeat (one overnight run of that runner). A swap is not: it means new Tier-3 replay fixtures, updated drift guards and charts, and a Tier-3 family change in the documented architecture.
 
 ## V2 Tier 2 local model upgrade (was: replace Textract; now: replace Qwen 7B in V1 carrying over to V2)
 
