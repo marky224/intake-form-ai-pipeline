@@ -18,7 +18,7 @@ Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants
 - The same conditions for both models:
   - `num_ctx` 8192, temperature 0, and the shared Tier-3 prompt and JSON schema, unchanged.
   - The 98 dev documents, with Tier 1 and Tier 2 replayed from the same cache. Routing depends only on those two tiers, so every document sends both models the same fields: 364 scored cells, 3.71 per document.
-- Two reads per model, both via `scripts/m0_tier3.py --model`:
+- Two reads per model, full and narrowed. The candidate's come from `scripts/m0_tier3.py --model qwen3-vl:32b-instruct`; the baseline's are the same runner's 2026-10-30 reads with its default tag (`qwen2.5vl:32b`), made before `--model` existed:
   - **full** reads all 27 fields, the way the committed replay cache was recorded;
   - **narrowed** reads only the routed fields, which is what the cascade sends live.
 - The win criteria and the stop rule were fixed before any candidate reading existed.
@@ -41,7 +41,7 @@ Qwen3-VL-32B was released October 2025, with both Instruct and Thinking variants
 | 3 | The full read doesn't regress: M1a ≥ M0a | 0.8186 | ≥ 0.902 | **missed** |
 | 4 | No scored field has more than 2 fewer right cells than M0b | first_name −4 (82 → 78) | ≥ −2 | **missed** |
 | 5 | Parked documents ≤ M0b's, and accepted-cell precision ≥ M0b's − 0.5 pp | 47 parked (M0b 46); precision 0.9980 | ≤ 46; ≥ 0.9909 | **missed** (parking) |
-| 6 | 100% GPU at `num_ctx` 8192; warm mean ≤ 1.5× the baseline's time per call | 100% GPU; 4.583 s narrowed, 18.787 s full | ≤ 9.3 s; ≤ 31.5 s | met |
+| 6 | 100% GPU at `num_ctx` 8192; warm mean ≤ 1.5× the baseline's mean time per call (pre-registered: 6.174 s narrowed, 20.974 s full) | 100% GPU; 4.583 s narrowed, 18.787 s full | ≤ 9.3 s; ≤ 31.5 s | met |
 | 7 | At most 1 reply per pass that isn't a JSON object with exactly the requested keys | 0 of 98 in each pass | ≤ 1 | met |
 
 **Speed and VRAM.** Qwen3-VL ran entirely on the two GPUs (`100% GPU`) at `num_ctx` 8192, taking 23 GB on `ollama ps` against `qwen2.5vl:32b`'s 31 GB. Peak `nvidia-smi` was 11,685 MiB on the RTX 4080 and 11,353 MiB on the RTX 4060 Ti. Warm mean time per call (Ollama's own durations):
@@ -180,4 +180,4 @@ Defer to production deployment. Synthetic data doesn't expose this requirement; 
 
 Nothing on this list is on a schedule, and none of it is required for V1 to be complete — V1 is the finished deliverable. The "revisit triggers" stated per item are the conditions under which a given consideration would become relevant *if* the optional BAA-cloud enhancement (or a production deployment behind it) is ever pursued; absent that, they stay considered-not-done by design.
 
-This document was swept at V1 completion (2026-05-18 Phase 10 polish, re-confirmed 2026-05-19 with the V1-complete reframe): every item was re-checked against shipped reality and none had rotted. The emergent Phases 4–9 findings are folded in above — the Qwen3-VL Tier-3 upgrade candidate's condition 1 became "Realized (2026-05-17)" when the consumer-VRAM Q4_K_M trade-off was measured, and the Bedrock adapter-import item records the Phase 9 identity-baseline result. No new considerations emerged from Phases 4–9 beyond those.
+This document was swept at V1 completion (2026-05-18 Phase 10 polish, re-confirmed 2026-05-19 with the V1-complete reframe): every item was re-checked against shipped reality and none had rotted. The emergent Phases 4–9 findings are folded in above — the Qwen3-VL Tier-3 section records the consumer-VRAM Q4_K_M trade-off measured on 2026-05-17 and the 2026-11 measured trial of Qwen3-VL-32B (not adopted), and the Bedrock adapter-import item records the Phase 9 identity-baseline result. No new considerations emerged from Phases 4–9 beyond those.
