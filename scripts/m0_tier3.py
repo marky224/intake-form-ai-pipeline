@@ -10,17 +10,23 @@ readings compare with the cached ones:
 - **M0b** — a narrowed Tier-3 read of only the fields the cascade routes to
   Tier 3 for that document (what the cascade sends live since 2026-10-24).
 
-It writes one JSON summary: tokens/s, seconds per document, the VRAM split
-``ollama ps`` reports with the model loaded, by-stage F1 from the new
-readings (M0a and M0b each, beside the cached-replay F1), and how often the
-narrowed reading of a routed field matches the full reading.
+``--model`` (default: Tier 3's tag) measures another installed model with
+the same prompt, schema and ``num_ctx``; only the Tier-3 readings change.
+
+It writes one JSON summary: ``ollama show <model>`` verbatim, tokens/s,
+seconds per document, prompt and output token counts, the VRAM split
+``ollama ps`` reports with the model loaded, per-pass schema adherence
+(replies that parse as a JSON object with exactly the requested keys),
+by-stage F1 from the new readings (M0a and M0b each, beside the
+cached-replay F1), and how often the narrowed reading of a routed field
+matches the full reading.
 
 Safety rules (the run is unattended):
 
 - Refuses to start (exit 2) if ``ollama ps`` shows any other model loaded,
-  or if ``qwen2.5vl:32b`` is not already installed (``ollama list``). It
-  never pulls a model.
-- Only Tier 3 runs live, so the 32B is loaded once (``keep_alive`` 1h).
+  or if the model (``--model``, default ``qwen2.5vl:32b``) is not already
+  installed (``ollama list``). It never pulls a model.
+- Only Tier 3 runs live, so the model is loaded once (``keep_alive`` 1h).
   Tier 1, Tier 2 and the router's Stage 2 are replay-only: their files are
   copied from ``--source-cache`` into a fresh cache under ``--work-dir``,
   and any cache miss is an error, never a live call.
@@ -33,7 +39,7 @@ Safety rules (the run is unattended):
   M0a is summarized before M0b starts, so its numbers survive an M0b
   failure.
 - Records ``nvidia-smi`` per-card memory before, with the model loaded and
-  after, and unloads the 32B (``ollama stop``) at the end once ``ps_after``
+  after, and unloads the model (``ollama stop``) at the end once ``ps_after``
   is taken, so it doesn't hold the GPUs for ``keep_alive``'s hour.
 
 Run (from the repository root, models otherwise idle)::
@@ -41,7 +47,8 @@ Run (from the repository root, models otherwise idle)::
     uv run --offline python -m scripts.m0_tier3 \\
         --image-dir <dev render folder> \\
         --work-dir <new empty dir> \\
-        --output <summary.json>
+        --output <summary.json> \\
+        [--model <installed tag>]
 
 ``--dry-run`` does the preflight, seeding and routing but makes no model
 call; ``--limit N`` reads only the first N documents (a pilot).
@@ -80,7 +87,8 @@ from intake_schemas import HealthcareIntakeForm
 
 logger = logging.getLogger("m0_tier3")
 
-#: The only model this run may load (never pulled).
+#: The default ``--model``: Tier 3's tag. The run loads only ``--model``
+#: and never pulls it.
 MODEL = tier3.QWEN_MODEL_TAG
 
 #: Replay-only namespaces copied into the work cache. Tier 1 and Tier 2 are
@@ -143,17 +151,17 @@ def gpu_memory(run: Runner) -> str:
         return f"unavailable: {type(exc).__name__}: {exc}"
 
 
-def preflight(run: Runner) -> dict[str, str]:
-    """Refuse unless only ``MODEL`` (or nothing) is loaded and it is installed."""
+def preflight(run: Runner, model: str) -> dict[str, str]:
+    """Refuse unless only ``model`` (or nothing) is loaded and it is installed."""
     version = run(["ollama", "--version"]).strip()
     ps = run(["ollama", "ps"])
-    others = [name for name in _model_names(ps) if name != MODEL]
+    others = [name for name in _model_names(ps) if name != model]
     if others:
         raise Refused(f"other models loaded: {', '.join(others)} — stop them first")
     listed = run(["ollama", "list"])
-    if MODEL not in _model_names(listed):
-        raise Refused(f"{MODEL} is not installed; this runner never pulls a model")
-    return {"version": version, "ps": ps}
+    if model not in _model_names(listed):
+        raise Refused(f"{model} is not installed; this runner never pulls a model")
+    return {"version": version, "ps": ps, "show": run(["ollama", "show", model])}
 
 
 def _inside(path: Path, root: Path) -> bool:
@@ -330,9 +338,11 @@ def live_pass(
     out_dir: Path,
     deadline: float,
     on_first: Callable[[], None] | None = None,
+    *,
+    model: str,
 ) -> list[dict[str, Any]]:
-    """One Tier-3 call per document (all fields, or only ``fields[sha]``);
-    saves each raw response as ``out_dir/<sha>.json``."""
+    """One Tier-3 call per document to ``model`` (all fields, or only
+    ``fields[sha]``); saves each raw response as ``out_dir/<sha>.json``."""
     out_dir.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, Any]] = []
     for i, (doc_id, sha, png) in enumerate(docs, 1):
@@ -345,7 +355,9 @@ def live_pass(
             HealthcareIntakeForm if names is None else narrow_form_cls(HealthcareIntakeForm, names)
         )
         t0 = time.perf_counter()
-        raw = tier3._invoke_model(client, png.read_bytes(), form_cls)
+        raw = _qwen_vl.invoke_model(
+            client, png.read_bytes(), form_cls, model_tag=model, num_ctx=tier3.NUM_CTX
+        )
         wall = time.perf_counter() - t0
         (out_dir / f"{sha}.json").write_text(json.dumps(raw), encoding="utf-8")
         if not rows and on_first is not None:
@@ -366,10 +378,16 @@ def _stats(values: list[float]) -> dict[str, float | None]:
 
 
 def timing(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Tokens/s and seconds per call from Ollama's own durations (ns)."""
+    """Tokens/s, seconds per call and token counts from Ollama's own
+    durations (ns) and counts."""
     tps, total, load, prompt = [], [], [], []
+    prompt_tokens, output_tokens = [], []
     for row in rows:
         raw = row["raw"]
+        if raw.get("prompt_eval_count") is not None:
+            prompt_tokens.append(float(raw["prompt_eval_count"]))
+        if raw.get("eval_count") is not None:
+            output_tokens.append(float(raw["eval_count"]))
         if raw.get("eval_count") and raw.get("eval_duration"):
             tps.append(raw["eval_count"] / (raw["eval_duration"] / 1e9))
         if raw.get("total_duration"):
@@ -386,8 +404,26 @@ def timing(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "seconds_per_call_wall": _stats([r["wall_s"] for r in rows]),
         "load_seconds": _stats(load),
         "prompt_eval_seconds": _stats(prompt),
+        "prompt_eval_count": _stats(prompt_tokens),
+        "eval_count": _stats(output_tokens),
         "fields_per_call": _stats([float(f) for f in fields]) if fields else None,
     }
+
+
+def adherence(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """How many replies parse as a JSON object with exactly the requested
+    keys (without ``extract_json_object``'s fallbacks), and which failed."""
+    all_fields = set(_qwen_vl._extractable_fields(HealthcareIntakeForm))
+    failed = []
+    for row in rows:
+        wanted = all_fields if row["fields"] is None else set(row["fields"])
+        try:
+            reply = json.loads(_qwen_vl._response_content(row["raw"]))
+        except json.JSONDecodeError:
+            reply = None
+        if not isinstance(reply, dict) or set(reply) != wanted:
+            failed.append(row["doc_id"])
+    return {"ok": len(rows) - len(failed), "failed": len(failed), "failed_doc_ids": failed}
 
 
 def score(
@@ -459,7 +495,15 @@ def main(
 ) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m scripts.m0_tier3",
-        description="M0: live Tier-3 (qwen2.5vl:32b, num_ctx 8192) measurement on the dev split.",
+        description=(
+            f"M0: live Tier-3 (default {MODEL}, num_ctx {tier3.NUM_CTX}) measurement "
+            "on the dev split."
+        ),
+    )
+    parser.add_argument(
+        "--model",
+        default=MODEL,
+        help=f"installed Ollama tag to read with (default: Tier 3's {MODEL}); never pulled",
     )
     parser.add_argument(
         "--image-dir",
@@ -507,7 +551,7 @@ def main(
     summary: dict[str, Any] = {
         "status": "failed",
         "error": None,
-        "model": MODEL,
+        "model": args.model,
         "num_ctx": tier3.NUM_CTX,
         "split": args.split,
         "started_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -516,8 +560,12 @@ def main(
     live = False
     try:
         check_paths(args.work_dir, args.output, args.image_dir, args.source_cache)
-        before = preflight(run)
-        summary["ollama"] = {"version_before": before["version"], "ps_before": before["ps"]}
+        before = preflight(run, args.model)
+        summary["ollama"] = {
+            "version_before": before["version"],
+            "ps_before": before["ps"],
+            "show": before["show"],
+        }
         summary["gpu_memory"] = {"before": gpu_memory(run)}
         docs = select_docs(args.split, args.image_dir, args.limit)
         summary["docs"] = len(docs)
@@ -549,14 +597,23 @@ def main(
         def note_loaded() -> None:
             ps = run(["ollama", "ps"])
             summary["ollama"]["ps_loaded"] = ps
-            summary["ollama"]["processor_loaded"] = _processor(ps, MODEL)
+            summary["ollama"]["processor_loaded"] = _processor(ps, args.model)
             summary["gpu_memory"]["loaded"] = gpu_memory(run)
 
-        full = live_pass(client, docs, None, args.work_dir / "m0a-full", deadline, note_loaded)
+        full = live_pass(
+            client,
+            docs,
+            None,
+            args.work_dir / "m0a-full",
+            deadline,
+            note_loaded,
+            model=args.model,
+        )
         # Summarize M0a before M0b starts, so a failure or the wall-clock cap
         # during M0b still leaves M0a's numbers in the summary.
         summary["m0a_full"] = {
             **timing(full),
+            "schema_adherence": adherence(full),
             **score(
                 seed,
                 args.work_dir / "m0a-full",
@@ -566,22 +623,25 @@ def main(
                 ids,
             ),
         }
-        narrow = live_pass(client, docs, routed, args.work_dir / "m0b-narrowed", deadline)
-        summary["m0b_narrowed"] = (
-            {
-                **timing(narrow),
-                **score(
+        narrow = live_pass(
+            client, docs, routed, args.work_dir / "m0b-narrowed", deadline, model=args.model
+        )
+        summary["m0b_narrowed"] = {
+            **timing(narrow),
+            "schema_adherence": adherence(narrow),
+            **(
+                score(
                     seed,
                     args.work_dir / "m0b-narrowed",
                     args.work_dir / "score-m0b",
                     args.split,
                     args.image_dir,
                     ids,
-                ),
-            }
-            if narrow
-            else timing(narrow)
-        )
+                )
+                if narrow
+                else {}
+            ),
+        }
         summary["narrowed_vs_full"] = agreement(full, narrow)
         summary["status"] = "ok"
         code = EXIT_OK
@@ -604,10 +664,10 @@ def main(
             except Exception as exc:  # pragma: no cover - logged, not fatal
                 summary.setdefault("ollama", {})["after_error"] = str(exc)
         if live:
-            # Free the 32B now (keep_alive would hold it ~1 h on a shared
+            # Free the model now (keep_alive would hold it ~1 h on a shared
             # box), after ps_after has recorded it loaded.
             try:
-                run(["ollama", "stop", MODEL])
+                run(["ollama", "stop", args.model])
                 summary["unloaded"] = True
             except Exception as exc:  # recorded; the summary still gets written
                 summary["unloaded"] = False
