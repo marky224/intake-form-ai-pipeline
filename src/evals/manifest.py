@@ -62,7 +62,7 @@ class ManifestEntry:
 
     ``partition_key`` is what leakage validation groups on (patient UUID for
     CMS-1500, DocILE doc id for business). ``image_sha256`` ties the entry
-    to its ``tests/fixtures/eval-cache/`` replay fixtures.
+    to its ``src/tests/fixtures/eval-cache/`` replay fixtures.
     """
 
     doc_id: str

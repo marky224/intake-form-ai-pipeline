@@ -1,6 +1,6 @@
 """Tests for the DocILE annotation parser.
 
-The fixture at ``tests/fixtures/docile/`` is a synthetic 3-document
+The fixture at ``src/tests/fixtures/docile/`` is a synthetic 3-document
 mini-dataset hand-crafted to match the upstream DocILE annotation
 schema (verified against the real
 ``rossumai/docile/tests/data/sample-dataset/`` at upstream commit

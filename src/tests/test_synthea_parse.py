@@ -1,6 +1,6 @@
 """Tests for the Synthea FHIR Bundle parser.
 
-The fixture at ``tests/fixtures/synthea/fhir/`` is a trimmed snapshot of
+The fixture at ``src/tests/fixtures/synthea/fhir/`` is a trimmed snapshot of
 Synthea v4.0.0 output with ``-p 5 -s 42 Massachusetts`` and
 ``years_of_history=1``. Synthea wrote 6 bundles (5 alive + 1 deceased +
 replacement); the fixture preserves all six. Each bundle keeps only the

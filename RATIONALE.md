@@ -250,10 +250,10 @@ Per the master architecture doc:
 ## 7. Reproducing this artifact
 
 ```bash
-# From the repo root (flat layout — intake_schemas.py is a top-level module).
+# From the repo root (src layout — intake_schemas.py lives in src/).
 just install                                      # uv sync + pre-commit
-uv run python build_alias_seed.py                 # regenerates alias_table_seed.json
-uv run pytest tests/test_intake_schemas.py -v     # 40 schema tests, all pass
+uv run python -m build_alias_seed                 # regenerates alias_table_seed.json
+uv run pytest src/tests/test_intake_schemas.py -v # 56 schema tests, all pass
 ```
 
 The seed JSON is regenerated deterministically from the schema metadata plus the hand-curated `ALIASES` map in `src/build_alias_seed.py`. Editing aliases means editing that dict; editing canonical fields means editing `src/intake_schemas.py` and regenerating.

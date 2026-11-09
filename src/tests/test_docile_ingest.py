@@ -1,7 +1,7 @@
 """Tests for the DocILE end-to-end ingest orchestrator.
 
 Built around the same synthetic fixture set as ``test_docile_parse``
-(``tests/fixtures/docile/{annotations,train.json,val.json}``). PDFs
+(``src/tests/fixtures/docile/{annotations,train.json,val.json}``). PDFs
 are synthesized into a tmp directory per-test rather than committed
 as binaries — they're generated deterministically by pypdfium2 with
 the same page counts the annotation fixtures declare, so the tests

@@ -345,7 +345,8 @@ def main() -> None:
     docs = list_demo_docs()
     if not docs:
         st.error(
-            "No committed CMS-1500 fixtures found under " "tests/fixtures/eval-validation/cms1500/."
+            "No committed CMS-1500 fixtures found under "
+            "src/tests/fixtures/eval-validation/cms1500/."
         )
         return
 

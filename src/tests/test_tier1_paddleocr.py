@@ -1235,7 +1235,7 @@ def test_load_paddleocr_vl_pipeline_raises_helpful_error_when_paddle_missing(mon
 # CMS-1500 + 5 DocILE pages). Locked 2026-05-13 to CMS-1500-only — DocILE
 # pages cannot be redistributed in this public repo because DocILE is
 # CC-BY-NC-ND 4.0. DocILE-side validation is a local-only workflow on
-# Mark's GPU machine. See tests/fixtures/eval-cache/README.md.
+# Mark's GPU machine. See src/tests/fixtures/eval-cache/README.md.
 
 VALIDATION_DIR = pathlib.Path(__file__).parent / "fixtures" / "eval-validation" / "cms1500"
 

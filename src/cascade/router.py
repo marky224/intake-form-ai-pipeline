@@ -11,7 +11,7 @@ distinctive vocabulary; a matched alias contributes its inverse-frequency
 weight (rarer alias → higher weight). The document is classified
 ``healthcare`` when the accumulated weighted score ≥ ``STAGE1_THRESHOLD_N``
 (locked starting value ``1.0``; Phase 5 spot-check tunes — see
-``tests/test_router.py`` and the PR body for the recorded value).
+``src/tests/test_router.py`` and the PR body for the recorded value).
 
 Stage 2 is the fallback for documents scoring below N (~20% of inputs). V1
 routes Stage 2 to the **local Qwen 2.5 VL 7B** model with a one-shot
@@ -21,7 +21,7 @@ the cascade. V2 swaps Stage 2 to Bedrock Nova Lite at the BAA boundary —
 not V1 work.
 
 Stage 2 is replay-cached exactly like a cascade provider
-(``tests/fixtures/eval-cache/router_stage2_qwen_7b/<sha>.json``) so CI
+(``src/tests/fixtures/eval-cache/router_stage2_qwen_7b/<sha>.json``) so CI
 classifies ambiguous docs deterministically for $0 and never needs a live
 Ollama server. ``EVAL_LIVE=true`` bypasses the cache and persists fresh
 responses, same contract as the providers.
@@ -193,7 +193,7 @@ def _load_ollama_client() -> Any:
     """Stage 2 Ollama client. Thin wrap of the shared loader.
 
     Separate seam (vs. importing ``_qwen_vl.load_ollama_client`` at call
-    sites) so ``tests/test_router.py`` can
+    sites) so ``src/tests/test_router.py`` can
     ``monkeypatch.setattr(router, "_load_ollama_client", ...)`` without
     touching the cascade providers' own seams.
     """

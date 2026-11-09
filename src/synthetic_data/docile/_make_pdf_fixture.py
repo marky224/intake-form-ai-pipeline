@@ -9,7 +9,7 @@ pypdfium2 major bump to regenerate.
 Usage::
 
     uv run python -m synthetic_data.docile._make_pdf_fixture \\
-        tests/fixtures/docile/pdfs/aaa000000000000000000003.pdf
+        src/tests/fixtures/docile/pdfs/aaa000000000000000000003.pdf
 
 The committed fixture matches the minimal-document annotation fixture
 (``aaa000000000000000000003``) so end-to-end rasterize+parse tests can
@@ -59,7 +59,7 @@ def main() -> int:
     parser.add_argument(
         "out_path",
         type=Path,
-        help="Output PDF path (e.g., tests/fixtures/docile/pdfs/<doc_id>.pdf).",
+        help="Output PDF path (e.g., src/tests/fixtures/docile/pdfs/<doc_id>.pdf).",
     )
     parser.add_argument(
         "--pages",

@@ -28,7 +28,7 @@ Bundle JSON per patient plus auxiliary `hospitalInformation*.json` and
 
 ## Regenerating the test fixture
 
-The fixture committed at `tests/fixtures/synthea/fhir/` is six trimmed FHIR
+The fixture committed at `src/tests/fixtures/synthea/fhir/` is six trimmed FHIR
 bundles. The recipe asks Synthea for `-p 5` patients but Synthea wrote 6
 bundles: one patient died mid-simulation and was replaced to keep five
 alive at export time. We commit all six.
@@ -44,9 +44,9 @@ To regenerate (e.g., after a Synthea version bump):
 ```bash
 just synthetic-data-patients 5 42
 uv run python -m synthetic_data.synthea._trim_for_fixture \
-    synthetic_data/output/synthea/fhir \
-    tests/fixtures/synthea/fhir
-uv run pytest test_synthea_parse.py
+    src/synthetic_data/output/synthea/fhir \
+    src/tests/fixtures/synthea/fhir
+uv run pytest src/tests/test_synthea_parse.py
 ```
 
 Determinism: same Synthea version + same seed + same state + same
