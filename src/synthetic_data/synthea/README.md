@@ -44,9 +44,9 @@ To regenerate (e.g., after a Synthea version bump):
 ```bash
 just synthetic-data-patients 5 42
 uv run python -m synthetic_data.synthea._trim_for_fixture \
-    synthetic_data/output/synthea/fhir \
-    tests/fixtures/synthea/fhir
-uv run pytest test_synthea_parse.py
+    src/synthetic_data/output/synthea/fhir \
+    src/tests/fixtures/synthea/fhir
+uv run pytest src/tests/test_synthea_parse.py
 ```
 
 Determinism: same Synthea version + same seed + same state + same
