@@ -28,7 +28,7 @@ Bundle JSON per patient plus auxiliary `hospitalInformation*.json` and
 
 ## Regenerating the test fixture
 
-The fixture committed at `tests/fixtures/synthea/fhir/` is six trimmed FHIR
+The fixture committed at `src/tests/fixtures/synthea/fhir/` is six trimmed FHIR
 bundles. The recipe asks Synthea for `-p 5` patients but Synthea wrote 6
 bundles: one patient died mid-simulation and was replaced to keep five
 alive at export time. We commit all six.

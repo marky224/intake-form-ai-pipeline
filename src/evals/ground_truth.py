@@ -4,7 +4,7 @@ The eval harness scores an assembled form against ground truth at the
 *schema-field* level. Two corpora, two sources of truth:
 
 **CMS-1500 (healthcare, committed, CI).** The renderer sidecars
-(``tests/fixtures/eval-validation/cms1500/<id>.json``) store one entry per
+(``src/tests/fixtures/eval-validation/cms1500/<id>.json``) store one entry per
 CMS-1500 *box*, and the box text is the *rendered* text — box 2 is
 ``"LAST, FIRST"``, box 3 packs ``MM/DD/YYYY <nbsp> SEX``. A VL model returns
 clean per-field values. Scoring the raw box text against a clean extraction

@@ -18,19 +18,21 @@ as the live path.
 ## Regenerating
 
 Cached fixtures are checked in so CI never makes live provider calls. To
-regenerate (e.g., after upgrading PaddleOCR-VL, switching the Textract
-Queries shape, or onboarding a new validation document):
+regenerate (e.g., after upgrading PaddleOCR-VL or onboarding a new validation
+document):
 
 ```bash
-# On the build machine (RTX 4080/4060 Ti) with paddle installed:
+# On the GPU build machine (RTX 4080/4060 Ti), with PaddleOCR-VL installed and
+# Ollama serving qwen2.5vl:7b and qwen2.5vl:32b. The regen takes ~2 h.
+# Resumable: re-run it to fill gaps after a partial pass.
 uv sync --locked --inexact
 # --inexact keeps PaddleOCR-VL, which is installed by hand per docs/local-development.md, "Tier 1 PaddleOCR-VL setup".
 just regen-fixtures
 ```
 
-`EVAL_LIVE=true` bypasses the cache, runs live inference, and writes the
-fresh responses back to this directory. Commit the diff for reviewer
-inspection.
+`just regen-fixtures` sets `EVAL_LIVE=true`, which bypasses the cache, runs
+live inference, and writes the fresh responses back to this directory. Commit
+the diff for reviewer inspection.
 
 ## Initial seed (PR (a+b))
 

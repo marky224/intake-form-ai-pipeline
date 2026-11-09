@@ -3,7 +3,7 @@
 ``demo/app.py`` is the Streamlit view; this module is the core it calls, and
 the only half CI imports and tests. Everything here runs the real V1 cascade
 through the **default cached-replay path**: providers short-circuit to the
-committed ``tests/fixtures/eval-cache/`` fixtures when ``EVAL_LIVE`` is unset,
+committed ``src/tests/fixtures/eval-cache/`` fixtures when ``EVAL_LIVE`` is unset,
 so ``just demo`` runs end-to-end for **$0, deterministically, with nothing on
 the GPU** (no Ollama, no Paddle process).
 

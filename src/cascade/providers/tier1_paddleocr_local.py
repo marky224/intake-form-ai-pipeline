@@ -73,7 +73,7 @@ from intake_schemas import (
 )
 
 #: Stable provider identifier. Used as the eval-cache subdirectory name
-#: (``tests/fixtures/eval-cache/tier1_paddleocr_local/<sha>.json``).
+#: (``src/tests/fixtures/eval-cache/tier1_paddleocr_local/<sha>.json``).
 PROVIDER_NAME = "tier1_paddleocr_local"
 
 #: Cascade tier per ``intake_schemas.TierId``.

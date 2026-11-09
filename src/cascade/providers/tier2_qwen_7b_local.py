@@ -123,7 +123,7 @@ __all__ = [
 ]
 
 #: Stable provider identifier. Used as the eval-cache subdirectory name
-#: (``tests/fixtures/eval-cache/tier2_qwen_7b_local/<sha>.json``).
+#: (``src/tests/fixtures/eval-cache/tier2_qwen_7b_local/<sha>.json``).
 PROVIDER_NAME = "tier2_qwen_7b_local"
 
 #: Cascade tier per ``intake_schemas.TierId``.

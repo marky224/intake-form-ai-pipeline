@@ -20,7 +20,7 @@ Design decisions (surfaced to + approved by Mark at Phase 6 entry):
   free-text→casefold+whitespace-collapse, IDs→exact) so F1 reflects
   extraction quality, not the renderer's box layout.
 - **Reuse the existing replay cache.** The eval corpus is the already-wired
-  ``tests/fixtures/eval-cache/`` (6 CMS-1500 across all tiers + router),
+  ``src/tests/fixtures/eval-cache/`` (6 CMS-1500 across all tiers + router),
   not a parallel ``evals/fixtures/`` store. ``evals/`` holds only the
   manifest, the thin fixtures manifest, results, the cost table, and the
   by-stage chart.

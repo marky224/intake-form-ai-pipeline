@@ -20,7 +20,7 @@
             on every pass, and it is also the only mode in which the 240 s
             per-call cap can fail a call (otherwise the over-cap reading is
             already saved and the retry replays it). The saved replay files
-            land under ``tests/fixtures/eval-cache/``, which is tracked, so
+            land under ``src/tests/fixtures/eval-cache/``, which is tracked, so
             the run leaves them untracked there; keep them out of commits.
 ``build-manifest`` — regenerate the committed ``manifest.json`` from the
             gitignored full local corpus (``CORPUS_RENDER_DIR``), patient-

@@ -12,7 +12,7 @@ the cascade tests an arbitrary number of times for $0.
 
 Cache layout::
 
-    tests/fixtures/eval-cache/<provider_name>/<image_sha256>.json
+    src/tests/fixtures/eval-cache/<provider_name>/<image_sha256>.json
 
 The body of each file is the provider's ``raw_response`` dict verbatim — no
 ``ProviderResult`` wrapping, no normalization. Providers re-parse cached

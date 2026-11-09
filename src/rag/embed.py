@@ -12,7 +12,7 @@ Replay contract — identical in spirit to the cascade providers'
 ``eval_cache``, but the payload is a float32 matrix so it is cached as
 ``.npy`` rather than JSON::
 
-    tests/fixtures/eval-cache/colqwen2.5/<image_sha256>.npy
+    src/tests/fixtures/eval-cache/colqwen2.5/<image_sha256>.npy
 
 Default (``EVAL_LIVE`` unset): load the committed ``.npy`` fixture — no
 GPU, no ``colpali-engine`` import, $0, deterministic in CI. ``EVAL_LIVE=true``:
