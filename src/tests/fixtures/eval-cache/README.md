@@ -23,7 +23,8 @@ Queries shape, or onboarding a new validation document):
 
 ```bash
 # On the build machine (RTX 4080/4060 Ti) with paddle installed:
-uv sync --extra paddle
+uv sync --locked
+# PaddleOCR-VL is installed by hand per docs/local-development.md, "Tier 1 PaddleOCR-VL setup".
 EVAL_LIVE=true uv run pytest -m slow test_tier1_paddleocr.py::test_live_inference_against_validation_set
 ```
 
