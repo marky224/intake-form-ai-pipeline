@@ -23,8 +23,9 @@ Queries shape, or onboarding a new validation document):
 
 ```bash
 # On the build machine (RTX 4080/4060 Ti) with paddle installed:
-uv sync --extra paddle
-EVAL_LIVE=true uv run pytest -m slow test_tier1_paddleocr.py::test_live_inference_against_validation_set
+uv sync --locked --inexact
+# --inexact keeps PaddleOCR-VL, which is installed by hand per docs/local-development.md, "Tier 1 PaddleOCR-VL setup".
+just regen-fixtures
 ```
 
 `EVAL_LIVE=true` bypasses the cache, runs live inference, and writes the
@@ -35,7 +36,7 @@ inspection.
 
 The initial seed for `tier1_paddleocr_local/` was generated programmatically
 from the Synthea-rendered CMS-1500 validation set
-(`tests/fixtures/eval-validation/cms1500/`) using realistic demographic
+(`src/tests/fixtures/eval-validation/cms1500/`) using realistic demographic
 values lifted from each patient's FHIR bundle. They are **stand-ins**, not
 real PaddleOCR-VL outputs. Mark must regenerate these on the GPU build
 machine via the command above before merging PR (a+b) — and the diff at that
@@ -43,7 +44,7 @@ point will replace these stubs with the real model responses.
 
 ## Provider subdirectories
 
-- `tier1_paddleocr_local/` — Phase 4 PR (a+b), seeded with CMS-1500 validation
-- `tier2_textract/` — added in Phase 4 PR (c)
-- `tier3a_qwen_local/` — added in Phase 4 PR (d)
-- `tier3b_claude_bedrock/` — added in Phase 4 PR (e)
+- `tier1_paddleocr_local/`
+- `tier2_qwen_7b_local/`
+- `tier3_qwen_32b_local/`
+- `router_stage2_qwen_7b/`
