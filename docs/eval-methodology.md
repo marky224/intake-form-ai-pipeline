@@ -54,7 +54,7 @@ Two leakage paths exist in the synthetic + DocILE corpus and are addressed expli
 
 **Synthea patient leakage.** A single Synthea-generated patient produces multiple documents (different visit dates, different facility templates). If the same patient appears in both train and test, an extractor that memorized the patient's idiosyncratic data could appear to generalize when it has not. Partitioning is therefore done at the *patient* level, not the document level: every document for a given Synthea patient lands in the same partition. This is enforced in the partition-generation script by hashing on patient ID, not document ID.
 
-**DocILE annotation leakage.** DocILE provides its own train/val/test split. The committed `src/evals/manifest.json` holds no DocILE documents (see *Partition discipline*), so there is no business test partition to leak into; any local DocILE evaluation draws from DocILE's val + test, never its train, and DocILE train is never used as eval ground truth.
+**DocILE annotation leakage.** DocILE provides its own train/val/test split. The committed `src/evals/manifest.json` holds no DocILE documents (see *Partition discipline*), so there is no business test partition to leak into; any local DocILE evaluation is scored on DocILE val only; ingestion accepts train and val and refuses test, which stays reserved. DocILE train is never used as eval ground truth.
 
 CI runs a partition-validation test that asserts no patient ID and no DocILE document ID appears in more than one of the three sets. The test runs in the standard CI suite on every PR; a partition-script edit that introduces leakage fails the build.
 

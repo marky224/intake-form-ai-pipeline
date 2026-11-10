@@ -295,10 +295,13 @@ def _blank_field(tier: TierId) -> ExtractedField[Any]:
 def stub_metadata(form_cls: type, *, pipeline_version: str) -> FormMetadata:
     """Placeholder ``FormMetadata`` for a single provider call.
 
-    The provider doesn't know the upstream ``source_document_id``; Phase 5's
-    orchestrator replaces this when assembling the cascade output. The stub
-    just keeps the Pydantic instance valid. ``pipeline_version`` is
-    tier-specific (passed by the caller) so the stub is self-describing.
+    The provider doesn't know the upstream ``source_document_id``. Inside a
+    run the orchestrator copies only this result's fields into the run's
+    form (``narrow.merge_fields`` for Tier 2,
+    ``orchestrator._reconcile_second_read`` for Tier 3), so this stub never
+    reaches the output. The stub just keeps the Pydantic instance valid.
+    ``pipeline_version`` is tier-specific (passed by the caller) so the stub
+    is self-describing.
     """
     return FormMetadata(
         form_type=form_cls.__name__,

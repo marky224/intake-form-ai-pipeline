@@ -129,7 +129,9 @@ logger = logging.getLogger(__name__)
 GATE_TIER1_TO_TIER2 = 0.85
 GATE_TIER2_TO_TIER3 = 0.80
 
-#: Final confidence when Tier 2 and Tier 3 read a field identically.
+#: Confidence set when two readings agree: Tier 2 or Tier 3 matching
+#: Tier 1, or Tier 3 exactly equal to the current value. Strict parking in
+#: ``_reconcile_second_read`` can still lower it to the disagreement value.
 AGREEMENT_CONFIDENCE = 0.95
 
 #: Final confidence when the two readings differ (or only one found a
