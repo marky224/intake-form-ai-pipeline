@@ -84,9 +84,6 @@ src/data/
 *.swo
 *~
 .cursor/
-.claude/
-.claude-context/
-CLAUDE.md
 
 # OS
 .DS_Store
